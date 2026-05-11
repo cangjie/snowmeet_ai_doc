@@ -83,7 +83,7 @@ dotnet run
 | 第二步 | 租赁开单 — 购物车/添加入口 | `_2/` | `recept_new` + `rent_recept_form` | ✅ 完成 |
 | 第三步 | 选择套餐（分类筛选 + 多选 + 数量步进） | `_3/` | `recept_package` | ✅ 完成 |
 | 第四步 | 已选装备 — 套餐/单品详情录入 + 租赁形式 | `_4/` | 内嵌于 `rent_recept_form`（卡片展开） | 🚧 进行中 |
-| 第五步 | 支付结算 — 生成二维码 + 顾客扫码 + 会员匹配 | `_5/` | — | ⏳ 待开始 |
+| 第五步 | 支付结算 — 生成二维码 + 顾客扫码 + 会员匹配 | `_5/` | `pages/payment/settle/` + `components/{order-summary-card,order-payment}` | 🚧 进行中（mvp 完成） |
 
 ### 旧版参考（`pages/admin/recept/`）
 
@@ -149,6 +149,14 @@ dotnet run
 - **附件项录入校验改为标准**：原 `evalEntry` 对 `is_associate=true` 的豁免分支已删除。附件项（如双板带的雪杖）现在与主项一套校验：`noCode=true` 默认 → 必须录名称；缺则 chip 显示 `名称未填`，rental 级派生 `N 件未录入`，结算按钮 disable。后端 `BuildAssociates` 默认 `noCode=true, atOnce=true, is_associate=true`，前端创建附件项时与之对齐。
 - **「无码物品」入口流程**：点底部「无码物品」→ `recept_new._addBlankRental` 创建一个 `category_id=null` 的 rental + 一个主项 rentItem（`is_associate=false, noCode=true, category_id=null, name=null, code=null`）→ 卡片默认展开 → 用户点卡片中「分类」行打开 `van-tree-select` modal → 选定后 `_applyCategoryChange` 拉 `getRentCategoryPromise(catId)` + `getRentPriceListPromise` → 更新主项字段 + 删旧附件 + 按 `associateCategories` 重建附件 + 同步 `rental.category_id/name/guaranty/priceList` + `util.createRentalDetail` 重算 `pricePresets` → emit `syncRent`（needUpdate=true）父页保存。**反复切换主项分类**：每次切换都重建附件，从有附属分类切到无附属分类时附件项自动消失。
 - **分类 modal 设计**：`van-popup position=bottom round` + `van-tree-select` + 取消/确认按钮。分类树懒加载：`_ensureCategoryTreeLoaded` 拉顶级（`getTopCategoriesPromise`），`_loadCategorySub(idx)` 按需拉子分类（`getSubCategoriesPromise`）。`_categoryChildMap`（按 sub id → 完整分类对象）只缓存在 component data，不持久化，重新进页面会重拉。
+- **押金/租金编辑改为 modal 二次确认**：rental 详情卡里的押金、租金/日 不再是 input + blur，改为 `<view bindtap>` → `wx.showModal({editable:true})` 输入 → 第二个 `wx.showModal` 二次确认 → 调用 `_applyPkgDeposit / _applyPkgRate` 写入。**关键坑**：服务端 `Rent/SaveRentRecept` 往返**不保留** `realGuaranty`，`_refreshRentals` 用 `realGuaranty ?? guaranty` 取值，所以押金应用时必须同时更新 `guaranty=v` + `guaranty_discount=0`，否则 sync 回来后 UI 被刷回旧值。租金存在 `pricePresets[0].price` 里服务端原样返回，无此问题。
+
+## 通用结算页设计约定
+
+- **结算页是通用页面，非租赁专用**：路径 `/pages/payment/settle/index?orderId=...`（在 subpackage `pages/payment` 下，app.json 写 `"settle/index"`）。任何业务下单完成后用同一行 `wx.navigateTo` 跳入即可。两个核心组件都只吃 `orderId` prop：
+  - `components/order-summary-card/` — 可折叠订单卡，调 `getOrderByStaffPromise` 拉单，展示 rentals.name；缺失时用 `getPackagePromise` / `getRentCategoryPromise` 补全
+  - `components/order-payment/` — 微信/支付宝/其他三选一。微信走 `Order/GetWepayPayment/{id}` + `MediaHelper/GetQRCode` + WebSocket 监听 `paymentpaid`；**支付宝当前 mock 成微信二维码**（标了 `// TODO: 切换到支付宝小程序后替换`）；其他方式弹红色「确认收款」按钮 → `wx.showModal` 二次确认 → `Order/EffectUnpaidOrder?payMethod=...&payLater=false`。支付完成统一 `triggerEvent('paid', {orderId, payMethod, order})`，父页面后续处理待定
+- **页面 UI 约束**：用 `@import "/pages/template/stitch/tokens.wxss"`；**不要再画自定义 topbar**（小程序默认导航栏已有，画两个会重复）；`util.showAmount` 返回值已带 `¥` 前缀，拼接时勿再加；底部需挂 `<reception-tabbar active="open"/>` 否则 tab 栏消失
 
 ---
 
@@ -162,9 +170,10 @@ dotnet run
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`
 
 **下一步要做的**
+- ✅ 第五步：支付结算页 mvp 完成（settle/index + order-summary-card + order-payment，微信支付走通、支付宝 mock、其他方式确认收款）
+- 第五步剩余：支付宝小程序对接（替换当前 mock）、支付完成后父页面 `onPaid` 处理（跳转 `rent_details` 或工作台）
 - 第二步剩余：扫描条码（`Rent/QueryByBarcode`）入口（目前仅 toast 占位）
-- 第二步剩余：去结算按钮接入支付流程（按钮 disable 逻辑已就绪，等支付页对接）
-- 第五步：支付结算页（生成二维码 → 顾客扫码 → openid/payerid 会员匹配）
+- 第二步：去结算按钮入口（已在 `onCheckout` 接通 `Order/PlaceRentOrder` + navigateTo settle）
 - 养护 / 零售 业务的接待表单组件（目前仅租赁完成）
 - 旧版页面迁移：`recept_auth_list`、`recept_member_info`、`recept_list`、`rent_recepting_list`
 
@@ -180,6 +189,9 @@ dotnet run
 - 全局中文 `urldecode` 目前仅拦截 `wx.request` 的 `POST` 且仅处理 `data`；`GET` query 参数和非 `wx.request` 通道（如 `wx.uploadFile`）不在本次覆盖范围
 - 分类树 `categoryItems / _categoryChildMap` 不持久化，重新进入 `recept_new` 时第一次点开分类 modal 会重新拉取顶级 + 子分类（懒加载）。如频繁打开影响体验，可改成 page 级缓存或 globalData
 - 主项分类切换会触发 `Rent/SaveRentRecept`（通过 `triggerEvent('syncRent', { needUpdate: true })`），保存返回的 rental 经 properties observer 回流刷新。如果后端返回的 priceList 不含我们刚拉的内容会被覆盖（目前未发现问题）
+- 结算页支付宝当前为微信二维码 mock，扫码会按微信支付完成（已标 TODO，等支付宝小程序方案落地）
+- 结算页 `onPaid` 仅 `console.log`，未做跳转/刷新；父页面后续处理待定
+- 支付组件 WebSocket 仅在选中微信/支付宝并生成二维码后开启；切换支付方式时关闭旧 socket 再开新的，若用户在 prepay 调用中途切换会有短暂残留请求（无功能影响）
 
 ---
 
@@ -402,3 +414,33 @@ dotnet run
 - 📌 **缓存提示**：改完 `components/reception/*` 后微信开发者工具需 `Tools → Cache → Clear all data + Clear file cache + 编译`，否则可能看到旧行为
 
 **plan 文件**：`/Users/cangjie/.claude/plans/stockli-stockli-noble-moon.md`（仅第一项走过 plan，「无码物品」基于用户多轮 feedback 直接实施）
+
+### 2026-05-11 — 通用结算页 + 押金/租金 modal 编辑
+
+主要文件：
+- 新建 `pages/payment/settle/{js,wxml,wxss,json}`
+- 新建 `components/order-summary-card/{js,wxml,wxss,json}`
+- 新建 `components/order-payment/{js,wxml,wxss,json}`
+- 改 `pages/admin/reception/recept_new.js`（onCheckout 接通 PlaceRentOrder + navigateTo）
+- 改 `app.json`（payment subpackage 注册 settle/index）
+- 改 `components/reception/rent_recept_form/{js,wxml,wxss}`（押金/租金 modal）
+
+#### 一、通用结算页（settle，非租赁专用）
+- 用户最初提议名 `rent_settle`，确认后改为 `settle`（养护/零售共用）
+- 旧版 `components/payment/payment.*` 保留不动，新组件全部走 orderId-only 接口
+- 微信支付：`Order/GetWepayPayment/{id}` → `MediaHelper/GetQRCode` → WebSocket 监听 `paymentpaid`
+- 支付宝 mock：复用微信 prepay 接口，标 TODO，等支付宝小程序方案
+- 其他方式：红色按钮 → `wx.showModal` 二次确认 → `Order/EffectUnpaidOrder?payMethod=...&payLater=false`
+- 📌 一次性踩坑：app.json 把页面注册到主 pages 但 `pages/payment` 已是 subpackage root → 编译报 "Should not exist in subPackages"，改注册到 subpackage 内 `"settle/index"`
+- UI 调整：删自定义 topbar 避免与默认导航栏重叠；`util.showAmount` 已带 ¥ 不要再拼；底部挂 `reception-tabbar`；main 加 safe-area 底部 padding
+
+#### 二、reception/recept_new onCheckout 接通
+- 原本只是 `wx.showToast('去结算（下一步迭代）')`
+- 改为：`Order/PlaceRentOrder/{id}` 把订单转 valid=1 → `wx.navigateTo({url: '/pages/payment/settle/index?orderId=...'})`
+- 失败时统一 toast「下单失败」
+
+#### 三、押金/租金 modal 二次确认
+- 原 input + blur 改为 view + bindtap，wxml 用 `<text class="kv-input--display">`
+- 流程：tap → `wx.showModal({editable:true, content: 当前值})` → 输入 → 第二个 modal 确认金额 → `_applyPkgDeposit` / `_applyPkgRate`
+- 📌 押金 round-trip 坑：服务端不保留 `realGuaranty`，`_refreshRentals` 用 `realGuaranty ?? guaranty` 取值。`_applyPkgDeposit` 必须同时设 `guaranty=v` + `guaranty_discount=0`，否则 sync 回来 UI 被刷回旧值。租金存在 `pricePresets[0].price`，服务端原样返回，无此问题
+- 加 `.kv-cell--tap:active` 按压反馈样式
