@@ -7,6 +7,8 @@ description: Capture work session summary and project state changes before endin
 
 Closing a work session on an evolving project requires documenting what changed. This skill helps you capture session progress and update the project context so the next session picks up with accurate information.
 
+**项目上下文文件位置**：`snowmeet_ai_doc/CLAUDE.md`（位于仓库根目录下的 `snowmeet_ai_doc/` 目录，例如 `D:\snowmeet\snowmeet_ai_doc\CLAUDE.md`）。所有读写都必须落到这里，不要使用历史遗留的 Mac 路径。
+
 ## Process
 
 1. **Summarize** what was accomplished:

@@ -9,7 +9,9 @@ Beginning a work session on a complex project requires full context. This skill 
 
 ## Process
 
-1. **Read** `/Users/cangjie/Projects/snowmeet/snowmeet_ai/CLAUDE.md`
+1. **Read** the project context from `snowmeet_ai_doc/CLAUDE.md`
+   - 该文件位于本仓库根目录下的 `snowmeet_ai_doc/` 目录（例如 `D:\snowmeet\snowmeet_ai_doc\CLAUDE.md` 或 `<repo-root>/snowmeet_ai_doc/CLAUDE.md`）
+   - 不要使用历史遗留的 Mac 绝对路径（如 `/Users/cangjie/...`），改从当前仓库定位
 2. **Present** these sections in order:
    - **Current Status** — What's done, what's in progress, what's blocked
    - **Key Files** — The important files you'll be touching
