@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-14 凌晨）
+## 当前状态（截至 2026-05-14 晚）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。
 
@@ -618,3 +618,22 @@ dotnet run
 - **rental_detail.valid=0 的失效租金明细会让 totalRentalAmount=0**：前端用 `>= 1` 过滤掉整行，是部分订单"CSV 没有"的根因（数据质量问题，非脚本 bug）
 - **多 rental 订单 discount 归属必须严格按 detail/rental 层级匹配**：不能简单 `order_id OR biz_id OR sub_biz_id` 三 bucket OR，否则全单 discount 在每条 rental 上重复算（如 WT_ZL_251230_00011 ¥879.95 会变 ×6=¥5279.70）
 - **rental.settled=0 的虚账**：未归还订单按天累积 `rental_detail.amount` 应收记录，做收入分析时要意识到「订单明细.租金总额」可能远超实际应收。报表只看 ≤ 实付金额、不参考租金总额做收入估算
+
+### 2026-05-14（晚） — wanlong_rent_orders_api xlsx 补「订单结余」+ 清科学计数法
+
+主要文件：新建 `snowmeet_ai_doc/add_balance_to_api_xlsx.py`，目标产物 `snowmeet_ai_doc/wanlong_rent_orders_api_2025-10-15_2026-04-15.xlsx`
+
+- ✅ **补列脚本**（plan 流程，文件 `~/.claude/plans/snowmeet-ai-doc-wanlong-rent-orders-api-abstract-bonbon.md`）
+  - 读源（数据库直查版）`wanlong_rent_orders_2025-10-15_2026-04-15.xlsx` 的 `订单汇总` sheet，按表头定位 `订单号 / 订单结余` 列号（不写死索引），构 dict
+  - 写目标（API 版）`wanlong_rent_orders_api_2025-10-15_2026-04-15.xlsx` 的 `订单` sheet，末尾追加「订单结余」列，复用现有表头样式（粗体白字 + `1F4E78` 蓝底 + 居中，与 `export_wanlong_rent_orders_by_api.py:62-67` 一致）
+  - 列宽按视觉宽度 + 上限 36 自适应（仿 `export_wanlong_rent_orders_by_api.py:71-82`）
+  - 幂等：检测到已存在「订单结余」列时覆盖写入，不重复追列
+- 📌 **源表 2325 行 dict 后变 2319**：数据库直查版「订单汇总」有 6 个订单号重复（dict 覆盖去重）；目标 2325 行未命中 = 0，全部命中
+- ✅ **修科学计数法**：用户报告 Excel 打开新表有科学计数法显示
+  - 根因：`订单结余` 列有 `-3.63806207381856e-14` 之类的浮点零误差极小值（DB 端计算累加产生），Excel General 格式下自动 `-3.64E-14`；`总计租金` 同时有 `42220.00999999999` 之类小数尾巴
+  - 修：脚本写入「订单结余」前 `round(float(v), 2)`；同时对「总计租金」列（API 脚本生成时已有浮点尾巴）做 `round(2)` 清洗；两列都设 `number_format = '0.00'` 锁定显示格式
+  - 注：根因在 `export_wanlong_rent_orders_by_api.py` 的 `compute_displayed_rental` 浮点累加，本次仅在 xlsx 层补丁；API 脚本下次重跑仍会带尾巴，需在那时再跑补列脚本兜底（脚本会顺手清掉）
+
+📌 **关键发现 / 教训**：
+- **Excel General 格式 + 浮点零误差 = 科学计数法**：DB 端浮点累加产生的 `±1e-14` 级别数值，Excel 默认显示为 `-3.64E-14`。导出脚本写金额到 xlsx 时强制 `round(2)` + `number_format = '0.00'` 一并兜住，比依赖 General 格式可靠
+- **API 版与数据库直查版同区间订单数对齐**：两份各 2325 单（其中数据库直查版含 6 个重复订单号）。后续若要给 API 版加任何 DB 派生字段（订单结余 / 实付金额 / 招待标记 等），按订单号查表的模式可复用本脚本
