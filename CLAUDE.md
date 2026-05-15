@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-14 深夜）
+## 当前状态（截至 2026-05-15 晚）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -232,6 +232,7 @@ dotnet run
 - **rental_detail.charge_type 三种值**：`租金` / `超时费` / `赔偿金`（中文，注意"赔偿金"非"赔偿"）。按 rental 分组求和
 - **未结算订单虚账**：`rental.settled=0` 的 rental 会持续按天累积 `rental_detail` 应收记录（如雪季初一直没关单的，累积到 189 天 ¥9 万）。做收入报表必须过滤已结算/已关闭，否则虚增
 - **`api/Rent/GetConfirmedRentOrder` (RentController.cs:5544) 的"确认订单"5 条规则**：paidAmount > 0 AND closed=1 AND close_date != null AND !hide AND 不含非微信非支付宝支付（现金/储值/转账等会被排除）；做对账报表时这是参考过滤口径
+- **`punch_card` / `punch_card_used` 表存在但 EF 未接**：DB 有 `punch_card`(36 行, 字段 id/biz_type/card_name/member_id/mi7_code/total/punches) + `punch_card_used`(**0 行**, 字段 id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/valid)。`SnowmeetApi/Models/` 下**无** `PunchCard` / `PunchCardUsed` 模型（grep 0 命中）。当前业务核销「次卡支付」仍走 `order_online.pay_memo='次卡支付'`（6 单）/ `[order].pay_option='次卡支付'` 字符串标记的老路径，新结构化的 punch_card_used 明细表尚无写入代码
 
 ---
 
@@ -789,3 +790,28 @@ dotnet run
 再补（同日）：用户问「按天 code 尾号有无不连续」。分析去重后 2428 行：168 天每天都从 00001 起，仅 3 天有缺号共 6 个（251031 缺 7/11/14、251107 缺 11/13、251129 缺 15）。逐个查 DB 证实这 6 个尾号**从未生成**（非过滤/去重副作用）。
 - **缺号与重复号是同一发号竞态的镜像**：`GenerateOrderCode` 两单同时读到订单数 N、都写 N+1（→ 1 个重复号），订单数已 +2 但只用掉 N+1，下一单读 N+2 写 N+3 → N+2 永久跳过（1 个缺号）。故每次碰撞 = 1 重复 + 1 缺号，6↔6 账完全对上（251031:3 碰撞 3 缺 / 251107:2 / 251129:1）
 - 结论：导出完整无丢单，缺号是系统压根没发的序号；脚本无需改，根治在后端发号
+
+### 2026-05-15（续晚） — 财年导出 xlsx 加「次卡」列 + 次卡表勘察
+
+主要文件：新建 `snowmeet_ai_doc/add_cika_column_to_fy_xlsx.py`、改 `snowmeet_ai_doc/wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx`
+
+- ✅ **「次卡」列补列**（plan 流程，文件 `~/.claude/plans/start-work-ethereal-allen.md`）
+  - 规则（与用户澄清）：`rental.valid=1 AND use_card=1` → "是" / 否则 `order_payment.status='支付成功'` 笔数 ≥ 1 → "否" / 否则 → "-"
+  - 实施：仿 `add_balance_to_api_xlsx.py` 的补列模式；一次 SQL 拉两份 dict（命中 use_card 的 code set + 每订单支付成功笔数），按订单号查表填值；幂等（已存在「次卡」列则覆盖）
+  - 结果：xlsx 第 100 列 2428 行 `是 19 / 否 2062 / - 347`，3 类样本 spot-check vs DB 全 PASS
+  - 注：xlsx 已 6 条重复 code 去重，DB 端 use_card 命中 19 单全部留存（无重复 code 命中）
+- 🔍 **次卡相关表盘点**（DB 直查）
+  - 核心：`punch_card`(36 行) + `punch_card_used`(0 行)，字段如新增「已知遗留」所述
+  - 周边卡券系列：`card`(16365) + `card_detail`(681) + `ticket`(12244) + `ticket_template`(18) + `product_ticket_template`(11)
+  - 旧路径：`order_online.pay_memo='次卡支付'`(6 单) / `[order].pay_option='次卡支付'`(RentController.cs:1629)
+  - 📌 **关键发现**：`Models/` 下无 `PunchCard` / `PunchCardUsed` C# 模型，表是裸建的 — 写入逻辑可能压根没接通（已记入已知遗留）
+- 🔍 **WT_ZL_251222_00009 排查（未完成，被打断）**
+  - DB 查实有：`id=64707, valid=1, closed=1, recepting=1, hide=False, pay_option='普通'`
+  - **但 `order_payment` 表对 `order_id=64707` 0 行**
+  - 推测命中 `api/Rent/GetConfirmedRentOrder` 的 `paidAmount > 0` 过滤被剔出 → 小程序查不到
+  - 待续查：rental 数据 / 是否有退款 / `close_date` 是否为空（影响第 3 条规则）
+
+📌 **关键发现 / 教训**：
+- **`punch_card` 表结构齐全但无 C# 模型 + `punch_card_used` 0 行**：DB schema 与代码层不同步的典型案例。改/对账次卡相关功能前必须先翻 controller 看实际走哪条路径（pay_option 字符串 vs punch_card 表），不要假定有结构化表就一定接通了
+- **xlsx 补列前先核对 sheet 名**：财年版 sheet 名是「年度租赁」而非「订单」（与对账版不同）。补列脚本第一次跑因死写 "订单" 报 KeyError，靠 `wb.sheetnames` 兜底打印才发现
+- **`pyodbc.connect` 参数化执行 SQL 时用 `?` 占位符防注入**：本次脚本里店铺/日期/N'支付成功' 都走参数化，含中文常量也无编码问题
