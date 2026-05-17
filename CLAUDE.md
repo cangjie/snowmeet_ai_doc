@@ -904,8 +904,8 @@ dotnet run
 - 行数 2319（非 5-16 记的 2428）：当前生产数据已变（脚本走自身规范过滤口径，正常）
 
 #### 五、待验证/可选
-- 那 ~45 个无 顾客openid 的订单是否需关注（多为未授权小程序顾客，预期空）
-- 是否需把「店员openid」两级偏好回退口径同样应用到其它导出脚本
+- ✅ 那 ~45 个无 顾客openid 的订单是否需关注 → **已核查（见 2026-05-17 续3）：47 单全预期空、`mini_present_but_unusable=0` 零异常，无需处理**
+- ✅ 是否需把「店员openid」两级偏好回退口径同样应用到其它导出脚本 → **结论（见续3）：FY 脚本是唯一带 openid 列的，无"更差口径"要修，无需改代码**
 
 ### 2026-05-17（续） — 崇礼/南山多店财年导出 + git push 工作流修正
 
@@ -948,3 +948,25 @@ dotnet run
 - `git status` 的「up to date with origin/main」比的是**本地缓存的 origin/main**，未 fetch 时谎报；真实远端用 `git ls-remote origin refs/heads/main`（只读）
 - 本会话 SKILL.md 改动「看不到」是因 Stop hook 已 commit+push（HEAD=`e899295` 已含），非未改；提交链线性无分叉，`dbaa546` 那批未同步工作也已并入
 - `.claude/settings.local.json` gitignored/机器本地/不跨机；start-work 的 pull、end-work 的 push 可靠性必须落在「入库 skill 步骤 + 跨会话记忆」，hook 仅本机冗余
+
+### 2026-05-17（续3） — 财年导出收尾验证：无顾客openid 核查 + 崇礼/南山三表交叉对账
+
+主要：纯只读核查，无代码/数据/xlsx 改动。会话起始 start-work（更新后 SKILL.md 第 1 步 pull → already up to date，HEAD=`8983597`）。明细见 `sessions/2026-05-17_fy_export_wrapup_verification.md`。
+
+#### 一、~47 个无「顾客openid」订单核查 → 0 异常
+- sqlcmd 只读，口径同 FY 脚本（`shop=万龙体验中心/租赁/biz_date∈[2025-05-01,2026-05-01)/code非空/valid=1`，2325 单）
+- 空 47 单分类：`no_member` 6 / `member_no_social` 20 / `unionid_no_mini` 20 / `member_other_social` 1 / **`mini_present_but_unusable` 0**
+- 关键：无"本该有 openid 却 valid=0/空没取到" → 47 单全业务天然无小程序 openid，**无需处理**。20 单 unionid_no_mini 技术上可回退取 unionid，但与"顾客/店员 openid 统一用 mini_openid"决策冲突，属业务取舍非 bug
+
+#### 二、店员openid 两级偏好口径推广 → 无需改代码
+- FY 脚本是唯一带 openid 列的（两级偏好内联 `:187-201`）；通用 `skills/export_rent_order/export_rent_orders.py` 等无 openid 列 → 无"更差口径"要修，"推广"实质=新增列功能决策，无业务驱动保持现状
+
+#### 三、崇礼/南山 财年 xlsx 三表交叉对账（用户追加，全数零差异）
+- 支付明细↔支付流水（`verify_payment_reconcile.py --xlsx X`）：崇礼172单/南山231单，逐单最终金额 **0 不一致**；两店无分账（maxShare=0）口径A≡B
+- 年度租赁↔支付明细（临时只读 py 按订单号聚合）：崇礼交集172/南山交集231，支付合计·退款合计·订单结余 **0 不一致**；"仅年度租赁"差额（崇礼20/南山1）全是支付/退款=0 未支付/招待/0元单（预期无明细行）；仅支付明细订单不在年度租赁=0
+- 年度租赁表内双口径自洽（支付合计=支付总金额 & 退款合计=退款总金额 & 两个订单结余）**0 不一致**
+- 行数与（续）吻合（崇礼 明细184/流水355；南山 明细231/流水462），产物内部一致无需修正
+
+#### 四、状态
+- **财年导出收尾闭环**：~47 无 openid 核查 + 店员openid 口径推广结论 + 崇礼/南山三表对账，均无需改代码/数据
+- 仍开放（非本次范围）：渔阳/怀北/万龙服务中心按需同法导出；无分账店铺「年度租赁」3 个空分账固定列是否去掉（脚本自适应，目前保留=同款规则）
