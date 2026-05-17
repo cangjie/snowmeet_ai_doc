@@ -9,16 +9,21 @@ Beginning a work session on a complex project requires full context. This skill 
 
 ## Process
 
-1. **Read** the project context from `snowmeet_ai_doc/CLAUDE.md`
+1. **Pull** 先同步最新提交，再读上下文（**这一步必须最先做**）
+   - 命令：`git -C snowmeet_ai_doc pull --ff-only`（从当前仓库根定位 `snowmeet_ai_doc/`，不要用历史遗留的 Mac 绝对路径）
+   - `--ff-only`：本地有未推送提交或分叉时拒绝合并，绝不自作主张产 merge commit
+   - **拉取失败（网络/分叉/本地有未提交改动）时**：不要静默继续——显式告诉用户「⚠️ 同步失败，下方上下文可能过期」并附上失败原因，再继续第 2 步
+   - 拉取成功且有新提交时：一句话提示已更新到的最新 commit（如 `已更新到 dbaa546`）
+2. **Read** the project context from `snowmeet_ai_doc/CLAUDE.md`
    - 该文件位于本仓库根目录下的 `snowmeet_ai_doc/` 目录（例如 `D:\snowmeet\snowmeet_ai_doc\CLAUDE.md` 或 `<repo-root>/snowmeet_ai_doc/CLAUDE.md`）
    - 不要使用历史遗留的 Mac 绝对路径（如 `/Users/cangjie/...`），改从当前仓库定位
-2. **Present** these sections in order:
+3. **Present** these sections in order:
    - **Current Status** — What's done, what's in progress, what's blocked
    - **Key Files** — The important files you'll be touching
    - **Next Steps** — The immediate priority work
    - **Known Issues** — Gotchas and constraints (things that burned us before)
 
-3. **Format** as a scannable overview — use the exact structure from CLAUDE.md, include emojis (✅🚧⏳) to show status at a glance, and callout any blockers in bold
+4. **Format** as a scannable overview — use the exact structure from CLAUDE.md, include emojis (✅🚧⏳) to show status at a glance, and callout any blockers in bold
 
 ## Why this matters
 
