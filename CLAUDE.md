@@ -905,3 +905,23 @@ dotnet run
 #### 五、待验证/可选
 - 那 ~45 个无 顾客openid 的订单是否需关注（多为未授权小程序顾客，预期空）
 - 是否需把「店员openid」两级偏好回退口径同样应用到其它导出脚本
+
+### 2026-05-17（续） — 崇礼/南山多店财年导出 + git push 工作流修正
+
+主要文件：新建 `snowmeet_ai_doc/chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx` + `nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx`（纯用现有脚本跑，无代码改动）。
+
+#### 一、多店财年导出（同款规则，无分账店铺）
+- 用 `export_rent_orders_fy.py --shop X` + `add_payment_detail_sheet_to_fy_xlsx.py --xlsx X` 两脚本跑崇礼/南山
+- 崇礼旗舰店：年度租赁 63列×192行 / 支付明细 18列×184行 / 支付流水 8列×355行（支付184+退款171）
+- 南山（`order.shop='南山'`）：年度租赁 54列×232行 / 支付明细 14列×231行 / 支付流水 8列×462行
+- **无分账店铺自适应**：DB 核实两店 order_share=0 / payment_share=0；支付明细 maxShare=0→无分账列、支付流水无分账行（数据驱动自动省略）；但「年度租赁」的 3 个**固定**列 应/实/待分账金额仍在，值全 0（同款规则保留结构）
+- 动态支付/退款区列数按各店实际最大笔数：万龙 maxPay/Ref=6、崇礼=2、南山=1 → 故列总数 99/63/54 不同，属正常
+
+#### 二、git push 工作流根因 + 修正（用户两次强调）
+- 用户问「为什么没执行 git push」。排查：自动 push 是 5-14 配的 **Stop hook**，写在 `.claude/settings.local.json`——该文件 **gitignored、机器本地、不跨机同步**；且 hook 命令硬编码路径是另一台机的 `/Users/cangjie/source/...`，本机是 `/Users/cangjie/Projects/...`。**本机 settings.local.json（5-10 版）根本无 hooks 段** → 这台机 end-work 不会自动 push
+- 用户明确："每次 end-work 之后 snowmeet_ai_doc 整理出来的所有文件和上下文都要全部提交到 GitHub，下次未必用这台电脑"
+- 修正：**git commit+push 改为 end-work 的固定收尾动作，由我主动做（不依赖机器本地 hook）**，已写进 auto-memory feedback。不能靠 hook（gitignored 不跨机），记忆跨会话/跨机持久才可靠
+
+#### 三、待验证/可选
+- 其余店铺（渔阳/怀北/万龙服务中心）按需同法导出
+- 是否把无分账店铺「年度租赁」的 3 个空分账固定列也去掉（需脚本支持按店自适应；目前保留=同款规则）
