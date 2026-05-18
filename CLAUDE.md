@@ -970,3 +970,30 @@ dotnet run
 #### 四、状态
 - **财年导出收尾闭环**：~47 无 openid 核查 + 店员openid 口径推广结论 + 崇礼/南山三表对账，均无需改代码/数据
 - 仍开放（非本次范围）：渔阳/怀北/万龙服务中心按需同法导出；无分账店铺「年度租赁」3 个空分账固定列是否去掉（脚本自适应，目前保留=同款规则）
+
+### 2026-05-18 — 养护+零售财年导出 skill（新两条业务线）+ 多店导出
+
+会话起始 start-work（plan mode）。延续多店数据导出线，本次把财年导出从租赁扩展到**养护（care）**与**零售（retail）**两条新业务线，各建 sibling skill 并导出多店。详见 `sessions/2026-05-18_care_retail_fy_export.md`。
+
+**新增 skill（仿租赁财年版，sibling 复用 export_rent_order 单点真理）**
+- `skills/export_care_order_fiscal_year/{export_care_orders_fy.py,SKILL.md}`：养护。行项目 `care`+`care_task`，毛费 `repair_charge+common_charge`，订单状态走 care_task 末工序（`发板`/`强行索回`→已完成），段4 加 养护件数/服务项目(need_* 并集)/卡券减免/养护直减
+- `skills/export_retail_order_fiscal_year/{export_retail_orders_fy.py,SKILL.md}`：零售。行项目 `retail`，金额 `deal_price`，订单状态按支付派生（空/已支付/未支付），段4 = 零售件数/销售额合计/招待件数/减免
+- 改 `add_payment_detail_sheet_to_fy_xlsx.py`：加 `--main-sheet`（默认`年度租赁`，向后兼容；养护/零售传`年度养护`/`年度零售`），支付明细/支付流水/对账脚本零重写跨业务复用
+- 改 `verify_payment_reconcile.py`：补 `sys.stdout.reconfigure('utf-8')`，修 Windows GBK 控制台 ✓ 崩溃（逻辑本就对）
+
+**导出产物（全部 25-26 财年 biz_date 2025-05-01~2026-04-30，valid=1，三表零差异、行数/金额 vs DB 精确）**
+- 养护 3 店：万龙服务中心 63×4601（去重 1 个 `WF_YH_251110_00017` ≈¥0.02 测试单双插）三表 ¥735,956.52 / 南山 54×86 ¥7,800.00 / 崇礼 54×26 ¥4,000.01
+- 零售 4 店：万龙体验 55×186 ¥139,706.64 / 万龙服务 51×31 ¥33,519.04 / 崇礼 55×261 ¥346,792.26 / 南山 55×497 ¥347,191.00（销售额合计 vs DB SUM(deal_price) 全精确）
+
+**关键发现 / 教训**
+- **`care.finish` 生产恒为 0**：养护完成真信号在 `care_task` 最后一条 valid 工序（`发板`/`强行索回`→已完成，复刻 `Care.cs` 计算属性）。schema 有 finish 但业务不写，改/对账养护状态必看 care_task
+- **`care.biz_type` 多 NULL**（仅少量`非雪季养护`），≠ `discount.biz_type`（养护单恒 `养护` 且 order_id+biz_id=care.id 同填）；`care.discount`/`ticket_discount` 是 care 行并行台账，与 discount 表不完全相等（万龙服务中心差约 ¥830）
+- **`retail.sale_price` 生产 100% NULL**：零售金额唯一可信源 `deal_price`；`retail.order_type∈{普通,招待}`；四店零售 `discount` 表零记录（减免恒 0，列按口径保留）
+- **`add_payment_detail`/`verify_payment_reconcile` 与 order.type 无关**：按主 sheet 订单号取数，`--main-sheet` 参数化即可跨业务复用（单点真理延伸，养护/零售零重写）
+- **Windows 环境**：`python`/`python3` 是 Microsoft Store 空壳（exit 49 无输出），必须用 `py` 启动器；pyodbc 5.3.0 + ODBC Driver 18 已就绪，DEFAULT_CONN 直连生产 OK，CLAUDE.md 的 macOS ODBC 笔记不适用 Windows
+- **三表对账闭环可复用任意业务**：年度{业务}Σ订单结余 ＝ 支付明细Σ支付结余 ＝ 支付流水按订单号汇总Σ交易金额；养护3店+零售4店共 7 份全部 ≤1 分一致
+
+**养护/零售 数据模型速查（已知遗留）**
+- 养护单 `order.type=N'养护'` biz_code YH，万龙养护 `shop='万龙服务中心'`（ReceptController 自动改写）；行项目 `care`(一单可多块板)+`care_task`(工序)，无 charge_type/押金；导出走 `skills/export_care_order_fiscal_year/`
+- 零售单 `order.type=N'零售'` biz_code LS；行项目 `retail`(一单可多件)，金额 `deal_price`(实收)，`sale_price` 恒 NULL；无 charge_type/成本/数量/工序状态；导出走 `skills/export_retail_order_fiscal_year/`
+- 仍开放：渔阳/怀北 养护·零售按需同法（一行命令）；养护「服务项目」列为推断口径（need_* 并集，未含 free_wax/未对齐 care_task 工序名）；零售「订单状态」为支付派生简化口径

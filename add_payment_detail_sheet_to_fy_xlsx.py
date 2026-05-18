@@ -56,12 +56,13 @@ KEY_HEADER = "订单号"
 IN_BATCH = 2000  # SQL Server IN 上限 ~2100，留点 buffer
 
 
-def read_order_codes(xlsx_path):
-    """从主 sheet「年度租赁」读「订单号」列，返回 set（保留原始顺序作 sample 输出）。"""
+def read_order_codes(xlsx_path, main_sheet):
+    """从主 sheet（默认「年度租赁」/ 养护版「年度养护」）读「订单号」列，
+    返回 list（保留原始顺序作 sample 输出）。"""
     wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
-    if MAIN_SHEET not in wb.sheetnames:
-        raise SystemExit(f"sheet '{MAIN_SHEET}' 不存在，实际: {wb.sheetnames}")
-    ws = wb[MAIN_SHEET]
+    if main_sheet not in wb.sheetnames:
+        raise SystemExit(f"sheet '{main_sheet}' 不存在，实际: {wb.sheetnames}")
+    ws = wb[main_sheet]
     header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
     if KEY_HEADER not in header_row:
         raise SystemExit(
@@ -356,13 +357,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--xlsx", default=DEFAULT_XLSX, help="目标 xlsx 路径")
     parser.add_argument("--conn", default=DEFAULT_CONN, help="ODBC 连接串")
+    parser.add_argument("--main-sheet", default=MAIN_SHEET,
+                        help=f"主 sheet 名（订单号来源），默认「{MAIN_SHEET}」；养护版传「年度养护」")
     args = parser.parse_args()
 
     if not os.path.exists(args.xlsx):
         raise SystemExit(f"xlsx 不存在: {args.xlsx}")
 
-    print(f"读取主 sheet「{MAIN_SHEET}」订单号集合 ...")
-    order_codes = read_order_codes(args.xlsx)
+    print(f"读取主 sheet「{args.main_sheet}」订单号集合 ...")
+    order_codes = read_order_codes(args.xlsx, args.main_sheet)
     print(f"  共 {len(order_codes)} 个订单号；sample: {order_codes[:3]}")
 
     print(f"连接 DB ...")

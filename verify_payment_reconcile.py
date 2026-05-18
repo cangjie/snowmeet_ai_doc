@@ -13,9 +13,12 @@
 """
 import argparse
 import os
+import sys
 from collections import defaultdict
 
 import openpyxl
+
+sys.stdout.reconfigure(encoding='utf-8')
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_XLSX = os.path.join(BASE, "wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx")
