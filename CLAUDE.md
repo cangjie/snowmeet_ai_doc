@@ -181,6 +181,11 @@ dotnet run
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 phone_required/direct_to_scanner/choose_identity/error 四态卡片）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机
+- 雪票财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
+  - `add_skipass_columns_to_fy_xlsx.py`（`--xlsx --shop`）— 给「年度雪票」末尾追加 4 列雪票级字段（名称/支付价格/结算价格/取票时间）
+  - `add_skipass_detail_merged_sheet.py`（`--xlsx --shop`）— 加「年度雪票明细」合并 sheet（年度雪票 × ski_pass 一对多，多明细整行浅蓝 `EAF2FB`）
+  - `add_skipass_list_sheet_to_chongli_fy.py` — 把外部「雪票列表_YYYY-MM-DD.xls」作为新 sheet 加入崇礼 xlsx（写死路径，按需克隆）
+  - `annotate_skipass_list_sheet.py` — 操作崇礼「雪票列表」sheet：渠道订单号匹配 + 实际支付 + 字体灰/底红/底黄
 
 **下一步要做的**
 - ✅ 第五步：支付结算页 mvp 完成（settle/index + order-summary-card + order-payment，微信支付走通、支付宝 mock、其他方式确认收款）
@@ -196,6 +201,8 @@ dotnet run
 - 决策时机改为"支付完成后"语义：把 `ConfirmPayIdentity` 的 Order.member_id 写入挪到 `OrderPaymentController` 的 wechat/alipay notify 回调里，本期是"立即生效"简化版
 - 未使用 fui-* 组件清理（本次删了 6 个：`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`，剩 17 个继续逐步弃用）
 - 页面可达性 review：`snowmeet_ai_doc/unreachable_pages.md` 列出 75 个从 index/mine BFS 不可达的页面（含 62 个完全孤立），需人工逐项区分 QR 扫码入口 vs 死代码后清理
+- 南山「年度雪票明细」85 单押金合计 ≠ 退款金额合计（非关闭）待业务侧确认是否需追退；典型场景=顾客未还卡，押金没退（脚本里曾试加粉底标红、用户已取消还原，仅靠数据本身排查）
+- 崇礼「雪票列表」标黄 2 单（已取消但实付>20）+ 标灰 68 单（渠道订单号无法匹配年度雪票）待业务确认
 
 **已知遗留**
 - **macOS 上 pyodbc + msodbcsql18**：unixODBC 默认查 `/etc/odbcinst.ini` 但 brew 装的 msodbcsql18 注册在 `/opt/homebrew/etc/odbcinst.ini`。所有 pyodbc 脚本启动前要 `export ODBCSYSINI=/opt/homebrew/etc`（写到 shell rc 或脚本 wrapper 都行）。已在 `snowmeet_ai_doc/skills/export_rent_order/SKILL.md` 文档化
@@ -238,6 +245,9 @@ dotnet run
 - **`all_销售单列表.xls` 是七色米全店全量导出**（崇礼/万龙/南山/总部/离职等所有门店，910 单据/1268 明细行）。`万龙_销售单列表.xls` 也是多店全量（含 592 南山店行），行级 100% ⊆ all；`南山_销售单列表.xls` 与 all 同单据同店但 **595 行全不相等，唯一差异列 `成本额`**（南山那份是 `'-'` 占位，all 是真实成本），其余 33 列 + 合并用全部 10 个明细字段（商品编号/名称/分类/规格/属性/数量/单价/折扣/折后单价/总额）完全一致 → **三个 `add_*_retail_detail_merged` 脚本可统一用 `all_销售单列表.xls` 作单一明细源，合并结果不变**（成本额不在合并 10 字段内）。原 `销售单列表_c393a061-...xls` 已改名 `南山_销售单列表.xls`
 - **本机(Intel Mac) python3 默认无 `xlrd`**（读 `.xls` 必需）：已 `pip3 install xlrd`(2.0.2)。新机器跑 `add_*_retail_detail_merged_xlsx.py` / `export_all_orphan_records.py` 前先装 xlrd + openpyxl
 - **零售明细合并孤儿口径**：反向核对 = `all 单据编号集合 − 五店年度零售明细已消费的七色米订单号集合`（2026-05-19续2 起含总部），再按 `所属门店` + 是否出现在某报表 `年度零售`(含关闭/剔除单) 归因。「崇礼万龙店无财年零售报表」「报表内但单关闭/剔除被删」属预期；「崇礼旗舰/南山/**总部**·报表无此七色米号」才是待查（七色米有销售但 DB 零售单未带匹配号或超财年口径）。**总部已于 2026-05-19续2 出财年零售报表 + 年度零售明细**，不再属「无报表」预期，其未匹配单转待查
+- **雪票数据：南山一单可多票，崇礼一单一票**：崇礼旗舰店 25-26 财年 572 张票/572 单（1:1，572 + 138 空订单 = 710 总订单去重 709），南山 542 张/463 单（**1.17 票/单**，58 单多票 + 389 空订单 = 852 总订单去重）。雪票级字段（`product_name / deal_price / ticket_price / card_member_pick_time / deposit / refund_amount / have_refund / card_member_return_time`）聚合到订单级时必须用多票兜底口径：name 分号 `; ` 连接去重 / 价格 SUM / 时间 MIN。**`have_refund` 字段只有 1（已退）和 NULL（未退）两种值，无 0**，转标签时 `1→"是" / NULL→"否"`。雪票级明细合并 sheet（一对多展开）见 `add_skipass_detail_merged_sheet.py`
+- **「雪票列表」外部 xls 渠道订单号匹配键**：自我游/七色米导出的 `雪票列表_YYYY-MM-DD.xls`（崇礼用），1 sheet × 28 列，「渠道订单号」(第 23 列) 格式 `{snowmeet 订单号}_ZF_NN`（如 `QJ_XP_260405_00001_ZF_02`，与支付流水 `out_trade_no` 命名约定一致：支付 `_ZF_` / 退款 `_TK_` / 分账 `_FZ_`）。匹配「年度雪票」订单号时用 `split('_ZF_')[0]` 取前缀。标注脚本 `annotate_skipass_list_sheet.py` 默认 LOW=HIGH=20（与"已取消>20"阈值对齐成两端切分，红 0 / 黄 2）
+- **end-work 不需要确认（用户拍板）**：触发 end-work 后直接落盘 CLAUDE.md + sessions/ 归档 + `git commit + push`，**永远不需要 AskUserQuestion 确认**。"以后永远都不需要确认"是用户明令；之前的"draft → 确认 → 写盘"流程作废
 
 ---
 
@@ -1154,3 +1164,56 @@ dotnet run
 **状态**
 - ✅ 总部财年零售报表 + 三表对账 + 年度零售明细 + 孤儿五店重算
 - 仍开放：总部 `ZB_LS_260104_*` 7 单无号 / 总部 43 待查 / 崇礼旗舰 25 / 南山 4 待查 逐项核；渔阳/怀北零售按需同法一行命令
+
+### 2026-05-20 — 雪票财年扩展：崇礼 4 列 + 「雪票列表」sheet + 「实际支付」标注 / 南山 财年首次导出 + 「年度雪票明细」合并 sheet
+
+会话起始 start-work（pull 到 `d28b0af`）。三条主线：① 给崇礼雪票主表加 4 列雪票级字段；② 把外部「雪票列表_2026-05-20.xls」作为第 4 sheet 加入崇礼并做匹配标注；③ 导出南山雪票财年报表 + 加「年度雪票明细」合并 sheet。详见 [`sessions/2026-05-20_nanshan_ski_pass_export_and_detail_sheets.md`](sessions/2026-05-20_nanshan_ski_pass_export_and_detail_sheets.md)。
+
+#### 一、崇礼「年度雪票」加 4 列雪票级字段
+
+- 字段：`product_name`(雪票名称) / `deal_price`(支付价格) / `ticket_price`(结算价格) / `card_member_pick_time`(取票时间)；末尾追加（57~60 列）
+- 聚合口径（多票兜底，崇礼实测 1:1 不触发）：name 分号连接去重 / 价格 SUM / 时间 MIN
+- 脚本 [`add_skipass_columns_to_chongli_fy.py`](add_skipass_columns_to_chongli_fy.py)（后改名 [`add_skipass_columns_to_fy_xlsx.py`](add_skipass_columns_to_fy_xlsx.py) 参数化）
+- DB 对账：572 单 / Σ支付价格 ¥276,722.02 / Σ结算价格 ¥283,035.00 / 545 有取票时间 — 全 0 差异 ✓
+
+#### 二、崇礼第 4 sheet「雪票列表」+ 匹配标注
+
+- 源：[`雪票列表_2026-05-20.xls`](雪票列表_2026-05-20.xls)（用户从七色米/自我游导出，1 sheet × 613 数据行 × 28 列）。脚本 [`add_skipass_list_sheet_to_chongli_fy.py`](add_skipass_list_sheet_to_chongli_fy.py) 原样拷贝（freeze A2 / 表头蓝白粗体 / 列宽自适应）
+- 匹配键：渠道订单号 `split('_ZF_')[0]` ＝ 年度雪票订单号
+- 标注脚本 [`annotate_skipass_list_sheet.py`](annotate_skipass_list_sheet.py)：
+  - 不匹配（68 单：66 空 + 1 非 _ZF_ + 1 解析后年度雪票无对应）→ 整行字体灰 `#808080`
+  - 末尾加「实际支付」列 = 年度雪票订单结余（匹配上的 545 单填值，不匹配空）
+  - 已完成 + 实付 < 20（阈值用户拍板，与已取消阈值对齐两端） → 整行底色红 `#FFC7CE`：**0 单**（已完成的雪票全部 ≥ 20 元实付，反向验证阈值合理）
+  - 已取消 + 实付 > 20 → 整行底色黄 `#FFEB9C`：**2 单**（已取消但仍有实付的异常单，待业务跟进）
+- 重要发现：阈值红 0 单从侧面验证崇礼已完成雪票的实付下限至少 20 元；2 单黄底是真实需关注异常
+
+#### 三、南山雪票财年导出（首次 + 三表对账）
+
+- 三脚本零代码改动复用：`export_ski_pass_orders_fy.py --shop 南山` → 主表 85列×852 行（maxPay=2/maxRefund=6/maxShare=1，31 重复订单号去重 51 行）；`add_payment_detail_sheet_to_fy_xlsx.py --main-sheet 年度雪票` → 支付明细 37×463 + 支付流水 8×1002；`verify_payment_reconcile.py` → 仅成功分账口径 0 单不一致 ✓（全部分账口径 3 单各差 ¥1 是失败/作废分账，与万龙模式一致）
+- 三表合计：Σ支付 ¥206,928.60 / Σ退款 −¥106,514.80 / 成功分账 −¥4.00 → 流水 ¥100,409.80 三表零差异
+- 把 chongli 专版补 4 列脚本 mv 为 [`add_skipass_columns_to_fy_xlsx.py`](add_skipass_columns_to_fy_xlsx.py) 并 argparse 化（`--xlsx --shop --start --end`）。跑南山：463 单命中 / Σ支付价格 ¥207,073.60 / Σ结算价格 ¥108,420.80 / 取卡日期订单粒度 412（=DB 订单粒度），全零差异
+
+#### 四、南山第 4 sheet「年度雪票明细」（年度雪票 × ski_pass 一对多）
+
+- 脚本 [`add_skipass_detail_merged_sheet.py`](add_skipass_detail_merged_sheet.py)（参数化 `--xlsx --shop`，跨店可复用）
+- 形态：85 订单级列（合并单元格）+ 9 明细列。明细列 = 雪票名称/票价/押金/退款金额/是否退款/取卡日期/取卡时间/退卡日期/退卡时间（取卡/退卡时间各拆 date + `HH:MM:SS` 两列）
+- 数据：463 单有 ski_pass（58 单多票）展开 542 行 + 389 单空订单保留单行 = **931 数据行 × 94 列**
+- 合并单元格 = 58 多票订单 × 85 订单级列 = **4930 区**
+- 视觉：多明细订单整行（含明细列）浅蓝 `EAF2FB`，与零售明细 sibling 风格一致
+- 中间踩坑：初版"明细列保持白"导致一对多右侧视觉割裂，用户反馈后修正为整行上色
+- 明细列对 DB 八项校验全 0 差异（明细行数、票价/押金/退款金额 SUM、取卡/退卡日期数、是否退款是/否计数）
+
+#### 五、押金不平判定（实施后用户取消）
+
+- 用户加要求：押金合计 ≠ 退款金额合计 → 粉底（关闭除外）；实施 + DB 对账 85 单（含关闭仅 1 单），抽样典型「押金 ¥2000 / 退款 ¥0」（5 张票全没还卡）
+- 用户随后说"刚才的修改取消" → 还原成仅多明细蓝底；脚本删除 `MISMATCH_FILL` / 「正/闭」列查找 / `mismatch_row_ranges` 全部逻辑
+- 数据本身保留在 ski_pass 表，未来若需重新加可一行还原
+
+📌 关键发现 / 教训：
+- **雪票一单多票要看店**：崇礼 1:1（572/572），南山 1.17（542/463，58 单多票）；同一聚合脚本崇礼时多票兜底逻辑（SUM/MIN/分号连接）不会触发，南山触发但结果正确
+- **`have_refund` 字段非（1/0/NULL）三值**：实际只有 1 和 NULL，无 0；脚本转标签时 `1→是 / NULL→否`，不能用 `0→否`
+- **渠道订单号格式 `_ZF_NN` 是 snowmeet 支付单号约定**：年度雪票订单号 + `_ZF_NN` 后缀；匹配键用 `split('_ZF_')[0]`。同样约定适用于退款 `_TK_MM`、分账 `_FZ_MM`（与 5-16 支付流水 `out_trade_no` 命名一致）
+- **整行上色不能漏明细列**：合并单元格场景下，订单级列上色 + 明细列保白会视觉割裂；要么整行（含明细列）一起上色，要么全留白
+- **阈值"很低"和"较大"对齐成两端切分**：用户选 LOW=HIGH=20 表示"已完成<20 红、已取消>20 黄"，20 元作为雪票合理金额的切分线；红 0 单反向验证阈值合理（已完成实付都≥20）
+- **end-work 不需要确认（用户拍板）**：直接落盘 + git push，永远不再 AskUserQuestion；已记入 auto-memory feedback
+- **崇礼脚本幂等重跑**：参数化只换形参不改主逻辑，等价确定无需验证；但用户 Excel 开着目标文件时 openpyxl 写盘会 PermissionError，需先关 Excel 或跳过
