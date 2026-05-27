@@ -198,7 +198,7 @@ dotnet run
 - 第二步：去结算按钮入口（已在 `onCheckout` 接通 `Order/PlaceRentOrder` + navigateTo settle）
 - 养护 / 零售 业务的接待表单组件（目前仅租赁完成）
 - 旧版页面迁移：`recept_auth_list`、`recept_member_info`、`recept_list`、`rent_recepting_list`
-- ✅ 支付前身份验证 A+B 切片完成：后端模型 / DB / `PaymentIdentityController` + 小程序 `pay-identity-confirm` 组件 + payment_entry 接入；swagger 烟测只读路径通过。**待真机端到端测试**：用其它账号扫顾客二维码触发 `choose_identity` 选「正常支付/替人代付」走完支付闭环 + DB 校验 `Order.member_id` / `OrderPayment.is_proxy_pay` / `wechat_unverified` 是否按预期写入
+- ✅ 支付前身份验证 A+B 切片完成：后端模型 / DB / `PaymentIdentityController` + 小程序 `pay-identity-confirm` 组件 + payment_entry 接入；swagger 烟测只读路径通过。**5-27 追加**：身份按钮按完自动调起 `wx.requestPayment`（`onIdentityRefreshed` 检测 status==direct → 重拉单 → `pay()` 串联，4 个身份按钮统一「一次点击完成支付」）+ 顺手修 pay() 3 bug（`!payment` 守卫 / 不可支付分支漏 return / promise 内层 param `payment → payParams` 去 shadow + paymentId 显式 `that.data.paymentId` / 删死代码 / catch 复位 paying）。**仍待真机端到端测试**：用其它账号扫顾客二维码触发 `choose_identity` 选「正常支付/替人代付」走完支付闭环 + DB 校验 `Order.member_id` / `OrderPayment.is_proxy_pay` / `wechat_unverified` 是否按预期写入
 - 支付宝真实手机号解密（接 `alipay.system.oauth.token` + `alipay.user.info.share`），当前是 stub（传 `phoneMock` 字段走通）
 - ✅ 决策时机已改为"支付完成后"语义（2026-05-27 完成）：`PaymentIdentityController._applyChoice`/`_applyConfirmDirect` 只写 `OrderPayment`（付款方意图立即落地），`Order.member_id` / `wechat_unverified` 由 `OrderController.DealSuccessPaidOrder` 在 wepay/alipay notify 回调后同步；**待真机验证异常路径 E1/E2**（清单见 [`payment_identity_real_device_test_checklist.md`](payment_identity_real_device_test_checklist.md)）
 - 未使用 fui-* 组件清理（本次删了 6 个：`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`，剩 17 个继续逐步弃用）
@@ -1073,6 +1073,46 @@ dotnet run
 - ✅ 雪票导出 skill 创建 + 首次导出 + 三表对账
 - ✅ 零售报表四份各添加「七色米订单号」列
 - 仍开放：渔阳/怀北 雪票导出（可一行命令复用）；mi7_code 覆盖率是否需要问业务
+
+### 2026-05-27 — payment_entry 身份确认按钮自动调起微信支付 + pay() 历史 bug 修复
+
+主要文件：改 `snowmeet_wechat_mini/pages/order/payment_entry.js`（本次唯一改动）。plan：`/Users/cangjie/.claude/plans/pages-order-payment-entry-hidden-kurzweil.md`。详细经过见 [`sessions/2026-05-27_payment_entry_auto_pay.md`](sessions/2026-05-27_payment_entry_auto_pay.md)。
+
+**症状 + 排查**
+- 用户反馈"点「正常支付」/「替人代付」按钮，小程序不调支付接口"。澄清：5-14 pay-identity-confirm 4 个身份按钮（手机号 / 确认归扫码 / 正常支付 / 替人代付）按完仅更新 identity 状态、用户需**再点一次「敬请支付」**才调 `wx.requestPayment` → 扫码顾客糟糕体验，要合成"一次点击完成支付"
+- 排查中本机 SnowmeetApi ai 落后 origin/ai 4 commit（含 zhx 5-14 push 的 `PaymentIdentityController` 551 行 + bug fix 38/20 + `Order.wechat_unverified` + `OrderPayment.is_proxy_pay` + `MemberSocialAccount` 4 个 type 常量），Explore agent 误报"PaymentIdentityController 不存在"。**教训**：agent 看 working tree 不主动 fetch，多机协作必须自己 `git ls-tree origin/<branch>` 核实远端
+
+**方案选型**
+- ✅ 方案 A：前端串联（`onIdentityRefreshed` 检测 status==direct 后自动重拉单 + 调 pay）— 零后端改动、~30 行新增、单文件可回滚
+- ❌ 方案 B：后端 `ConfirmPayIdentity` 合 RPC 返支付参数 — 100+ 行、耦合身份/支付职责
+- ❌ 方案 C：新写端到端 endpoint — 改动最大
+
+**前端改动**（`payment_entry.js` L72-87 + L160-204）
+- `onIdentityRefreshed`：result.status==='direct' → setData identity → `getOrderFromPaymentByCustomer(paymentId)` 重拉单 → `renderData` → `pay()`；非 direct 走原逻辑只更新 identity；拉单 catch 兜底（identity 已 direct 时 wxml 显示「敬请支付」供手动点重试）
+- `pay()` 3 bug 修：
+  - 加 `!payment` 守卫（plan risk 2 兜底，op.status 已变时 toast 提示而非 crash）
+  - 「不可支付」分支补 `return`（之前 setData paying=true 后没复位、按钮卡死）
+  - 把 `setData paying=true` 移到所有 guard 之后
+  - 内层 promise param `payment → payParams` 消除对外层 `payment` 的 shadow（原 `payment.id` 在 success 回调里是 WechatPay 返对象 id，碰巧 ==paymentId 才跑通）
+  - 拉单显式 `that.data.paymentId` 不再用 `payment.id`
+  - 删 L182-193 死代码注释块
+  - 外层 performWebRequest 补 `.catch` 复位 paying；success 内拉单 catch 也复位
+
+**后端零改动**
+- `PaymentIdentityController` (origin/ai) + `Order/WechatPayByOrderPayment` (OrderController.cs:1504) 已落地，不动
+- 用户提示"看 OrderPaymentController" — `OrderPaymentController.Pay` 是旧 OrderOnline 表入口，与 PaymentIdentityController 写新 `[order]` 表脱节，**不要切回去**
+
+**待真机端到端测试**（按 plan §验证计划 5 场景，A/B/E 必跑）
+- 场景 A choose_identity → self：A 下单 / B 扫 → 点「正常支付」自动调起支付；DB 校验 `[order].member_id=B`、`order_payment.member_id=B / is_proxy_pay=0`
+- 场景 B choose_identity → proxy：A 下单 / B 扫 → 点「替人代付」→ 二次 modal → 自动调起；DB 校验 `[order].member_id=A`（不变）、`order_payment.is_proxy_pay=1`
+- 场景 E direct（同账号扫自己单）：跳过 identity 卡兜底验证旧路径未坏
+- 测试通过后 commit + push `snowmeet_wechat_mini`，CLAUDE.md 5-14"待真机端到端测试 A+B 切片"可正式划掉
+
+📌 **关键发现 / 教训**
+- **Explore agent 不会看远端分支**：working tree 缺的 ≠ 不存在；多机协作必须自己 `git ls-tree origin/<branch>` / `git show origin/<branch>:path` 核实，不能完全信任 agent "代码不存在"的结论。本次差点让我重新规划 590 行已存在的代码
+- **JS promise 内层 param shadow 外层变量是隐蔽 bug**：原 `.then(function (payment){...})` shadow 外层 `var payment`，success 回调内 `payment.id` 实际是 wx 支付返对象 id；规范是内层 param 命名区分 + 重要引用显式从 `that.data` 取
+- **"mvp 真机未测"根因往往是 UX 设计缺陷而非功能漏做**：身份按钮 + 支付按钮分两次点击只有真机端到端跑才暴露，纯 review / 单测看不出。任何 mvp 必须紧接真机端到端跑通才算完成
+- **`OrderPaymentController.Pay` vs `Order/WechatPayByOrderPayment`**：前者写老 OrderOnline 表，后者（ai 分支 OrderController.cs:1504）写新 `[order]` 表 + 与 PaymentIdentityController 对齐。新功能用后者，不要混
 
 ### 2026-05-19 — 南山零售明细合并 sheet（七色米匹配）+ 双向对账
 
