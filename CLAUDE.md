@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-21 晚）
+## 当前状态（截至 2026-05-27）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -200,7 +200,7 @@ dotnet run
 - 旧版页面迁移：`recept_auth_list`、`recept_member_info`、`recept_list`、`rent_recepting_list`
 - ✅ 支付前身份验证 A+B 切片完成：后端模型 / DB / `PaymentIdentityController` + 小程序 `pay-identity-confirm` 组件 + payment_entry 接入；swagger 烟测只读路径通过。**待真机端到端测试**：用其它账号扫顾客二维码触发 `choose_identity` 选「正常支付/替人代付」走完支付闭环 + DB 校验 `Order.member_id` / `OrderPayment.is_proxy_pay` / `wechat_unverified` 是否按预期写入
 - 支付宝真实手机号解密（接 `alipay.system.oauth.token` + `alipay.user.info.share`），当前是 stub（传 `phoneMock` 字段走通）
-- 决策时机改为"支付完成后"语义：把 `ConfirmPayIdentity` 的 Order.member_id 写入挪到 `OrderPaymentController` 的 wechat/alipay notify 回调里，本期是"立即生效"简化版
+- ✅ 决策时机已改为"支付完成后"语义（2026-05-27 完成）：`PaymentIdentityController._applyChoice`/`_applyConfirmDirect` 只写 `OrderPayment`（付款方意图立即落地），`Order.member_id` / `wechat_unverified` 由 `OrderController.DealSuccessPaidOrder` 在 wepay/alipay notify 回调后同步；**待真机验证异常路径 E1/E2**（清单见 [`payment_identity_real_device_test_checklist.md`](payment_identity_real_device_test_checklist.md)）
 - 未使用 fui-* 组件清理（本次删了 6 个：`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`，剩 17 个继续逐步弃用）
 - 页面可达性 review：`snowmeet_ai_doc/unreachable_pages.md` 列出 75 个从 index/mine BFS 不可达的页面（含 62 个完全孤立），需人工逐项区分 QR 扫码入口 vs 死代码后清理
 - 南山「年度雪票明细」85 单押金合计 ≠ 退款金额合计（非关闭）待业务侧确认是否需追退；典型场景=顾客未还卡，押金没退（脚本里曾试加粉底标红、用户已取消还原，仅靠数据本身排查）
@@ -228,7 +228,7 @@ dotnet run
 - 支付组件 WebSocket 仅在选中微信/支付宝并生成二维码后开启；切换支付方式时关闭旧 socket 再开新的，若用户在 prepay 调用中途切换会有短暂残留请求（无功能影响）
 - `pages/order/payment_entry` 目前仅对 `order.type=='租赁'` 做友好明细展示（编码/名称/品类 + 押金/日租金）；餐饮/零售/押金等其它类型走"最小版"（订单信息 + 金额 + 按钮），后续按业务需要扩展
 - **`Member.wechatMiniOpenId` 是后端计算属性**（getter 遍历 `memberSocialAccounts` 找 type=`wechat_mini_openid`），需要序列化时 MSA 集合被一并带回。顾客扫码 payment_entry 这种深链场景下 `app.globalData.member` 可能不齐全，导致前端取该字段为空。新接口（如 `PaymentIdentity/CheckPayerIdentity`）若需要扫码方 openid 都得做 sessionKey → `mini_session.member_id` 反查兜底
-- **`PaymentIdentityController` 用"立即生效"语义**：用户在 payment_entry 选完归我/代付后即写 `Order.member_id`，不等支付实际完成。如业务实测发现"用户中途放弃"导致归属错乱，需挪到 wepay/alipay notify 回调；本期为简化采用"用户确认即落地"
+- **`PaymentIdentityController` 决策时机已迁到 notify**（2026-05-27 改）：用户选完归我/代付后**只写 `OrderPayment.member_id` / `is_proxy_pay`**（付款方意图，立即落地）；`Order.member_id` / `wechat_unverified` 仅在 `DealSuccessPaidOrder`（wepay/alipay notify 回调汇聚点）支付成功后同步。同步守卫：`paidOp.is_proxy_pay == false && paidOp.member_id != null && order.member_id == null` 才同步 `Order.member_id`（代付/已有归属都不动）；`paidOp.pay_method.Trim() == "支付宝"` 才置 `wechat_unverified=true`。订单字段 diff 走 `UpdateOrder` 内置 `Util.GetUpdateDifferenceLog`，自动产生 `core_data_mod_log` 记录 scene=`支付成功`
 - **支付宝 submit_phone stub**：`PaymentIdentityController._submitPhone` 当 `payerType=alipay` 时若传 `phoneMock` 字段直接用，否则返 `alipay_phone_pending`。真支付宝解密待支付宝小程序对接（`alipay.system.oauth.token` + `alipay.user.info.share`）
 - **`components/firstui/` 17 个组件仍在用**：含 `fui-config`（喂 `wx.$fui` 给 fui-button/icon/section/list-cell/white-space）+ `fui-css`（`app.wxss` 全局 `@import`）+ 其它 15 个有 wxml 引用。本次删的 6 个 (`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`) 是 0 引用残留
 - **页面可达性报告**：`snowmeet_ai_doc/unreachable_pages.md` — 117 个 page 中 62 个全项目零引用，但部分是 QR 扫码外部入口（如 `pages/order/payment_entry` 是顾客扫码落地页，必须留），删之前要逐项区分
@@ -1255,3 +1255,86 @@ dotnet run
 - **zsh heredoc 处理中文字符串易 mangle**：Python `<< EOF` 内嵌中文 task_name 时 `pyodbc` 收到的可能是乱码导致校验全错；改成写真 `.py` 文件用 `python3 -u file.py` 跑稳定可复现
 - **`iter_rows` 远快于 `cell(r,c)`**：4981 × 85 校验前者秒级、后者超时；大 xlsx 校验默认走 `iter_rows`
 - **三店 shop 名先查 DB**：`shop.name` 中三店分别是 `万龙服务中心` / `南山` / `崇礼旗舰店`（南山/崇礼不带"店"），拍脑袋拼会 0 条 care
+
+### 2026-05-27 — PaymentIdentity 决策时机迁回 notify + 真机测试核查清单 + 小程序解除 pages/template 引用
+
+会话起始 start-work（`snowmeet_ai_doc` pull already up to date）。延续 2026-05-14 的支付前身份验证线，把唯一遗留的"立即生效"语义改成 notify 后才同步 `Order`；为接下来的真机测试准备核查清单；顺手清掉小程序对 `pages/template/` 的所有引用。详见 [`sessions/2026-05-27_payment_identity_notify_migration_and_template_decouple.md`](sessions/2026-05-27_payment_identity_notify_migration_and_template_decouple.md)。
+
+#### 一、PaymentIdentity 决策时机迁到 notify 回调（SnowmeetApi `ai` 分支）
+
+**之前**（5-14 mvp）：用户在 `payment_entry` 选完「正常支付」/「替人代付」/「确认并继续」立即写 `Order.member_id` + `OrderPayment.member_id/is_proxy_pay` + `Order.wechat_unverified`（支付宝场景）。用户中途放弃支付时 `Order.member_id` 会被错误改写。
+
+**改后**：拆"付款方意图"与"订单归属"两层语义
+- `PaymentIdentityController._applyChoice` / `_applyConfirmDirect` 只写 `OrderPayment.member_id` + `is_proxy_pay`（付款方意图，立即落地——本就是这笔 payment 的发起方，与支付是否成功无关）
+- `OrderController.DealSuccessPaidOrder(orderId, paymentId)`（wepay/alipay notify 唯一汇聚点）在 `UpdateOrder` 调用前加 op 读取 + 字段同步：
+  - 仅 `paidOp.is_proxy_pay == false && paidOp.member_id != null && order.member_id == null` 才同步 `Order.member_id`（代付订单仍归原会员；已有归属不动）
+  - 仅 `paidOp.pay_method.Trim() == "支付宝" && !order.wechat_unverified` 才置 `wechat_unverified=true`
+- `UpdateOrder` 内置 `Util.GetUpdateDifferenceLog` 自动比 oriOrder vs order diff 产生 `core_data_mod_log`（scene=`支付成功`），不用手写日志
+
+**改动文件**：仅 2 个
+- [`Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) — `_applyChoice` 删 5 行（不再写 order）/ `_applyConfirmDirect` 删 7 行（不再写 order）
+- [`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) `DealSuccessPaidOrder` — `UpdateOrder` 前插 15 行 op 读取 + 同步逻辑
+
+**dotnet build**：0 错误 / 14 警告（全为历史文件，新改动 0 警告）。本机 commit `3f1dbac1 payment` 待 push 到 origin/ai。
+
+**关键发现**：
+- 两个 notify (`TenpayController.cs:433` / `AliController.cs:634`) 都汇聚 `OrderController.DealSuccessPaidOrder(orderId, paymentId)` — 天然的唯一挂载点，无需各自改
+- 这次改动**不加 DB 列、不动 schema、前端零改动**；纯靠语义拆分而非新增暂存表
+- `Order.wechat_unverified` 历史是「微信身份未验证」标记，由支付通道决定，逻辑上和 `Order.member_id` 同性质（订单级、支付完成才有意义），一并延迟同步
+
+#### 二、真机测试核查清单（snowmeet_ai_doc 新文档）
+
+新建 [`payment_identity_real_device_test_checklist.md`](payment_identity_real_device_test_checklist.md)（~200 行），覆盖：
+
+- **前置部署**：后端 ai 分支部署 / DB schema 二次确认 / 小程序拉 ai 重编 / 准备 A/B/C 三个真机微信账号
+- **5 场景矩阵**（按 `_resolveStatus` 状态机）：
+  1. `direct`（A 自己扫自己单）— 不走 PaymentIdentity
+  2. `direct_to_scanner`（订单无主、B 扫码）— 重点
+  3. `choose_identity → self`（订单已匹配 A、B 选转归我）
+  4. `choose_identity → proxy`（B 选替人代付）— 验证代付不同步
+  5. `phone_required`（C 未绑手机号一键授权）
+- **每场景两阶段验证**：阶段 A=点完确认后立刻查（仅 OP 应变）/ 阶段 B=支付成功 or 中途放弃后查（OP 不回滚、Order 按规则同步）
+- **异常路径 E1-E4**（迁移生效的核心证据）：E1（choose self 未付） / E2（direct_to_scanner 未付） / E3（proxy 已付不同步 Order） / E4（同 paymentId 多次幂等）
+- **排查指南**：阶段 A 后 Order.member_id 已变 → 迁移失效 / 阶段 B 后 Order 未同步 → notify 钩子失效 等 5 类路径
+- **每场景给 SQL 校验语句**直接拷贝跑
+
+#### 三、小程序解除 `pages/template/` 引用（snowmeet_wechat_mini `ai` 分支）
+
+**起因**：用户要求"`pages/template/` 下任何文件不允许被引用，已引用的 copy 到自己目录下"。`pages/template/stitch/` 是 Alpine Operational Minimalist 设计稿原型（_1~_5 + tokens.wxss），仅作设计参考，不该被生产代码依赖。
+
+**清理盘点 grep `pages/template` 全项目**（排除 template 内部互相引用）：
+
+| 类型 | 数量 | 处理 |
+|---|---|---|
+| 硬引用（编译期/运行期） | 2 处 | 修：`pages/payment/settle/index.wxss` 的 `@import` + `app.json` 的 page 注册 |
+| 注释里提路径（无运行影响） | 5 处 | 改：3 个 wxml/js 注释「设计参考」+ 2 个 wxss/wxml 注释，路径改为通用描述 |
+| 开发者工具配置 | 2 处 | 改：`project.private.config.json` 删 stitch / pages/template/stitch/_2 两个自定义启动页 |
+
+**具体改动**（9 文件改 + 1 新增，−15 行净减）：
+- 新建 `pages/payment/settle/tokens.wxss`（212 行，copy 自 `pages/template/stitch/tokens.wxss`，去掉原文件头里"Source: pages/template/..."注释）
+- `pages/payment/settle/index.wxss` `@import` → `./tokens.wxss`
+- `app.json` 移除 `pages/template/stitch/_5/index` 注册
+- 5 处注释里 `pages/template/stitch/_X` → `Alpine Operational Minimalist stitch _X`（保留设计语义、去具体路径）
+- `project.private.config.json` 删 2 个 template 启动页
+
+**校验**：`grep "pages/template"` 全项目（排除 template 自身）→ 0 处；`grep "tokens.wxss"` → 仅 1 处指向 settle 自己目录的本地副本。
+
+`pages/template/` 目录本身保留（用户未要求删；内部 5 个 `_X/index.wxss` 都 `@import "../tokens.wxss"` 闭环，作为设计原型留着无害）。**现在删 template 对小程序运行/编译零影响**。
+
+snowmeet_wechat_mini 已自动 commit `7d1ec793 remove inter ref` + merge + push 到 origin/ai。
+
+#### 四、关键发现 / 教训
+
+- **决策时机迁移最干净的实现是按字段语义拆层**：`OrderPayment.member_id` 是付款方记录（用户发起 payment 时就该写），`Order.member_id` 是订单归属（支付成功才能改）。两者本就不同语义，立即生效 vs 延迟生效按字段语义自然分桶，不需要 pending_* 暂存列
+- **`UpdateOrder` 的 `Util.GetUpdateDifferenceLog` 自动 diff 日志**：调用方只需修改 order 字段，CoreDataModLog 由 UpdateOrder 内部按 oriOrder vs order 比对自动生成，scene 参数控制日志 scene 字段。新功能写 order 落库前先看是否能借 UpdateOrder，比自己手 add log 更安全
+- **微信小程序的 `@import` / `usingComponents` 路径**：当 `pages/template/` 这种"设计原型"目录混在生产代码里，最容易踩的雷是 wxss `@import` 暗依赖（语法和 CSS 一致，看着没注释里那么显眼）。清理时 grep `pages/template` 之外还要 grep `tokens.wxss` 类的具体文件名兜底
+- **`project.private.config.json` 虽叫 "private" 但被 git 跟踪**（不在 .gitignore）：里面的"自定义编译启动页"配置会跨开发者同步。如有指向已删除文件的预设会导致同事打开工具时报"页面不存在"，清理 pages 时要顺手扫这个文件
+- **end-work hook 实际已生效**（5-17 配的 Stop hook 改动）：本会话 SnowmeetApi 改动被自动 commit 成 `3f1dbac1 payment`（未 push）、snowmeet_wechat_mini 自动 commit `7d1ec793 remove inter ref` 并 merge + push 到 origin/ai。手动 push 仅 SnowmeetApi 一个还要做
+
+#### 五、状态
+
+- ✅ PaymentIdentity 决策时机迁移：代码 + build pass + 本地 commit；待 push SnowmeetApi `3f1dbac1` 到 origin/ai
+- ✅ 真机测试核查清单：`payment_identity_real_device_test_checklist.md` 写就
+- ✅ 小程序解除 pages/template 引用：9 文件 + 1 新增已 push 到 snowmeet_wechat_mini origin/ai
+- 🚧 **真机端到端测试**：需用户部署 ai 分支后端 + 重编小程序 + 按清单走 5 场景 + 4 异常路径（特别 E1/E2 是迁移生效的核心证据）
+- 仍开放：支付宝真实手机号解密 stub（接 `alipay.system.oauth.token` + `alipay.user.info.share`，本次未动）
