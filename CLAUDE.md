@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-28）
+## 当前状态（截至 2026-05-29）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -1460,3 +1460,93 @@ snowmeet_wechat_mini 已自动 commit `7d1ec793 remove inter ref` + merge + push
 - ✅ 后端 dotnet build 0 error / 12 warning（与改动无关）
 - 🚧 **真机端到端验证**（接续 5-27 清单 + 5-28 新增）：改主意场景、open_id 切换场景、「订单转归我」对已有归属订单、游客授权/跳过/取消三路径
 - 🚧 **部署**：SnowmeetApi 改动 `dotnet publish` 到 mini.snowmeet.top + 小程序重提审
+
+### 2026-05-29 — MemberLogin 不再建 stub + 延迟建会员到支付时 + 一系列 valid/排序根因修复
+
+接续 5-28 真机问题排查。用户报告 `paymentId=42551` 走完授权流程后页面循环要求授权手机号、无法进微信支付。多轮迭代定位 → 重构 → 真机验证 → 暴露新根因 → 再修。详见 [`sessions/2026-05-29_memberlogin_stub_removal_and_valid_fix.md`](sessions/2026-05-29_memberlogin_stub_removal_and_valid_fix.md)。
+
+#### 一、第一轮：前端 stall + UI 简化
+
+- ✅ **payment_entry stall 根因**：`onShow` 两层 promise (`loginPromiseNew` 外层 + `getOrderFromPaymentByCustomer` 内层) 都没 `.catch()`,加上 5-28 改了 `performWebRequest` 非 200 真的 reject,联动让链路在任一失败时 stall 在「请稍候」。两层都补 catch + fallback 视图（[`payment_entry.js`](../snowmeet_wechat_mini/pages/order/payment_entry.js)、[`payment_entry.wxml`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml) `{{!order}}` 拆 loading/fallback 两态、加 `orderLoadFailed` data 字段）
+- ✅ **app.js `loginPromiseNew` 全局兜底**：[`app.js:140`](../snowmeet_wechat_mini/app.js) `performWebRequest(MemberLogin).then(...)` 也没 catch,reject 时 `resolve({})` 永远不被调用 → loginPromiseNew 永久 pending（不是 reject）→ 所有调用方 `.then(...)` 不跑也接不住。补 `.catch(() => resolve({}))` + `wx.login fail` 分支也补 `resolve({})`
+- ✅ **后端 `OrderController.GetOrderFromPaymentByCustomer` try/catch**：`GetMemberBySessionKey` 抛 NRE 时不要 500 阻塞游客查单
+- ✅ **拆掉自定义 phone-prompt-overlay**：用户拍板「`open-type=getPhoneNumber` 按钮已经弹微信原生授权页,我们自己再画弹窗多余」。删除 [`payment_entry.wxml`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml) 全屏遮罩 + 底部卡片 + JS 里 `showPhonePrompt`/`onAuthorizePhone`/`onSkipPhone` + wxss 全部 `.phone-prompt-*` 样式（~100 行）
+- ✅ **pay-identity-confirm 按钮分流**：[`index.wxml`](../snowmeet_wechat_mini/components/pay-identity-confirm/index.wxml) `direct_to_scanner` 分支按钮在 `!scannerMemberId || !scannerHasCell` 时 `open-type=getPhoneNumber` + `bindgetphonenumber=onGetPhoneNumberAndConfirmDirect`,授权回调里串 `submit_phone → confirm_direct` 链
+- 📌 **关键洞察**：5-28 之前以为业务需求是新功能,实际上 `_submitPhone` + `_createNewMember` 已经完整实现「无会员→验证手机号→自动建会员」逻辑,只是被前端 stall 完全屏蔽了
+
+#### 二、第二轮：MemberLogin 自动建 stub 是 root cause（用户用 SQL 直接定位）
+
+- 📌 **用户原话**（拍板新架构）："一个微信的 openid 和 unionid 只允许有一个 member id。如果是个非会员,不能每刷新一次页面就生成个会员 id,应该是点了支付按钮的时候,看到没有会员 id 再生成会员"
+- ✅ **`MiniSession.cs` 加 `wechat_openid` + `wechat_unionid` 字段**：DDL 在 [`snowmeet_ai_doc/sql/2026-05-29_mini_session_add_openid_unionid.sql`](sql/2026-05-29_mini_session_add_openid_unionid.sql),NVARCHAR(64) NULL,SQL Server online 操作
+- ✅ **`MiniAppHelperController.MemberLogin` 重构**：删除 line 207-306 整个 if/else 块（自动建 stub + 第一轮加的「脏数据自我恢复」一并回滚）。`memberId != null` → `_memberHelper.GetWholeMemberById((int)memberId)`;否则 `member = null`。mini_session 始终写入 openid + unionid（即使 member_id 为 null）
+- ✅ **`PaymentIdentityController` 改造**：
+  - 新增 [`_loadSessionContext(sessionKey)`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) — 反查 mini_session 拿 wechat_openid + wechat_unionid + sess 对象
+  - 新增 [`_invalidateMsa(memberId, num, type)`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) — 失效 MSA 工具
+  - [`_createNewMember`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 增强:phone 可空 + 加 `unionId` 参数 + 显式 `valid = 1`
+  - [`_submitPhone`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 重写:顶部 `_loadSessionContext` 拿 unionid;scannerId 空时用 sessOpenid 兜底;**删除两处 `alreadyBoundSameType` 拒绝**;每分支末尾 `sess.member_id = finalMemberId`;`EnsureUnionIdMsa` 内部 helper 补 unionid
+  - [`_applyConfirmDirect`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 散客分支:`pre.scannerMemberId == null` 时 `_createNewMember(null, sessOpenid, msaType, sessUnionid)` 自动建会员（无 cell）+ `sess.member_id` 更新 → 拒绝授权也能继续支付
+- ✅ **前端 guest 兼容**：[`reg.wxml`](../snowmeet_wechat_mini/pages/register/reg.wxml) `member==null` 时也走 member-auth（之前 `member && member.cell == null` 在 null 时跳过授权显示"已合并"提示)。其他 4 个 page 的 `globalData.member` 引用都通过 `|| {}` 兜底或不直接 access 字段
+
+#### 三、第三轮：真机暴露多个二级 bug（用户 SQL 直接观察 → 修）
+
+- ✅ **`TenpayController.cs:130/268` latent crash**：`GenerateParametersForJsapiPayRequest(request.AppId, response.PrepayId)` 在 `PrepayId != null` 检查之前调,微信返 PrepayId=null 时直接 ArgumentNullException。两处一并把 if 检查移到前,失败时 `Console.WriteLine` 序列化 response（带 errcode/errmsg 便于排查）+ `return null`
+- ✅ **`OrderController.WechatPayByOrderPayment` 强制刷新 out_trade_no**：三个 if 分支（1551/1560/1595）都不命中时（PaymentIdentity 已 pre-set + open_id 已对得上）用 DB 里旧的 out_trade_no 申请 → 微信判重复 → PrepayId=null → crash。line 1611 之前无条件比较 + 刷新到新算的 outTradeNo
+- ✅ **`Member.cs` cell 计算属性 + `BindMemberMainCellNum` valid 漏设（最关键的真根因）**：用户在 prod DB 直接观察到 `member_social_account` 同一 openid/unionid 在多个连续 member_id 下重复,且新建的 cell MSA 落库为 `valid=0`,导致 `Member.cell` getter（只看 valid=1）返 null → `scannerHasCell=false` → 反复授权死循环。两处显式 `valid = 1`：[`_createNewMember`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs)（Member）+ [`MemberController.BindMemberMainCellNum` line 343-349](../SnowmeetApi/Controllers/MemberController.cs)（cell MSA）。**这是个长期潜在 bug** — 之前 model 默认值 `= 1` 在某些 EF Core 9 / DB schema default 0 constraint 组合下不生效,需要 INSERT 显式带 valid
+- ✅ **scanner 优先,不再迁移到 phoneOwner**：用户原话"应该是第二次刷新后,就可以拿到会员 ID 了,用这个会员 ID 支付呀。" `_submitPhone` 的 "stub 无 cell + phoneOwner!=null + 不同 id" 分支原本会 `_addMsa(phoneOwner)` + `_invalidateMsa(scanner)` 把第一次建的会员上的 openid/unionid MSA 失效掉。修：**直接 `finalMemberId = scannerMember.id`**,不动 phoneOwner,不动 scanner MSA,cell 该归谁归谁
+- ✅ **pay-identity-confirm wxml 按钮条件**：getPhoneNumber 按钮 `wx:if` 从 `!scannerMemberId || !scannerHasCell` 改为仅 `!scannerMemberId` — scanner 有会员就直接 onConfirmDirect 走支付,不强制再要求授权（之前的逻辑配合"stub 不同 id 失效 MSA"会形成死循环）
+
+#### 四、新的决策规则（拍板）
+
+1. **MemberLogin 永不建 stub** — 未注册 user `member = null`,session 写 openid + unionid 暂存
+2. **建会员的唯一入口是 PaymentIdentity** — 点支付按钮时建,要么 `_submitPhone`（授权了手机号）要么 `_applyConfirmDirect` 散客分支（拒绝授权)
+3. **scanner（当前 openid 关联的 member）优先** — 不论 cell 是否被别人绑过,都用 scanner 完成支付,不去迁移、不去失效 scanner MSA
+4. **新建的所有 Member / MemberSocialAccount 都显式 `valid = 1`** — 不依赖 model 默认值（EF Core + DB schema default 0 组合下会落库 valid=0）
+5. **新流程下 wxml 按钮条件**：getPhoneNumber 仅当 `!scannerMemberId`(散客)。scanner 有会员就普通 bindtap → 直接支付
+
+#### 五、关键改动文件汇总
+
+| 文件 | 改动 |
+|---|---|
+| [`Models/Member/MiniSession.cs`](../SnowmeetApi/Models/Member/MiniSession.cs) | +`wechat_openid` + `wechat_unionid` 两 nullable string |
+| [`sql/2026-05-29_mini_session_add_openid_unionid.sql`](sql/2026-05-29_mini_session_add_openid_unionid.sql) | DDL 脚本(prod 已执行) |
+| [`Controllers/MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | `MemberLogin` 删 line 207-306 自动建 stub 整段,改为 `memberId!=null` 拉 member 否则 null;session 写 openid+unionid |
+| [`Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | `_createNewMember` 加 unionId 参数+phone 可空+显式 valid=1;新增 `_loadSessionContext`/`_invalidateMsa` helper;`_submitPhone` 删 alreadyBoundSameType+用 unionid+sess.member_id 更新+stub 不同 id 分支改为用 scanner 不动 phoneOwner;`_applyConfirmDirect` 散客分支自动建会员 |
+| [`Controllers/Order/TenpayController.cs`](../SnowmeetApi/Controllers/Order/TenpayController.cs) | PrepayId null 检查移到 GenerateParameters 之前(两处)+失败时 log response+`using Newtonsoft.Json` |
+| [`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | `GetOrderFromPaymentByCustomer` try/catch + `WechatPayByOrderPayment` 调 TenpayRequest 前强制刷新 out_trade_no |
+| [`Controllers/MemberController.cs`](../SnowmeetApi/Controllers/MemberController.cs) | `BindMemberMainCellNum` 新建 cell MSA 显式 valid=1（漏设的核心 bug） |
+| [`snowmeet_wechat_mini/app.js`](../snowmeet_wechat_mini/app.js) | `loginPromiseNew` 补 catch + `wx.login fail` 也 resolve({}) |
+| [`snowmeet_wechat_mini/utils/util.js`](../snowmeet_wechat_mini/utils/util.js) | (5-28 已修)非 200 reject(res.statusCode) — 本轮没动,但本轮所有改动都在它的基础上 |
+| [`snowmeet_wechat_mini/pages/order/payment_entry.{js,wxml,wxss}`](../snowmeet_wechat_mini/pages/order/) | onShow 两层 catch + fallback 视图 + 删 phone-prompt-overlay + pay()/_doWepay 兼容 payment==null + 大量诊断 console.log |
+| [`snowmeet_wechat_mini/components/pay-identity-confirm/index.{js,wxml}`](../snowmeet_wechat_mini/components/pay-identity-confirm/) | 加 `onGetPhoneNumberAndConfirmDirect`(submit_phone→confirm_direct 链);按钮 wx:if 改为仅 `!scannerMemberId`;诊断 log |
+| [`snowmeet_wechat_mini/pages/register/reg.wxml`](../snowmeet_wechat_mini/pages/register/reg.wxml) | `!member` 也走 member-auth(本轮 collateral,跟支付流程无关但避免 globalData.member 为 null 时显示"已合并") |
+
+#### 六、DB 一次性 cleanup（已部署后用户自行决定执行）
+
+```sql
+-- 修第一轮被错失效的 openid/unionid MSA(本轮 stub 不同 id 分支删除前的遗留)
+UPDATE msa SET valid = 1, update_date = GETDATE()
+FROM member_social_account msa JOIN member m ON m.id = msa.member_id
+WHERE m.source = '支付前身份验证'
+  AND msa.type IN ('wechat_mini_openid', 'wechat_unionid')
+  AND msa.valid = 0
+  AND msa.update_date >= '2026-05-29';
+
+-- 修因 BindMemberMainCellNum 漏 valid 落库的 cell MSA
+UPDATE member_social_account SET valid = 1, update_date = GETDATE()
+WHERE type='cell' AND valid=0 AND num IS NOT NULL AND num != ''
+  AND create_date >= '2026-05-28';
+
+-- 修因 _createNewMember 漏 valid 落库的 member
+UPDATE member SET valid = 1, update_date = GETDATE()
+WHERE source='支付前身份验证' AND valid=0;
+```
+
+#### 七、状态
+
+- ✅ 后端 dotnet build 0 error / 14 warning（与改动无关）
+- ✅ DDL `ALTER TABLE mini_session ADD wechat_openid/wechat_unionid` 已 prod 执行
+- ✅ 后端 `dotnet publish` 部署 mini.snowmeet.top
+- ✅ paymentId=42551 流程跑通（识别 → MemberLogin failed 消失,status=direct_to_scanner）
+- 🚧 **未真机验证**：本轮最后两处改动(`scanner 优先 + wxml 按钮条件`)尚未真机回归,需要新订单走「第一次拒绝授权 → 支付完成 → 第二次新订单直接 confirm_direct 支付」整链路
+- 🚧 **DB 历史 stub 数据 housekeeping**：41085-41095 这一批 stub member 仍存在,本轮治本后不再产生新 stub,但已有的需要 IsEmpty 检查 + 标 is_merge 单独脚本(后续 task)
+- 📌 **关键 takeaway**：每次创建 `Member` / `MemberSocialAccount` 实体时**必须显式 `valid = 1`**,model 默认值在 EF Core 9 + DB schema default 0 constraint 组合下不生效
