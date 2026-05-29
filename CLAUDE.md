@@ -269,7 +269,9 @@ dotnet run
 - **end-work 不需要确认（用户拍板）**：触发 end-work 后直接落盘 CLAUDE.md + sessions/ 归档 + `git commit + push`，**永远不需要 AskUserQuestion 确认**。"以后永远都不需要确认"是用户明令；之前的"draft → 确认 → 写盘"流程作废
 - **`performWebRequest` 非 200 不 reject 的隐蔽 bug 已修**（2026-05-28）：[`util.js:115`](snowmeet_wechat_mini/utils/util.js#L115) 原代码 toast 后 `return`（不 reject），Promise 永远 pending，调用方既不会 then 也不会 catch。任何接口偶发 500/401 时页面就停在加载中。已加 `reject(res.statusCode)`，影响所有 `wx.request` 全局
 - **WeChat `getPhoneNumber` 只能由 button 直接触发**：JS 不能程序触发 `wx.getPhoneNumber()`。意味着「单一支付按钮 + 中途引导手机号」UX 行不通，必须把授权按钮独立出来（或弹窗里）让用户直接 tap `<button open-type="getPhoneNumber">`
-- **`MemberLogin` 对游客自动建最小 stub**（2026-05-28 验证）：MiniAppHelperController.MemberLogin 在 openid 没绑过会员时，自动 `_db.member.AddAsync(new Member())` + 绑一条 wechat_mini_openid MSA，`sessionKey`/`MiniSession` 仍正常写入。意味着 `app.globalData.member` 可能 undefined（取决于 `MemberLogin` 返回的 session 对象是否带 member），但 `sessionKey` 一定有效，后端 `_resolveStatus` 反查 `mini_session.member_id` 总能拿到（最小 stub）会员。游客付款后 `Order.member_id` 指向 stub 也允许
+- **`MemberLogin` 对游客自动建最小 stub**（2026-05-28 验证）：MiniAppHelperController.MemberLogin 在 openid 没绑过会员时，自动 `_db.member.AddAsync(new Member())` + 绑一条 wechat_mini_openid MSA，`sessionKey`/`MiniSession` 仍正常写入。意味着 `app.globalData.member` 可能 undefined（取决于 `MemberLogin` 返回的 session 对象是否带 member），但 `sessionKey` 一定有效，后端 `_resolveStatus` 反查 `mini_session.member_id` 总能拿到（最小 stub）会员。游客付款后 `Order.member_id` 指向 stub 也允许。**注：本条 5-29 已治本**（MemberLogin 不再建 stub）+ 5-29（续）删除孤儿清理 + socialAccountForJob 改为兜底
+- **`social_account_for_job` 表有指向已删 member 的脏数据**（2026-05-29（续）发现）：id=55 (cell=18501097897, openid=oHdTn5e..., member_id=40649) 历史员工绑定记录，member_id=40649 在 member 表 0 行 / MSA 表 0 行，是孤儿记录。曾让 MemberLogin 强制覆盖 unionid 反查结果到 40649 → 触发孤儿清理把 PaymentIdentity 刚建的真实会员失效。已 5-29（续）改为 `memberId==null` 时才用 jobAccount 兜底；脏数据本身未删，存量不影响新流程
+- **`payment_entry.wxml:51` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（待修）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付。前端按钮屏蔽条件应改为 `payment && payment.status=='支付成功'`（当前 payment 为准），不用 order 聚合。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待，新用户看到「支付成功」无支付按钮
 
 ---
 
@@ -1550,3 +1552,65 @@ WHERE source='支付前身份验证' AND valid=0;
 - 🚧 **未真机验证**：本轮最后两处改动(`scanner 优先 + wxml 按钮条件`)尚未真机回归,需要新订单走「第一次拒绝授权 → 支付完成 → 第二次新订单直接 confirm_direct 支付」整链路
 - 🚧 **DB 历史 stub 数据 housekeeping**：41085-41095 这一批 stub member 仍存在,本轮治本后不再产生新 stub,但已有的需要 IsEmpty 检查 + 标 is_merge 单独脚本(后续 task)
 - 📌 **关键 takeaway**：每次创建 `Member` / `MemberSocialAccount` 实体时**必须显式 `valid = 1`**,model 默认值在 EF Core 9 + DB schema default 0 constraint 组合下不生效
+
+### 2026-05-29（续） — MemberLogin 孤儿清理 + socialAccountForJob 强制覆盖删除 + pay-identity-confirm 软授权 UX 反复后回退
+
+接续 5-29 主线。用户反馈"过去会员没验证手机号，支付新单时旧 openid/unionid MSA 被失效、又新建会员"，给出案例 41104/41105。本会话定位到 [MiniAppHelperController.cs](../SnowmeetApi/Controllers/MiniAppHelperController.cs) 两段历史遗留逻辑互相协同把 PaymentIdentity 刚建的真实会员打回失效，触发新一轮散客分支建新会员的死循环。详见 [`sessions/2026-05-29_orphan_cleanup_removal_and_soft_auth_unwinding.md`](sessions/2026-05-29_orphan_cleanup_removal_and_soft_auth_unwinding.md)。
+
+#### 一、41104 → 41105 死循环根因（用户 DB 直查 + sqlcmd 验证）
+
+`social_account_for_job.id=55`（2026-03-12 创建）指向不存在的 `member_id=40649`（脏数据）。每次同一 openid 触发 MemberLogin：
+1. unionid 反查 → `memberId = 41104`（PaymentIdentity 散客分支刚建）
+2. **[`MiniAppHelperController.cs:190-194`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L190) `socialAccountForJob` 强制覆盖** → `memberId = 40649`（死会员）
+3. `GetWholeMemberById(40649)` 返 null → `session.member_id = null`
+4. **[`line 258-294` 孤儿清理 try/catch](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L258)**：`oldMsaList where num==openid && member_id != 40649 && valid==1` → 命中 41104 的 wechat_mini_openid + wechat_unionid → 全部 valid=0 + 41104.valid=0 + orders 转给死会员 40649
+5. 之后 PaymentIdentity `_resolveStatus` 反查 scanner（只看 valid=1 MSA） → 找不到 → 散客分支建 41105
+6. 41105 下次再被 MemberLogin 同样原因杀，永久循环
+
+#### 二、修复（用户拍板「1+2 程序必须改」）
+
+| 文件 | 改动 |
+|---|---|
+| [`MiniAppHelperController.cs:190-201`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L190) | `socialAccountForJob` 覆盖加 `if (memberId == null)` 兜底守卫，不再无条件覆盖 unionid 反查结果 |
+| [`MiniAppHelperController.cs:258-294`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L258) | 整段「孤儿清理」try/catch 删除 + 末尾仅服务该 try/catch 的 `_db.SaveChangesAsync()` 一并删 |
+
+dotnet build 0 error / 12 warning（全为历史无关项）。
+
+**数据修复用户明确不做**（id=55 脏数据、41104/41105 不动）。代码修完后新流程不再重复制造问题，存量靠业务侧逐步会员合并即可。
+
+#### 三、pay-identity-confirm 软授权 UX 反复（最终回退到「按钮直接 getPhoneNumber」）
+
+围绕「散客 vs 会员+无 cell 两种场景的「确认并继续」按钮行为」反复迭代 5 轮：初始统一 getPhoneNumber → 加底部软授权 popup（3 按钮：授权/跳过/取消）→ 客户端统一 popup → 删取消按钮 → **最终用户拍板「我要微信原生授权页，不要自己画 popup 让顾客多点一次」→ 删整个 popup 回到初始形态**。
+
+最终状态：[`pay-identity-confirm/index.wxml`](../snowmeet_wechat_mini/components/pay-identity-confirm/index.wxml) 按钮 `wx:if="{{!result.scannerHasCell}}"` + `open-type=getPhoneNumber` + `bindgetphonenumber=onGetPhoneNumberAndConfirmDirect`。散客 + 会员无 cell 走同一按钮（直接微信原生授权页），用户同意 → 串 `submit_phone → confirm_direct`（后端 `_submitPhone` 按 scanner 自动分流：null=建新会员，非 null=补 cell），用户拒绝 → 走 `confirm_direct` 兜底仍能支付。
+
+#### 四、paymentId=42561 显示「支付成功」（未修，留下次）
+
+订单 71704 上同时有 ¥0.01 已付 payment 42559 + ¥0.01 待付 payment 42561。`totalCharge=0 + paidAmount=0.01` → `orderStatus="支付成功"`（后端 getter 算法层面正确）。前端 [`payment_entry.wxml:51`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml#L51) 用 `order.orderStatus == '支付成功'` 屏蔽支付 UI，对多笔 payment 的订单会误判当前这笔。
+
+修复方向：屏蔽条件改为 `payment && payment.status=='支付成功'`（以当前 payment 为准，不用聚合状态）。本会话未修。
+
+#### 五、关键改动文件汇总
+
+| 文件 | 改动 |
+|---|---|
+| [`SnowmeetApi/Controllers/MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | `socialAccountForJob` 覆盖加 `memberId==null` 兜底；删整段「孤儿清理」try/catch + 末尾多余 SaveChangesAsync |
+| [`snowmeet_wechat_mini/components/pay-identity-confirm/index.{wxml,js,wxss}`](../snowmeet_wechat_mini/components/pay-identity-confirm/) | 反复迭代后最终：删整个 softAuth popup,按钮直接 `open-type=getPhoneNumber`;散客和会员无 cell 走同一按钮（`!scannerHasCell`） |
+| [`SnowmeetApi/config.sqlServer`](../SnowmeetApi/config.sqlServer) | (本地排查方便,机器本地,**未入库**) 改 IP 161.189.64.210 → 100.28.143.19（CLAUDE.md 记录的 prod，原 IP 已不通） |
+
+#### 六、关键发现 / 教训
+
+- **`social_account_for_job` 是历史员工/工作账号绑定表，存在指向已删 member 的脏数据**：member 表 0 行 / MSA 表 0 行 / jobAccount.id=55 仍指 member_id=40649。任何把它当作「权威 memberId 源」的逻辑都要先看 jobAccount.member_id 指向的 member 是否真的存在并 valid=1，盲目覆盖会污染上游正确反查结果
+- **MemberLogin 孤儿清理（line 258-294）的设计前提已不成立**：原意「同一 openid 应只能挂在一个 member 上,扫到多个时把旧的失效」。但 PaymentIdentity 改造后新的散客会员是合法"正在使用"的会员，不该被当老 openid 清理。5-29「scanner 优先，不动 MSA」原则下，这种主动清理必然冲突，不该再做
+- **`order.orderStatus` 是订单聚合状态，不能用来屏蔽单笔 payment 的支付 UI**：一张订单可有多笔 OrderPayment。用 `paidAmount >= totalCharge` 判整单"已支付"在 `totalCharge=0 + 任意小额支付` 场景会误判。前端屏蔽条件应基于「当前 payment.status」,不是聚合 orderStatus
+- **微信原生 `getPhoneNumber` 授权页本身就是用户决策 UI**：自己再画"软授权 popup"是多此一举的中间层。直接 `open-type=getPhoneNumber` 让微信弹原生页（同意/拒绝有原生回调），用户拒绝时 JS 走兜底分支。**不要在 JS 层再画 popup 让用户多点一次**
+- **本机 DB 连接需要 VPN/隧道**：`nc -vz 100.28.143.19 1433` 通但 ping 超时（ICMP 被防火墙拦），优先用 nc 测端口别被 ping 超时误导。`config.sqlServer` 在 .gitignore，跨机 IP 不一致是常态，本地排查前先 nc 验通再改 config，记得别 commit
+- **会话 vs 用户耐心**：本会话历时较长，多轮反复（popup 加→改→删；UX 三次反弹）显著消耗用户耐心。下次类似 UX 需求先用一句话确认「您想要微信原生授权页弹出来，还是要我们自己画 popup」，避免猜错方向后多次反弹
+
+#### 七、状态
+
+- ✅ 后端两处修改 + build pass，本地未 commit
+- ✅ 小程序 pay-identity-confirm 软授权迭代后回退到「按钮直接 getPhoneNumber」终态
+- 🚧 部署 SnowmeetApi 到 mini.snowmeet.top + 小程序重编（需用户确认时机）
+- 🚧 **真机验证清单**：①同一 openid 多次刷新 MemberLogin 验证 41104 类会员不再被 invalidate ②点支付按钮直接微信原生授权页（不再有自定义 popup）③散客授权 / 拒绝两路径都能完成支付 ④会员无 cell 授权 / 拒绝两路径都能完成支付
+- ⏳ paymentId=42561 UI 屏蔽逻辑（用 `payment.status` 替代 `order.orderStatus`）— 留下次
