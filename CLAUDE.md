@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-27）
+## 当前状态（截至 2026-05-28）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -180,7 +180,7 @@ dotnet run
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
-- 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 phone_required/direct_to_scanner/choose_identity/error 四态卡片）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机
+- 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
 - 雪票财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
   - `add_skipass_columns_to_fy_xlsx.py`（`--xlsx --shop`）— 给「年度雪票」末尾追加 4 列雪票级字段（名称/支付价格/结算价格/取票时间）
   - `add_skipass_detail_merged_sheet.py`（`--xlsx --shop`）— 加「年度雪票明细」合并 sheet（年度雪票 × ski_pass 一对多，多明细整行浅蓝 `EAF2FB`）
@@ -198,9 +198,15 @@ dotnet run
 - 第二步：去结算按钮入口（已在 `onCheckout` 接通 `Order/PlaceRentOrder` + navigateTo settle）
 - 养护 / 零售 业务的接待表单组件（目前仅租赁完成）
 - 旧版页面迁移：`recept_auth_list`、`recept_member_info`、`recept_list`、`rent_recepting_list`
-- ✅ 支付前身份验证 A+B 切片完成：后端模型 / DB / `PaymentIdentityController` + 小程序 `pay-identity-confirm` 组件 + payment_entry 接入；swagger 烟测只读路径通过。**5-27 追加**：身份按钮按完自动调起 `wx.requestPayment`（`onIdentityRefreshed` 检测 status==direct → 重拉单 → `pay()` 串联，4 个身份按钮统一「一次点击完成支付」）+ 顺手修 pay() 3 bug（`!payment` 守卫 / 不可支付分支漏 return / promise 内层 param `payment → payParams` 去 shadow + paymentId 显式 `that.data.paymentId` / 删死代码 / catch 复位 paying）。**仍待真机端到端测试**：用其它账号扫顾客二维码触发 `choose_identity` 选「正常支付/替人代付」走完支付闭环 + DB 校验 `Order.member_id` / `OrderPayment.is_proxy_pay` / `wechat_unverified` 是否按预期写入
+- ✅ 支付前身份验证 A+B 切片完成：后端模型 / DB / `PaymentIdentityController` + 小程序 `pay-identity-confirm` 组件 + payment_entry 接入；swagger 烟测只读路径通过。**5-28 真机测试发现并修复 3 个根因**：
+  - ✅ 「点身份按钮 wx.requestPayment 调不起」根因 = `WechatPayByOrderPayment` 不刷新 `op.open_id`（`_applyChoice` pre-set `op.member_id` 后既有「换人」分支不触发，op.open_id 仍是订单原会员 openid），TenpayRequest 用错 openid 申请 prepay → 已加第 3 个分支补写 open_id + out_trade_no + 清 prepay 字段（`OrderController.cs:1592`）
+  - ✅ 「正常支付（订单转归我）对已有归属订单失效」根因 = `DealSuccessPaidOrder` 同步守卫多了 `order.member_id == null` 条件 → 已删（`OrderController.cs:1787`），现在 `is_proxy_pay == false && member_id != null` 就同步，代付仍由 `is_proxy_pay==true` 拦截
+  - ✅ 「点完按钮刷新页面就锁死，无法改主意」根因 = 我初版 `_resolveStatus` 加的 `op.member_id != null → direct` 兜底把「付款方意图」当成了「订单归属已决定」 → 已重构为：`_resolveStatus` 只看 `order.member_id`+`scannerMemberId`、删 `ConfirmPayIdentity` 顶部幂等检查、`_applyChoice`/`_applyConfirmDirect` 末尾强制 `status='direct'`（本次响应触发 pay 但不污染后续 status 决策）
+  - ✅ 客户端 wxml 加 `order.orderStatus != '支付成功'` 守卫，防止已支付订单仍显示身份选择卡片（残留 op.status='待支付' 时也兜底）
+- **仍待真机端到端验证清单**（接续 5-27 留下）：改主意场景、open_id 切换场景、「订单转归我」对已有归属订单真转移、游客授权/跳过/取消三路径
 - 支付宝真实手机号解密（接 `alipay.system.oauth.token` + `alipay.user.info.share`），当前是 stub（传 `phoneMock` 字段走通）
-- ✅ 决策时机已改为"支付完成后"语义（2026-05-27 完成）：`PaymentIdentityController._applyChoice`/`_applyConfirmDirect` 只写 `OrderPayment`（付款方意图立即落地），`Order.member_id` / `wechat_unverified` 由 `OrderController.DealSuccessPaidOrder` 在 wepay/alipay notify 回调后同步；**待真机验证异常路径 E1/E2**（清单见 [`payment_identity_real_device_test_checklist.md`](payment_identity_real_device_test_checklist.md)）
+- ✅ 决策时机已改为"支付完成后"语义（2026-05-27 完成 + 5-28 守卫调整）：`PaymentIdentityController._applyChoice`/`_applyConfirmDirect` 只写 `OrderPayment`（付款方意图立即落地），`Order.member_id` / `wechat_unverified` 由 `OrderController.DealSuccessPaidOrder` 在 wepay/alipay notify 回调后同步。**5-28 调整同步守卫**：去掉 `order.member_id == null` 条件（让「订单转归我」对已有归属订单也生效），现在仅 `is_proxy_pay == false && member_id != null` 即同步，代付仍由 `is_proxy_pay==true` 拦截
+- ✅ 非会员/未绑手机号软授权支付（2026-05-28 完成）：`_resolveStatus` 删 `phone_required` 硬阻断分支（`scannerHasCell` 字段仍写入响应供前端判定）；`GetOrderFromPaymentByCustomer` 加 `member==null` 兜底（游客查待支付订单不再 NRE）；前端 `performWebRequest` 非 200 加 `reject(res.statusCode)`（修挂起 Promise bug，影响所有 wx.request 调用）；`payment_entry.{js,wxml,wxss}` 改造 `pay()` 检查 `scannerHasCell` + 弹「全屏遮罩 + 底部滑入卡片」(`授权手机号` / `跳过,直接支付` 两按钮)，授权或跳过都走 `_doWepay()`
 - 未使用 fui-* 组件清理（本次删了 6 个：`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`，剩 17 个继续逐步弃用）
 - 页面可达性 review：`snowmeet_ai_doc/unreachable_pages.md` 列出 75 个从 index/mine BFS 不可达的页面（含 62 个完全孤立），需人工逐项区分 QR 扫码入口 vs 死代码后清理
 - 南山「年度雪票明细」85 单押金合计 ≠ 退款金额合计（非关闭）待业务侧确认是否需追退；典型场景=顾客未还卡，押金没退（脚本里曾试加粉底标红、用户已取消还原，仅靠数据本身排查）
@@ -228,7 +234,17 @@ dotnet run
 - 支付组件 WebSocket 仅在选中微信/支付宝并生成二维码后开启；切换支付方式时关闭旧 socket 再开新的，若用户在 prepay 调用中途切换会有短暂残留请求（无功能影响）
 - `pages/order/payment_entry` 目前仅对 `order.type=='租赁'` 做友好明细展示（编码/名称/品类 + 押金/日租金）；餐饮/零售/押金等其它类型走"最小版"（订单信息 + 金额 + 按钮），后续按业务需要扩展
 - **`Member.wechatMiniOpenId` 是后端计算属性**（getter 遍历 `memberSocialAccounts` 找 type=`wechat_mini_openid`），需要序列化时 MSA 集合被一并带回。顾客扫码 payment_entry 这种深链场景下 `app.globalData.member` 可能不齐全，导致前端取该字段为空。新接口（如 `PaymentIdentity/CheckPayerIdentity`）若需要扫码方 openid 都得做 sessionKey → `mini_session.member_id` 反查兜底
-- **`PaymentIdentityController` 决策时机已迁到 notify**（2026-05-27 改）：用户选完归我/代付后**只写 `OrderPayment.member_id` / `is_proxy_pay`**（付款方意图，立即落地）；`Order.member_id` / `wechat_unverified` 仅在 `DealSuccessPaidOrder`（wepay/alipay notify 回调汇聚点）支付成功后同步。同步守卫：`paidOp.is_proxy_pay == false && paidOp.member_id != null && order.member_id == null` 才同步 `Order.member_id`（代付/已有归属都不动）；`paidOp.pay_method.Trim() == "支付宝"` 才置 `wechat_unverified=true`。订单字段 diff 走 `UpdateOrder` 内置 `Util.GetUpdateDifferenceLog`，自动产生 `core_data_mod_log` 记录 scene=`支付成功`
+- **`PaymentIdentityController` 决策架构（2026-05-28 重构定稿）**：付款方**意图**与订单**归属**完全解耦，避免「点击锁死、改主意失败」：
+  - **意图**(`OrderPayment.member_id`/`is_proxy_pay`)：`_applyChoice` / `_applyConfirmDirect` 当次落库；DB 持久；**不参与** `_resolveStatus` 判定
+  - **本次响应 `status='direct'`**：action handler 末尾**强制返回**，触发前端 auto-pay；只在当次 HTTP 响应有效，不污染下次 `_resolveStatus`
+  - **归属**(`Order.member_id` / `wechat_unverified`)：仅在 `DealSuccessPaidOrder`（wepay/alipay notify 回调汇聚点）支付成功后同步。同步守卫：`paidOp.is_proxy_pay == false && paidOp.member_id != null` 即同步（5-28 去掉 `order.member_id == null` 让「订单转归我」对已有归属订单生效）；`paidOp.pay_method.Trim() == "支付宝"` 才置 `wechat_unverified=true`
+  - **`_resolveStatus` 只看 `order.member_id` + `scannerMemberId`**：保证用户改主意的成本最低（刷新就重新决策），失败重试不破坏归属
+  - **`ConfirmPayIdentity` 顶部幂等检查已删**：允许用户覆盖前次选择（self ↔ proxy）。`op.status != '待支付'` 守卫保留
+  - 订单字段 diff 走 `UpdateOrder` 内置 `Util.GetUpdateDifferenceLog`，自动产生 `core_data_mod_log` 记录 scene=`支付成功`
+- **WechatPayByOrderPayment 三种 op 字段补写分支**（2026-05-28 新增第 3 个）：
+  - 首次(`payment.member_id == null`)：set member_id + open_id + out_trade_no
+  - 换人(`payment.member_id != member.id`)：set 同上 + 清 prepay 字段 + 写 coreDataModLog scene='支付顾客换人'
+  - **open_id 不匹配**(`payment.member_id == member.id && payment.open_id != member.wechatMiniOpenId`)：身份验证已 pre-set member_id 但 open_id 未跟着改，必须补写 + 清 prepay；否则 TenpayRequest 用错 openid 申请 prepay，`wx.requestPayment` 弹不出窗
 - **支付宝 submit_phone stub**：`PaymentIdentityController._submitPhone` 当 `payerType=alipay` 时若传 `phoneMock` 字段直接用，否则返 `alipay_phone_pending`。真支付宝解密待支付宝小程序对接（`alipay.system.oauth.token` + `alipay.user.info.share`）
 - **`components/firstui/` 17 个组件仍在用**：含 `fui-config`（喂 `wx.$fui` 给 fui-button/icon/section/list-cell/white-space）+ `fui-css`（`app.wxss` 全局 `@import`）+ 其它 15 个有 wxml 引用。本次删的 6 个 (`fui-badge / fui-tabs / fui-toast / fui-top-popup / fui-utils / fui-wing-blank`) 是 0 引用残留
 - **页面可达性报告**：`snowmeet_ai_doc/unreachable_pages.md` — 117 个 page 中 62 个全项目零引用，但部分是 QR 扫码外部入口（如 `pages/order/payment_entry` 是顾客扫码落地页，必须留），删之前要逐项区分
@@ -251,6 +267,9 @@ dotnet run
 - **「雪票列表」外部 xls 渠道订单号匹配键**：自我游/七色米导出的 `雪票列表_YYYY-MM-DD.xls`（崇礼用），1 sheet × 28 列，「渠道订单号」(第 23 列) 格式 `{snowmeet 订单号}_ZF_NN`（如 `QJ_XP_260405_00001_ZF_02`，与支付流水 `out_trade_no` 命名约定一致：支付 `_ZF_` / 退款 `_TK_` / 分账 `_FZ_`）。匹配「年度雪票」订单号时用 `split('_ZF_')[0]` 取前缀。标注脚本 `annotate_skipass_list_sheet.py` 默认 LOW=HIGH=20（与"已取消>20"阈值对齐成两端切分，红 0 / 黄 2）
 - **养护数据：`care_task.task_name` 三种「打蜡」相关值**：`打蜡`(554) / `热蜡`(2424) / `机打蜡`(32)。业务拍板的列映射：机打蜡人 = 仅 `机打蜡`、热打蜡人 = `热蜡` ∪ `打蜡`（合并去重 care_id）。其余 5 staff 列单一映射：安全检查/修刃/刮蜡/维修/发板。同 care 同 task_name 多个 staff_id 用 `; ` 连接去重。详见 [`add_care_detail_merged_sheet.py`](add_care_detail_merged_sheet.py)。`shop.name` 三店分别是 `万龙服务中心` / `南山` / `崇礼旗舰店`（后两个不带"店"），脚本 `--shop` 参数要按 DB 实值传
 - **end-work 不需要确认（用户拍板）**：触发 end-work 后直接落盘 CLAUDE.md + sessions/ 归档 + `git commit + push`，**永远不需要 AskUserQuestion 确认**。"以后永远都不需要确认"是用户明令；之前的"draft → 确认 → 写盘"流程作废
+- **`performWebRequest` 非 200 不 reject 的隐蔽 bug 已修**（2026-05-28）：[`util.js:115`](snowmeet_wechat_mini/utils/util.js#L115) 原代码 toast 后 `return`（不 reject），Promise 永远 pending，调用方既不会 then 也不会 catch。任何接口偶发 500/401 时页面就停在加载中。已加 `reject(res.statusCode)`，影响所有 `wx.request` 全局
+- **WeChat `getPhoneNumber` 只能由 button 直接触发**：JS 不能程序触发 `wx.getPhoneNumber()`。意味着「单一支付按钮 + 中途引导手机号」UX 行不通，必须把授权按钮独立出来（或弹窗里）让用户直接 tap `<button open-type="getPhoneNumber">`
+- **`MemberLogin` 对游客自动建最小 stub**（2026-05-28 验证）：MiniAppHelperController.MemberLogin 在 openid 没绑过会员时，自动 `_db.member.AddAsync(new Member())` + 绑一条 wechat_mini_openid MSA，`sessionKey`/`MiniSession` 仍正常写入。意味着 `app.globalData.member` 可能 undefined（取决于 `MemberLogin` 返回的 session 对象是否带 member），但 `sessionKey` 一定有效，后端 `_resolveStatus` 反查 `mini_session.member_id` 总能拿到（最小 stub）会员。游客付款后 `Order.member_id` 指向 stub 也允许
 
 ---
 
@@ -1378,3 +1397,66 @@ snowmeet_wechat_mini 已自动 commit `7d1ec793 remove inter ref` + merge + push
 - ✅ 小程序解除 pages/template 引用：9 文件 + 1 新增已 push 到 snowmeet_wechat_mini origin/ai
 - 🚧 **真机端到端测试**：需用户部署 ai 分支后端 + 重编小程序 + 按清单走 5 场景 + 4 异常路径（特别 E1/E2 是迁移生效的核心证据）
 - 仍开放：支付宝真实手机号解密 stub（接 `alipay.system.oauth.token` + `alipay.user.info.share`，本次未动）
+
+### 2026-05-28 — 真机测试根因排查 + PaymentIdentity 决策架构重构 + 非会员软授权支付
+
+接续 5-27 真机测试入口。用户在真机跑 payment_entry 暴露多个 bug，反推出架构和守卫问题。详见 [`sessions/2026-05-28_payment_entry_real_device_fixes_and_guest_pay.md`](sessions/2026-05-28_payment_entry_real_device_fixes_and_guest_pay.md)。
+
+#### 一、真机 bug 1：「点身份按钮 wx.requestPayment 调不起」
+
+**根因**：`_applyChoice` pre-set `op.member_id` 后，`WechatPayByOrderPayment` 的现有「换人」分支（`payment.member_id != member.id`）不触发，导致 `payment.open_id` 保持订单原会员的 openid。`TenpayController.TenpayRequest` line 119 用 `payment.open_id` 申请 prepay → 错 openid 的 prepay_id → `wx.requestPayment` 因 openid 不匹配**弹不出窗**（无明显错误提示）。
+
+**修复**：[`OrderController.cs:1592`](../SnowmeetApi/Controllers/OrderController.cs#L1592) 加第 3 个 op 字段补写分支 — 当 `payment.member_id == member.id && payment.open_id != member.wechatMiniOpenId` 时补写 `open_id` + `out_trade_no` + 清 `prepay_id`/`nonce`/`sign`/`timestamp`。
+
+#### 二、用户重申「订单归属应在支付成功后设置」原则
+
+用户原话：「订单归属问题，应该在支付成功后设置，支付不成功的话，订单归属不变」。
+
+此话推翻我初版的 `_resolveStatus` 兜底（`if op.member_id != null → 'direct'`） — 把"付款方意图"当成了"订单归属已决定"。漏洞：扫码方 A 点完按钮后取消、刷新页面 → `_resolveStatus` 仍返回 `direct` → 跳过选择卡片，且 `ConfirmPayIdentity` 顶部幂等检查又拦截改主意写入。
+
+**解耦重构**（[`PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 三处改动）：
+
+1. `_resolveStatus` 不再依赖 `op.member_id`：只看 `order.member_id` + `result.scannerMemberId`，决策树和原版一致
+2. 删除 `ConfirmPayIdentity` 顶部幂等检查：允许扫码方改主意（覆盖写 `op.member_id` / `is_proxy_pay`）
+3. `_applyChoice` / `_applyConfirmDirect` 末尾**强制 `status='direct'`**：本次响应触发 `pay()`，但不污染 `_resolveStatus`（刷新后按 `order.member_id` 重算，可重选）
+
+#### 三、真机 bug 2：「订单转归我」对已有归属订单失效
+
+**根因**：[`DealSuccessPaidOrder` 同步守卫](../SnowmeetApi/Controllers/OrderController.cs#L1787) 原版 `if (paidOp.is_proxy_pay == false && paidOp.member_id != null && order.member_id == null)` — 多余的 `order.member_id == null` 条件让已有归属订单永远无法被转走。按钮 UI 写「订单转归我」但实现不转，矛盾。
+
+**修复**：去掉 `order.member_id == null` 守卫。代付仍由 `is_proxy_pay==true` 拦截不会误转。`UpdateOrder.GetUpdateDifferenceLog` 自动产 `core_data_mod_log` 记录原值/新值留痕。
+
+#### 四、客户端守卫：已支付订单不应再显示身份选择卡片
+
+[`payment_entry.wxml`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml) 加 `order.orderStatus != '支付成功'` 守卫，防止 OrderPayment 有残留 `status='待支付'` 记录时 UI 错乱（支付成功 + 选择身份卡片 + 敬请支付按钮同框）。
+
+#### 五、非会员/未绑手机号软授权支付（Plan Mode 设计 + 用户确认）
+
+用户需求：游客（无手机号）也能支付，但 UI 要有提示。点支付按钮时未授权手机号则弹提示，顾客可**授权或跳过**，**两路径都可继续支付**。
+
+**后端**：
+- `OrderController.GetOrderFromPaymentByCustomer` 加 `member == null` 兜底（游客查待支付订单不再 NRE，已支付订单仍仅相关会员可见）
+- `PaymentIdentityController._resolveStatus` **删 `phone_required` 硬阻断分支**（`scannerHasCell` 仍写入响应供前端判定）
+
+**前端**：
+- `utils/util.js` `performWebRequest` 非 200 加 `reject(res.statusCode)` — 修挂起 Promise bug（全局影响）
+- `pages/order/payment_entry.js` 新增 `showPhonePrompt` data + 拆出 `_doWepay()` + 新增 `onAuthorizePhone(e)`（复用 `data.confirmPayIdentityPromise({action:'submit_phone'})`） + `onSkipPhone()`；`pay()` 改为先检查 `identity.scannerHasCell`，无手机号弹卡片
+- `pages/order/payment_entry.wxml` 加全屏遮罩 + 底部滑入卡片（标题「建议授权手机号」+ 两个按钮：`<button open-type="getPhoneNumber">` + 「跳过,直接支付」）
+- `pages/order/payment_entry.wxss` 加 `.phone-prompt-*` 样式 + 淡入/滑入动画
+- `components/pay-identity-confirm/index.wxml` 删 `phone_required` 渲染分支（保留 direct_to_scanner / choose_identity / error 三态）
+
+#### 六、关键改动文件汇总
+
+| 文件 | 改动 |
+|---|---|
+| [`PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | `_resolveStatus` 删 phone_required + 不再用 op.member_id 判 direct；删 ConfirmPayIdentity 幂等拦截；`_applyChoice`/`_applyConfirmDirect` 末尾强制 status='direct' |
+| [`OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | `WechatPayByOrderPayment` 加 open_id 不匹配补写分支；`DealSuccessPaidOrder` 删 `order.member_id == null` 守卫；`GetOrderFromPaymentByCustomer` 加 member==null 兜底 |
+| [`utils/util.js`](../snowmeet_wechat_mini/utils/util.js) | `performWebRequest` 非 200 加 reject |
+| [`payment_entry.{js,wxml,wxss}`](../snowmeet_wechat_mini/pages/order/) | showPhonePrompt + 拆 _doWepay + onAuthorizePhone + onSkipPhone + 全屏遮罩底部卡片 + orderStatus 守卫 + .phone-prompt-* 样式 |
+| [`pay-identity-confirm/index.wxml`](../snowmeet_wechat_mini/components/pay-identity-confirm/) | 删 phone_required 分支 |
+
+#### 七、状态
+
+- ✅ 后端 dotnet build 0 error / 12 warning（与改动无关）
+- 🚧 **真机端到端验证**（接续 5-27 清单 + 5-28 新增）：改主意场景、open_id 切换场景、「订单转归我」对已有归属订单、游客授权/跳过/取消三路径
+- 🚧 **部署**：SnowmeetApi 改动 `dotnet publish` 到 mini.snowmeet.top + 小程序重提审
