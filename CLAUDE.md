@@ -277,7 +277,9 @@ dotnet run
 - **`OrderController.AlipayPayByOrderPayment` 新增**（2026-05-30 落 Phase A 后端，未启用）：对标 `WechatPayByOrderPayment` 的 alipay 版，3 分支 op 字段补写（首次 / 换人 / `ali_buyer_id` 不匹配）→ 调小程序 appId 的 `alipay.trade.create` → 落库 `ali_trade_no` 返前端给 `my.tradePay({tradeNO})`。代码已落工作区编译通过、未 commit，**等支付宝注册授权下来再继续**
 - **`MiniAppHelperController.MemberLogin` 加 alipay 分支**（2026-05-30 落 Phase A 后端，未启用）：`openIdType == "alipay_payerid"` 走 `_alipayMemberLogin`：`alipay.system.oauth.token` 换 (`access_token`, `user_id`) → MSA 反查（不建 stub）→ 写 MiniSession `session_type='alipay_payerid'`，`wechat_openid` 列复用存 `user_id`（列名 wechat 但全表已有混用先例）
 - **alipay 手机号解密换路径**（2026-05-30）：原计划走 `alipay.user.phone.get`，但 `AlipaySDKNet.Standard 4.8.50` + `OpenAPI 2.4.0` **都不暴露 `AlipayUserPhoneGet*` 类**（`strings` 扫了两个 DLL 验证）。切到 alipay 小程序标准的 client 加密路径：`my.getPhoneNumber()` 返 `response`（AES-128-CBC + 全 0 IV + PKCS7 加密 JSON），server 用开放平台「接口加密方式」AES 密钥（base64，放 `AlipayCertificate/{appId}/aes_key.txt`）解密。复用 `Util.AES_decrypt`
-- **alipay 小程序 appId**：`2021006157678375`（独立于商户 appId `2021004143665722`）。证书目录 `SnowmeetApi/AlipayCertificate/2021006157678375/`（4 cert 文件 + `aes_key.txt`），运维侧待落地
+- **alipay 小程序 appId**：`2021006157624571`（2026-05-31 重新生成，原 `2021006157678375` 私钥找不回作废）。独立于商户 appId `2021004143665722`。证书目录 `SnowmeetApi/AlipayCertificate/2021006157624571/`（公钥证书模式 4 文件：`private_key_*.txt` + `appCertPublicKey_*.crt` + `alipayCertPublicKey_RSA2.crt` + `alipayRootCert.crt`，`aes_key.txt` 仍待落地）。代码 7 处硬编码统一新 appId：[MiniAppHelperController.cs:415](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L415) + [OrderController.cs:1874](../SnowmeetApi/Controllers/OrderController.cs#L1874) + [PaymentIdentityController.cs:31](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs#L31) + [order-payment/index.js:94](../snowmeet_wechat_mini/components/order-payment/index.js#L94) scheme URL
+- **alipay 证书联调坑总结**（2026-05-31）：① `alipayRootCert.crt` 是全平台共用、跨 appId 同款（MD5 一致），缺时直接从其他 appId 目录拷；② `appCertPublicKey_{appId}.crt` 每 appId 独立，必须从开放平台为新 appId 单独下载；③ 开放平台接口加签方式必须是「公钥证书」而非「密钥」—— 代码 [`MiniAppHelperController.cs:320`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L320) 用 `CertificateExecute` 是公钥证书模式专用，跟密钥模式不兼容；④ Mac 自带 LibreSSL 比 OpenSSL 对 PEM 严格 —— `{ echo HEADER; fold -w 64 key.txt; echo END; }` 末尾 `fold` 不加 trailing newline 导致 base64 跟 `-----END-----` 粘一起，LibreSSL 报 "bad end line"；正确写法 `fold; echo ""; echo END`（中间补一行空 echo）；⑤ 私钥从支付宝开发助手复制粘贴入文件极易引入鬼字符（用 `LC_ALL=C tr -cd 'A-Za-z0-9+/='` 严格过滤）；⑥ .NET SDK 4.8.50 PKCS#1 + PKCS#8 都吃，项目里其他 8 个 appId 全是 PKCS#8 包装（前缀 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk`）
+- **alipay 小程序 appId 旧目录 `2021006157678375/`**：2026-05-31 作废保留，私钥/证书不再使用。新 appId `2021006157624571/` 已替代。如确认无依赖可删旧目录
 - **alipay_snowmeet 工程暂搁置**（2026-05-30）：用户在当前目录新建支付宝小程序工程（仅 app.json + 空 app.js + pages/index 占位），4 阶段计划见 [`~/.claude/plans/y-luminous-hammock.md`](file:///Users/cangjie/.claude/plans/y-luminous-hammock.md)：A 后端 3 接口 / B 小程序骨架 / C payment_entry+组件 / D wechat 端二维码替换。Phase A 落地后因支付宝注册授权未到位**暂停**，Phase B-D 待恢复
 - **`pages/blt/beacon_scan` 蓝牙 Beacon 扫描页**（2026-05-30 新建）：iOS+Android 双路径并行 — A 路径 `wx.startBluetoothDevicesDiscovery + onBluetoothDeviceFound`（通用 BLE，Android 能识别 iBeacon，iOS 拿不到 iBeacon manufacturer 数据）+ B 路径 `wx.startBeaconDiscovery + onBeaconUpdate`（CoreLocation，iOS 必走，须事先提供 UUID）。两路径报同一 iBeacon 时用 `iBeacon:UUID:major:minor` 作 map key 合并到同一行，A 给 `txPower`、B 给 `accuracy + proximity`，互不覆盖。默认 UUID 已预填两个（`01122334-4556-6778-899A-ABBCCDDEEFF0/F1`）。`allowDuplicatesKey:true` 让 RSSI 持续刷新 + 200ms setData 节流避免高频回调卡 UI
 
@@ -1717,3 +1719,71 @@ dotnet build 0 error / 12 warning（全为历史无关项）。
 - **微信小程序 `wx.showModal({editable:true})` 不支持数字键盘**：想要 type=digit 必须改自建 popup + `<input type="digit">`
 - **`onBluetoothDeviceFound` 高频回调必须节流**：一秒几十次，直接 setData 会卡 UI。200ms `_scheduleRender + _renderTimer` 合并；`_devicesMap` 挂实例字段不进 `data` 绕过 diff
 - **用户说"参考昨天测过的流程"时，前后端两层兜底都要镜像**：第一轮我只镜像前端按钮模式没镜像后端 `_applyConfirmDirect` 的游客建会员兜底，被 toast 拦下后用户怒（"是我之前没描述清楚吗？"）。下次类似需求 grep 一下兜底层有没有 mirror 缺位
+
+### 2026-05-31 — alipay 小程序 appId 换发 + 证书联调（cert/sign 反复定位 + 本机干净私钥推服务器收尾）
+
+服务器跑 alipay 小程序 onLaunch 时报 `支付宝证书加载失败`。一路追 4 类错（缺文件 → NRE → 模式不匹配 → RSA 签名异常），中间走了不少弯路（误判私钥坏、自己 verify 命令有 bug 追假问题），最后结论：**私钥本身一直没问题，是服务器上的 `.txt` 文件还残留之前手抓粘贴时引入的鬼字符**。本机干净文件 scp 覆盖收尾。详情见 [`sessions/2026-05-31_alipay_mini_cert_signing_debug.md`](sessions/2026-05-31_alipay_mini_cert_signing_debug.md)。
+
+#### 一、问题表象演化
+
+依次撞到：
+1. `Could not find file 'alipayRootCert.crt'`（根证书缺）
+2. `Could not find file 'appCertPublicKey_{appId}.crt'`（应用证书缺）
+3. `Object reference not set to an instance of an object`（NRE，未明确缺哪个）
+4. `RSA签名遭遇异常 / Index was outside the bounds of the array, privateKeySize=1624`（签名层）
+
+#### 二、关键定位
+
+- **`alipayRootCert.crt` 全平台共用**：验证项目里 3 个旧 appId 目录下根证书 MD5 完全一致（`b6612a80b13013892c8c5c0829f62367`），可跨 appId 直接拷
+- **`appCertPublicKey_{appId}.crt` 按 appId 独立**：3 个旧 appId 该文件 MD5 全不一样，必须为新 appId 单独从开放平台下载
+- **接口加签方式与代码模式必须对齐**：原 appId `2021006157678375` 开放平台配的是「密钥（公钥）模式」，但代码 [`MiniAppHelperController.cs:320`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L320) 用 `client.CertificateExecute(req)` 是「公钥证书」模式专用 → 模式不匹配。两条路：A 切平台到公钥证书 / B 改代码到公钥模式。中途短暂改过 B（已回滚），用户最终走 A
+- **应用私钥找不回 → 重新生成小程序拿新 appId**：旧 appId 当年私钥不在手边，公钥模式下应用私钥唯一存于本地，找不回就只能整副密钥对作废。用户在开放平台**新建**小程序拿到新 appId `2021006157624571`，公钥证书模式重申请整套证书
+
+#### 三、代码改动（7 处硬编码替换 `2021006157678375` → `2021006157624571`）
+
+| 文件 | 位置 |
+|---|---|
+| [SnowmeetApi/Controllers/MiniAppHelperController.cs](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | 行 411 注释 + 行 415 `const string appId` |
+| [SnowmeetApi/Controllers/OrderController.cs](../SnowmeetApi/Controllers/OrderController.cs) | 行 1872 注释 + 行 1874 `ALIPAY_MINI_APP_ID` |
+| [SnowmeetApi/Controllers/Order/PaymentIdentityController.cs](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | 行 31 `ALIPAY_MINI_APP_ID` |
+| [snowmeet_wechat_mini/components/order-payment/index.js](../snowmeet_wechat_mini/components/order-payment/index.js) | 行 82 注释 + 行 94 `alipays://platformapi/startapp?appId=` scheme URL |
+| [alipay_snowmeet/app.js](../alipay_snowmeet/app.js) | 行 10 注释 |
+
+中途插入又回滚的 2 处编辑（公钥模式分支）：`MiniAppHelperController.cs:320` `CertificateExecute → Execute` 和 `_getAlipayMiniClient` 重写。最终保留公钥证书模式，与项目里其他 8 个 appId 架构统一。
+
+#### 四、RSA 签名异常长尾排查（最耗时）
+
+签名层错误 `Index was outside the bounds of the array, privateKeySize=1624` 迭代 5 轮：
+
+1. **怀疑文件鬼字符**：`wc -l` 返 0（单行裸 base64 OK），`head -c 40` 返 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk` 跟健康样本完全一致，看上去格式没问题
+2. **openssl 验证报 "STORE routines unsupported"** —— 误判私钥结构损坏，让用户多走一轮换密钥工具
+3. **用户截图开发助手"密钥匹配 → 匹配成功"** —— 工具能解析，但 openssl 拒绝，矛盾
+4. **复现 openssl 命令** —— 发现是 `fold -w 64 key.txt; echo END` 末尾 fold 不加 trailing newline，导致 base64 跟 `-----END-----` 粘一起；LibreSSL 严格判错 `bad end line`。**我的 verify 命令一直是错的，整轮 false negative**
+5. **修 verify 命令（中间补 `echo ""`）后真实验证私钥** —— 输出 `Private-Key: (2048 bit, 2 primes)` ✓；公钥反推 vs 开放平台公钥**完全一致** ✓ → **私钥本身一直没问题**
+
+最终确认：**问题在服务器**。用户之前手抓本地私钥粘贴推到服务器时引入鬼字符（本地后来重做过、服务器没同步）。一行 scp 覆盖收尾：
+
+```bash
+scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2021006157624571/private_key_2021006157624571.txt \
+    ubuntu@<server>:/home/ubuntu/webs/SnowmeetApi/AlipayCertificate/2021006157624571/
+```
+
+#### 五、状态
+
+- ✅ 代码 7 处 appId 替换 + 编译通过
+- ✅ 本地证书目录 `2021006157624571/` 4 文件齐（含 openssl 验证通过的私钥）
+- ✅ 本地私钥反推公钥跟开放平台公钥一致（成对）
+- 🚧 服务器 scp 私钥覆盖 + 服务端重测（用户操作，期望 `RSA签名异常` → `oauth.token invalid auth code` 表示链路打通）
+- ⏸️ alipay_snowmeet Phase B-D 仍待恢复（小程序骨架/payment_entry+组件/wechat 端二维码替换）
+
+#### 六、关键发现 / 教训
+
+- **`alipayRootCert.crt` 全 appId 共用、`appCertPublicKey_{appId}.crt` 按 appId 独立**：缺前者直接拷其他 appId 目录；后者必须从开放平台为该 appId 单独下载
+- **接口加签方式有两套**：密钥（公钥）模式 vs 公钥证书模式。代码 `CertificateExecute(req)` + `CertParams` 是后者专用；前者用 `Execute(req)` + 构造时传支付宝公钥字符串。两边必须对齐
+- **应用私钥唯一存于本地**：开放平台只保存应用公钥，私钥丢了找不回 → 整副密钥对作废，只能重新生成上传公钥（或像本场一样重新生成整个小程序）
+- **LibreSSL（Mac 默认 openssl）比 OpenSSL 对 PEM 严格**：`-----END-----` 必须独占一行，前面要有换行。`fold -w 64 key.txt` 在最后一段不加 trailing newline，必须中间补一个 `echo ""`，否则 `bad end line`
+- **支付宝开发助手 "公私钥匹配" 是真实数学验证**：能匹配成功说明工具内存里那串私钥结构是合法的；如果同时 openssl 拒绝同一串，先怀疑 openssl 命令本身或环境（这次就是我命令错），而不是怀疑工具
+- **.NET SDK 4.8.50 PKCS#1 + PKCS#8 都吃**：项目里现有 8 个能工作的私钥全是 PKCS#8（前缀 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk`），传统文档"PKCS#1 only"是老 SDK 的事
+- **本机改 → 服务器没同步是真正坑**：前 5 轮都假设"本地文件 = 服务器文件"，最后才意识到用户测试是直接上服务器跑的 / 服务器拷过去的是早先的坏版本。Q1（哪个环境跑的）+ Q2（私钥/公钥配对验证）这两问应该早 3 轮就提，省去整个 false negative 弯路
+- **私钥提取要避免剪贴板**：任何手抓+TextEdit/记事本+保存的链路都可能引入空格/CRLF/不可见字符。最稳是 `pbpaste | LC_ALL=C tr -cd 'A-Za-z0-9+/='` 严格过滤，或 openssl 自己生成直接 pipe 到文件不经剪贴板
+- **诊断命令出问题时先在本机复现验证再让用户跑**：5 轮 openssl 假阴性如果第 1 轮我就 `bash + verify` 测一遍自己的命令，能立刻看出 `bad end line` 不是私钥问题。下次给 cert/key 验证命令前先本机跑一遍**自检
