@@ -1550,3 +1550,71 @@ WHERE source='支付前身份验证' AND valid=0;
 - 🚧 **未真机验证**：本轮最后两处改动(`scanner 优先 + wxml 按钮条件`)尚未真机回归,需要新订单走「第一次拒绝授权 → 支付完成 → 第二次新订单直接 confirm_direct 支付」整链路
 - 🚧 **DB 历史 stub 数据 housekeeping**：41085-41095 这一批 stub member 仍存在,本轮治本后不再产生新 stub,但已有的需要 IsEmpty 检查 + 标 is_merge 单独脚本(后续 task)
 - 📌 **关键 takeaway**：每次创建 `Member` / `MemberSocialAccount` 实体时**必须显式 `valid = 1`**,model 默认值在 EF Core 9 + DB schema default 0 constraint 组合下不生效
+
+### 2026-06-01 — 4 业务财年报表按业务合并 + is_test 列 + 储值支付覆盖收款方式 + 怀北/渔阳追加
+
+接续 5-20 多店财年导出线。本次把上月按店铺导出的财年报表合并成按业务（租赁/零售/雪票/养护）共 4 份的总表，全 sheet 拼接（主+支付明细+支付流水+各业务明细+雪票列表）；中间尝试过两轮"重判旧列"改动均回滚，最后走"独立合并脚本不动 skill"路线；会话尾追加怀北/渔阳两店 fy 报表，再次重跑合并。详见 [`sessions/2026-06-01_merge_fy_orders_by_business.md`](sessions/2026-06-01_merge_fy_orders_by_business.md)。plan：`~/.claude/plans/is-test-0-whimsical-patterson.md`。
+
+#### 一、两轮回滚（重判旧列后用户拍板放弃）
+
+1. **「测试」列按 `[order].is_test` 重判**：写 [`rebuild_test_column_by_is_test.py`](rebuild_test_column_by_is_test.py)，14 份报表「测试」列改为 `o.is_test=1→'是'`；同步把 4 个 fy skill SQL 改成 `CASE WHEN o.is_test = 1 THEN N'是' ELSE N'' END`。结果：租赁 704→204、零售 173→114、雪票 573→0（财年内 ski_pass 业务 is_test=1 零单）、养护 969→207
+2. **「客户名称」按 member 优先重判**：写 [`rebuild_customer_name_by_member.py`](rebuild_customer_name_by_member.py)，SQL 翻转为 `COALESCE(NULLIF(LTRIM(RTRIM(m.real_name)),N''), NULLIF(LTRIM(RTRIM(o.contact_name)),N''))`，27 单两者都填且不一致被改写
+3. **用户拍板"所有报表直接放弃修改，从 git 上拉下来"** → `git checkout -- *.xlsx skills/` 一键回滚 snowmeet_ai_doc 下 13 份 xlsx + 4 个 fy skill .py 到 git 版本；两 untracked rebuild_*.py 删除
+
+#### 二、合并方案（用户最终需求）
+
+按业务合并所有店报表生成 4 份新文件，规则：
+
+1. 利用现有「门店」列做店铺区分（已存在所有 sheet，无需新加列）
+2. 保留原「测试」列原值不动
+3. **新增「is_test」列**追加到主 sheet 末尾，值取 DB `[order].is_test`(0/1)
+4. **覆盖「收款方式」列**：若该订单有任意一笔 `status=支付成功 AND valid=1 AND pay_method='储值支付'` → 改写为"储值支付"
+
+用户选"全部 sheet 都合"（包括支付明细 / 支付流水 / 年度{业务}明细 / 雪票列表）。合并单元格不重建（本期折衷）。
+
+#### 三、关键数据核实
+
+- DB `[order].is_test=1` 财年 4 业务共 446 单（租赁 109/零售 129/雪票 0/养护 209）
+- DB `pay_method='储值支付'` 财年成功 276 笔 ¥69,702.75（在 16 个 pay_method 字符串里排第 3）
+- **Explore agent 初版漏报"储值支付不在 DB"**：未加 `o.type IN ('租赁',...)` 过滤被 40 万行成功支付的微信支付/支付宝淹没；自己 SQL 复查更正
+
+#### 四、新建 `merge_fy_orders.py`
+
+新建 [`merge_fy_orders.py`](merge_fy_orders.py)（~230 行，`--biz {rent|retail|ski_pass|care|all}`），按业务读各店 fy xlsx 所有 sheet，列联集对齐纵向拼接，主 sheet 加 is_test 列 + 覆盖收款方式（DB 一次 batch query 拿 `{code: (is_test, has_sv_pay)}`），输出 `merged_{biz}_orders_fy_2025-05-01_2026-04-30.xlsx` 到 snowmeet_ai_doc/。表头样式仿 sibling（粗体白字 `1F4E78` 蓝底 + freeze A2 + 列宽自适应）。
+
+#### 五、怀北/渔阳追加（用户尾轮要求）
+
+DB 调研：怀北 租赁 13 / 零售 9 / 养护 6 / 雪票 0；渔阳 租赁 25 / 零售 17 / 养护 2 / 雪票 0。两店 DB `shop` 字段直接是「怀北」/「渔阳」（无"滑雪场"后缀）。
+
+跑 3 业务 × 2 店 = 6 份 fy 报表（雪票跳过）；每份用 `add_payment_detail_sheet_to_fy_xlsx.py` 追加支付明细+支付流水；养护两份再用 `add_care_detail_merged_sheet.py` 加年度养护明细。改 `merge_fy_orders.py` 的 `INPUTS` 加入怀北/渔阳路径，重跑合并。
+
+#### 六、最终产物
+
+| 文件 | 大小 | sheet 数 × 店数 | 主 sheet 行 |
+|---|---|---|---|
+| [`merged_rent_orders_fy_2025-05-01_2026-04-30.xlsx`](merged_rent_orders_fy_2025-05-01_2026-04-30.xlsx) | 1.15 MB | 3 × 5 店 | 2781 |
+| [`merged_retail_orders_fy_2025-05-01_2026-04-30.xlsx`](merged_retail_orders_fy_2025-05-01_2026-04-30.xlsx) | 552 KB | 4 × 7 店 | 1048 |
+| [`merged_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx`](merged_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx) | 696 KB | 5 × 2 店 | 1561 |
+| [`merged_care_orders_fy_2025-05-01_2026-04-30.xlsx`](merged_care_orders_fy_2025-05-01_2026-04-30.xlsx) | 2.6 MB | 4 × 5 店 | 4721 |
+
+三项校验：
+- 行数守恒：16 个 sheet 累计差异 0
+- 抽样列值对齐：130 条 0 miss / 0 mismatch（订单号/门店/订单结余/客户名称）
+- 新列 vs DB：储值支付 4 业务 0 差异；is_test 租赁差 3 / 养护差 1，归因为源报表的去重决策（万龙报表去重 6 冲突 code 中 3 是 is_test=1 / 万龙服务 `WF_YH_251110_00017` 双插测试单去重）
+
+#### 七、关键发现 / 教训
+
+- **DB 调研过滤口径必须与最终用法一致**：Explore agent 初版用 `WHERE order_id IN (...)` 漏加 `o.type IN (...)` 过滤，276 笔储值支付被 40 万行无关支付淹没误报"DB 没有"。本任务靠自己 SQL 复查发现
+- **重判类改动先做 dry-run + 全量影响面对账再落盘**：旧规则 `paid<5 OR 含苍` 命中很多 0 元正常单（场地租赁未走收款流程）；改 `is_test` 后总命中数下降约 1/3，但用户后续因不确定影响面反悔回滚。**永远别在源 skill SQL 里直接改判定逻辑，先用补丁脚本影响 14 份产物**
+- **`git checkout -- *.xlsx skills/` 一键回滚整批改动**：snowmeet_ai_doc 把 13 份 xlsx + 4 个 .py 都入了 git，一行命令还原；根目录 `D:\snowmeet\wanlong_rent_orders_fy_xxx.xlsx` 不在 git 里就没法回滚。**重要产物建议都入 git**
+- **`SHOP_PREFIX` 已预置 6 店**（万龙体验/万龙服务/渔阳/南山/怀北/崇礼旗舰），新店加一行即可
+- **怀北/渔阳零售跳过明细 sheet**：5 店原版「年度零售明细」依赖外部七色米 `all_销售单列表.xls`，怀北/渔阳七色米数据是否覆盖未知，本期只跑主+支付明细+支付流水 3 sheet
+- **Python f-string + Windows 路径反斜杠**：`f'{DOC}\n...'` 把 `\n` 当转义符变换行；用 `D:/snowmeet/...` 正斜杠或 `\\` 双反斜杠或 raw string `r'\xxx'`；首字符配套字母（n/r/t/...）容易踩雷
+- **合并文件不重建合并单元格**：年度{业务}明细 sheet 原本有订单级列垂直合并，openpyxl read_only 模式读出"merged-over"位置为 None；合并写回时所有数据行都填值（视觉看不到合并），数据完整，视觉降级（本期接受）
+- **三表对账闭环可复用任意业务**：`年度{业务}Σ订单结余 ＝ 支付明细Σ支付结余 ＝ 支付流水按订单号Σ交易金额`，单店 fy 报表落盘后跑 `verify_payment_reconcile.py` 验证
+
+#### 八、状态
+
+- ✅ 4 业务合并文件 + 怀北/渔阳追加 + 三项校验通过
+- ✅ 合并脚本 `merge_fy_orders.py` 入 snowmeet_ai_doc/，未来其他业务追加店铺只需改 `INPUTS` 加一行路径再重跑
+- 仍开放：怀北/渔阳零售「年度零售明细」是否补（需先确认七色米 xls 覆盖）；剩余 4 单 is_test 差异（源报表去重的预期口径，非合并 bug）
