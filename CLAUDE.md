@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-05-29）
+## 当前状态（截至 2026-05-30）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -269,7 +269,19 @@ dotnet run
 - **end-work 不需要确认（用户拍板）**：触发 end-work 后直接落盘 CLAUDE.md + sessions/ 归档 + `git commit + push`，**永远不需要 AskUserQuestion 确认**。"以后永远都不需要确认"是用户明令；之前的"draft → 确认 → 写盘"流程作废
 - **`performWebRequest` 非 200 不 reject 的隐蔽 bug 已修**（2026-05-28）：[`util.js:115`](snowmeet_wechat_mini/utils/util.js#L115) 原代码 toast 后 `return`（不 reject），Promise 永远 pending，调用方既不会 then 也不会 catch。任何接口偶发 500/401 时页面就停在加载中。已加 `reject(res.statusCode)`，影响所有 `wx.request` 全局
 - **WeChat `getPhoneNumber` 只能由 button 直接触发**：JS 不能程序触发 `wx.getPhoneNumber()`。意味着「单一支付按钮 + 中途引导手机号」UX 行不通，必须把授权按钮独立出来（或弹窗里）让用户直接 tap `<button open-type="getPhoneNumber">`
-- **`MemberLogin` 对游客自动建最小 stub**（2026-05-28 验证）：MiniAppHelperController.MemberLogin 在 openid 没绑过会员时，自动 `_db.member.AddAsync(new Member())` + 绑一条 wechat_mini_openid MSA，`sessionKey`/`MiniSession` 仍正常写入。意味着 `app.globalData.member` 可能 undefined（取决于 `MemberLogin` 返回的 session 对象是否带 member），但 `sessionKey` 一定有效，后端 `_resolveStatus` 反查 `mini_session.member_id` 总能拿到（最小 stub）会员。游客付款后 `Order.member_id` 指向 stub 也允许
+- **`MemberLogin` 对游客自动建最小 stub**（2026-05-28 验证）：MiniAppHelperController.MemberLogin 在 openid 没绑过会员时，自动 `_db.member.AddAsync(new Member())` + 绑一条 wechat_mini_openid MSA，`sessionKey`/`MiniSession` 仍正常写入。意味着 `app.globalData.member` 可能 undefined（取决于 `MemberLogin` 返回的 session 对象是否带 member），但 `sessionKey` 一定有效，后端 `_resolveStatus` 反查 `mini_session.member_id` 总能拿到（最小 stub）会员。游客付款后 `Order.member_id` 指向 stub 也允许。**注：本条 5-29 已治本**（MemberLogin 不再建 stub）+ 5-29（续）删除孤儿清理 + socialAccountForJob 改为兜底
+- **`social_account_for_job` 表有指向已删 member 的脏数据**（2026-05-29（续）发现）：id=55 (cell=18501097897, openid=oHdTn5e..., member_id=40649) 历史员工绑定记录，member_id=40649 在 member 表 0 行 / MSA 表 0 行，是孤儿记录。曾让 MemberLogin 强制覆盖 unionid 反查结果到 40649 → 触发孤儿清理把 PaymentIdentity 刚建的真实会员失效。已 5-29（续）改为 `memberId==null` 时才用 jobAccount 兜底；脏数据本身未删，存量不影响新流程
+- **`payment_entry.wxml:51` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（待修）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付。前端按钮屏蔽条件应改为 `payment && payment.status=='支付成功'`（当前 payment 为准），不用 order 聚合。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待，新用户看到「支付成功」无支付按钮
+- **`Member.alipayPayerId` 计算属性**（2026-05-30 新加，对标 `wechatMiniOpenId`）：getter 遍历 `memberSocialAccounts` 找 type=`alipay_payerid`。所有 alipay 通道反查会员 id ↔ payerid 都用这个 getter，不必再手 grep MSA
+- **`PaymentIdentityController._applyChoice` 也兜底建无 cell 游客会员**（2026-05-30 新加）：之前只 `_applyConfirmDirect` 在 `scannerMemberId==null` 时调 `_loadSessionContext` + `_createNewMember(phone:null, ...)`；现在 `_applyChoice` 顶部加同样的 10 行代码块，让游客拒绝手机号授权后点「正常支付/替人代付」也能完成支付（不再拒绝"扫码方尚未注册会员"）。**这是 2026-05-29 删 MemberLogin stub 后的责任迁移**：所有 `ConfirmPayIdentity` 子 handler（submit_phone / choose / confirm_direct）都需对 scannerMemberId==null 做相同兜底
+- **`OrderController.AlipayPayByOrderPayment` 新增**（2026-05-30 落 Phase A 后端，未启用）：对标 `WechatPayByOrderPayment` 的 alipay 版，3 分支 op 字段补写（首次 / 换人 / `ali_buyer_id` 不匹配）→ 调小程序 appId 的 `alipay.trade.create` → 落库 `ali_trade_no` 返前端给 `my.tradePay({tradeNO})`。代码已落工作区编译通过、未 commit，**等支付宝注册授权下来再继续**
+- **`MiniAppHelperController.MemberLogin` 加 alipay 分支**（2026-05-30 落 Phase A 后端，未启用）：`openIdType == "alipay_payerid"` 走 `_alipayMemberLogin`：`alipay.system.oauth.token` 换 (`access_token`, `user_id`) → MSA 反查（不建 stub）→ 写 MiniSession `session_type='alipay_payerid'`，`wechat_openid` 列复用存 `user_id`（列名 wechat 但全表已有混用先例）
+- **alipay 手机号解密换路径**（2026-05-30）：原计划走 `alipay.user.phone.get`，但 `AlipaySDKNet.Standard 4.8.50` + `OpenAPI 2.4.0` **都不暴露 `AlipayUserPhoneGet*` 类**（`strings` 扫了两个 DLL 验证）。切到 alipay 小程序标准的 client 加密路径：`my.getPhoneNumber()` 返 `response`（AES-128-CBC + 全 0 IV + PKCS7 加密 JSON），server 用开放平台「接口加密方式」AES 密钥（base64，放 `AlipayCertificate/{appId}/aes_key.txt`）解密。复用 `Util.AES_decrypt`
+- **alipay 小程序 appId**：`2021006157624571`（2026-05-31 重新生成，原 `2021006157678375` 私钥找不回作废）。独立于商户 appId `2021004143665722`。证书目录 `SnowmeetApi/AlipayCertificate/2021006157624571/`（公钥证书模式 4 文件：`private_key_*.txt` + `appCertPublicKey_*.crt` + `alipayCertPublicKey_RSA2.crt` + `alipayRootCert.crt`，`aes_key.txt` 仍待落地）。代码 7 处硬编码统一新 appId：[MiniAppHelperController.cs:415](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L415) + [OrderController.cs:1874](../SnowmeetApi/Controllers/OrderController.cs#L1874) + [PaymentIdentityController.cs:31](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs#L31) + [order-payment/index.js:94](../snowmeet_wechat_mini/components/order-payment/index.js#L94) scheme URL
+- **alipay 证书联调坑总结**（2026-05-31）：① `alipayRootCert.crt` 是全平台共用、跨 appId 同款（MD5 一致），缺时直接从其他 appId 目录拷；② `appCertPublicKey_{appId}.crt` 每 appId 独立，必须从开放平台为新 appId 单独下载；③ 开放平台接口加签方式必须是「公钥证书」而非「密钥」—— 代码 [`MiniAppHelperController.cs:320`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L320) 用 `CertificateExecute` 是公钥证书模式专用，跟密钥模式不兼容；④ Mac 自带 LibreSSL 比 OpenSSL 对 PEM 严格 —— `{ echo HEADER; fold -w 64 key.txt; echo END; }` 末尾 `fold` 不加 trailing newline 导致 base64 跟 `-----END-----` 粘一起，LibreSSL 报 "bad end line"；正确写法 `fold; echo ""; echo END`（中间补一行空 echo）；⑤ 私钥从支付宝开发助手复制粘贴入文件极易引入鬼字符（用 `LC_ALL=C tr -cd 'A-Za-z0-9+/='` 严格过滤）；⑥ .NET SDK 4.8.50 PKCS#1 + PKCS#8 都吃，项目里其他 8 个 appId 全是 PKCS#8 包装（前缀 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk`）
+- **alipay 小程序 appId 旧目录 `2021006157678375/`**：2026-05-31 作废保留，私钥/证书不再使用。新 appId `2021006157624571/` 已替代。如确认无依赖可删旧目录
+- **alipay_snowmeet 工程暂搁置**（2026-05-30）：用户在当前目录新建支付宝小程序工程（仅 app.json + 空 app.js + pages/index 占位），4 阶段计划见 [`~/.claude/plans/y-luminous-hammock.md`](file:///Users/cangjie/.claude/plans/y-luminous-hammock.md)：A 后端 3 接口 / B 小程序骨架 / C payment_entry+组件 / D wechat 端二维码替换。Phase A 落地后因支付宝注册授权未到位**暂停**，Phase B-D 待恢复
+- **`pages/blt/beacon_scan` 蓝牙 Beacon 扫描页**（2026-05-30 新建）：iOS+Android 双路径并行 — A 路径 `wx.startBluetoothDevicesDiscovery + onBluetoothDeviceFound`（通用 BLE，Android 能识别 iBeacon，iOS 拿不到 iBeacon manufacturer 数据）+ B 路径 `wx.startBeaconDiscovery + onBeaconUpdate`（CoreLocation，iOS 必走，须事先提供 UUID）。两路径报同一 iBeacon 时用 `iBeacon:UUID:major:minor` 作 map key 合并到同一行，A 给 `txPower`、B 给 `accuracy + proximity`，互不覆盖。默认 UUID 已预填两个（`01122334-4556-6778-899A-ABBCCDDEEFF0/F1`）。`allowDuplicatesKey:true` 让 RSSI 持续刷新 + 200ms setData 节流避免高频回调卡 UI
 
 ---
 
@@ -1618,3 +1630,227 @@ DB 调研：怀北 租赁 13 / 零售 9 / 养护 6 / 雪票 0；渔阳 租赁 25
 - ✅ 4 业务合并文件 + 怀北/渔阳追加 + 三项校验通过
 - ✅ 合并脚本 `merge_fy_orders.py` 入 snowmeet_ai_doc/，未来其他业务追加店铺只需改 `INPUTS` 加一行路径再重跑
 - 仍开放：怀北/渔阳零售「年度零售明细」是否补（需先确认七色米 xls 覆盖）；剩余 4 单 is_test 差异（源报表去重的预期口径，非合并 bug）
+### 2026-05-29（续） — MemberLogin 孤儿清理 + socialAccountForJob 强制覆盖删除 + pay-identity-confirm 软授权 UX 反复后回退
+
+接续 5-29 主线。用户反馈"过去会员没验证手机号，支付新单时旧 openid/unionid MSA 被失效、又新建会员"，给出案例 41104/41105。本会话定位到 [MiniAppHelperController.cs](../SnowmeetApi/Controllers/MiniAppHelperController.cs) 两段历史遗留逻辑互相协同把 PaymentIdentity 刚建的真实会员打回失效，触发新一轮散客分支建新会员的死循环。详见 [`sessions/2026-05-29_orphan_cleanup_removal_and_soft_auth_unwinding.md`](sessions/2026-05-29_orphan_cleanup_removal_and_soft_auth_unwinding.md)。
+
+#### 一、41104 → 41105 死循环根因（用户 DB 直查 + sqlcmd 验证）
+
+`social_account_for_job.id=55`（2026-03-12 创建）指向不存在的 `member_id=40649`（脏数据）。每次同一 openid 触发 MemberLogin：
+1. unionid 反查 → `memberId = 41104`（PaymentIdentity 散客分支刚建）
+2. **[`MiniAppHelperController.cs:190-194`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L190) `socialAccountForJob` 强制覆盖** → `memberId = 40649`（死会员）
+3. `GetWholeMemberById(40649)` 返 null → `session.member_id = null`
+4. **[`line 258-294` 孤儿清理 try/catch](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L258)**：`oldMsaList where num==openid && member_id != 40649 && valid==1` → 命中 41104 的 wechat_mini_openid + wechat_unionid → 全部 valid=0 + 41104.valid=0 + orders 转给死会员 40649
+5. 之后 PaymentIdentity `_resolveStatus` 反查 scanner（只看 valid=1 MSA） → 找不到 → 散客分支建 41105
+6. 41105 下次再被 MemberLogin 同样原因杀，永久循环
+
+#### 二、修复（用户拍板「1+2 程序必须改」）
+
+| 文件 | 改动 |
+|---|---|
+| [`MiniAppHelperController.cs:190-201`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L190) | `socialAccountForJob` 覆盖加 `if (memberId == null)` 兜底守卫，不再无条件覆盖 unionid 反查结果 |
+| [`MiniAppHelperController.cs:258-294`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L258) | 整段「孤儿清理」try/catch 删除 + 末尾仅服务该 try/catch 的 `_db.SaveChangesAsync()` 一并删 |
+
+dotnet build 0 error / 12 warning（全为历史无关项）。
+
+**数据修复用户明确不做**（id=55 脏数据、41104/41105 不动）。代码修完后新流程不再重复制造问题，存量靠业务侧逐步会员合并即可。
+
+#### 三、pay-identity-confirm 软授权 UX 反复（最终回退到「按钮直接 getPhoneNumber」）
+
+围绕「散客 vs 会员+无 cell 两种场景的「确认并继续」按钮行为」反复迭代 5 轮：初始统一 getPhoneNumber → 加底部软授权 popup（3 按钮：授权/跳过/取消）→ 客户端统一 popup → 删取消按钮 → **最终用户拍板「我要微信原生授权页，不要自己画 popup 让顾客多点一次」→ 删整个 popup 回到初始形态**。
+
+最终状态：[`pay-identity-confirm/index.wxml`](../snowmeet_wechat_mini/components/pay-identity-confirm/index.wxml) 按钮 `wx:if="{{!result.scannerHasCell}}"` + `open-type=getPhoneNumber` + `bindgetphonenumber=onGetPhoneNumberAndConfirmDirect`。散客 + 会员无 cell 走同一按钮（直接微信原生授权页），用户同意 → 串 `submit_phone → confirm_direct`（后端 `_submitPhone` 按 scanner 自动分流：null=建新会员，非 null=补 cell），用户拒绝 → 走 `confirm_direct` 兜底仍能支付。
+
+#### 四、paymentId=42561 显示「支付成功」（未修，留下次）
+
+订单 71704 上同时有 ¥0.01 已付 payment 42559 + ¥0.01 待付 payment 42561。`totalCharge=0 + paidAmount=0.01` → `orderStatus="支付成功"`（后端 getter 算法层面正确）。前端 [`payment_entry.wxml:51`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml#L51) 用 `order.orderStatus == '支付成功'` 屏蔽支付 UI，对多笔 payment 的订单会误判当前这笔。
+
+修复方向：屏蔽条件改为 `payment && payment.status=='支付成功'`（以当前 payment 为准，不用聚合状态）。本会话未修。
+
+#### 五、关键改动文件汇总
+
+| 文件 | 改动 |
+|---|---|
+| [`SnowmeetApi/Controllers/MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | `socialAccountForJob` 覆盖加 `memberId==null` 兜底；删整段「孤儿清理」try/catch + 末尾多余 SaveChangesAsync |
+| [`snowmeet_wechat_mini/components/pay-identity-confirm/index.{wxml,js,wxss}`](../snowmeet_wechat_mini/components/pay-identity-confirm/) | 反复迭代后最终：删整个 softAuth popup,按钮直接 `open-type=getPhoneNumber`;散客和会员无 cell 走同一按钮（`!scannerHasCell`） |
+| [`SnowmeetApi/config.sqlServer`](../SnowmeetApi/config.sqlServer) | (本地排查方便,机器本地,**未入库**) 改 IP 161.189.64.210 → 100.28.143.19（CLAUDE.md 记录的 prod，原 IP 已不通） |
+
+#### 六、关键发现 / 教训
+
+- **`social_account_for_job` 是历史员工/工作账号绑定表，存在指向已删 member 的脏数据**：member 表 0 行 / MSA 表 0 行 / jobAccount.id=55 仍指 member_id=40649。任何把它当作「权威 memberId 源」的逻辑都要先看 jobAccount.member_id 指向的 member 是否真的存在并 valid=1，盲目覆盖会污染上游正确反查结果
+- **MemberLogin 孤儿清理（line 258-294）的设计前提已不成立**：原意「同一 openid 应只能挂在一个 member 上,扫到多个时把旧的失效」。但 PaymentIdentity 改造后新的散客会员是合法"正在使用"的会员，不该被当老 openid 清理。5-29「scanner 优先，不动 MSA」原则下，这种主动清理必然冲突，不该再做
+- **`order.orderStatus` 是订单聚合状态，不能用来屏蔽单笔 payment 的支付 UI**：一张订单可有多笔 OrderPayment。用 `paidAmount >= totalCharge` 判整单"已支付"在 `totalCharge=0 + 任意小额支付` 场景会误判。前端屏蔽条件应基于「当前 payment.status」,不是聚合 orderStatus
+- **微信原生 `getPhoneNumber` 授权页本身就是用户决策 UI**：自己再画"软授权 popup"是多此一举的中间层。直接 `open-type=getPhoneNumber` 让微信弹原生页（同意/拒绝有原生回调），用户拒绝时 JS 走兜底分支。**不要在 JS 层再画 popup 让用户多点一次**
+- **本机 DB 连接需要 VPN/隧道**：`nc -vz 100.28.143.19 1433` 通但 ping 超时（ICMP 被防火墙拦），优先用 nc 测端口别被 ping 超时误导。`config.sqlServer` 在 .gitignore，跨机 IP 不一致是常态，本地排查前先 nc 验通再改 config，记得别 commit
+- **会话 vs 用户耐心**：本会话历时较长，多轮反复（popup 加→改→删；UX 三次反弹）显著消耗用户耐心。下次类似 UX 需求先用一句话确认「您想要微信原生授权页弹出来，还是要我们自己画 popup」，避免猜错方向后多次反弹
+
+#### 七、状态
+
+- ✅ 后端两处修改 + build pass，本地未 commit
+- ✅ 小程序 pay-identity-confirm 软授权迭代后回退到「按钮直接 getPhoneNumber」终态
+- 🚧 部署 SnowmeetApi 到 mini.snowmeet.top + 小程序重编（需用户确认时机）
+- 🚧 **真机验证清单**：①同一 openid 多次刷新 MemberLogin 验证 41104 类会员不再被 invalidate ②点支付按钮直接微信原生授权页（不再有自定义 popup）③散客授权 / 拒绝两路径都能完成支付 ④会员无 cell 授权 / 拒绝两路径都能完成支付
+- ⏳ paymentId=42561 UI 屏蔽逻辑（用 `payment.status` 替代 `order.orderStatus`）— 留下次
+
+### 2026-05-30 — 接待表单收尾 + choose_identity 软授权对齐 + alipay phase A 搁置 + beacon_scan 落地
+
+四条主线。完整复盘见 [`sessions/2026-05-30_pay_identity_polish_alipay_phase_a_beacon_scan.md`](sessions/2026-05-30_pay_identity_polish_alipay_phase_a_beacon_scan.md)。
+
+#### 一、接待表单两处小迭代
+
+| 改动 | 文件 |
+|---|---|
+| 「去结算」每次新建订单（不复用旧 OrderPayment）：`PlaceRentOrder` 成功 + `navigateTo` 后立刻 reset `order` 把 `id/code/valid` 清零、所有 `rental.id`/`order_id`/`rentItems[].id`/`rental_id` 清零，下一次 `saveRentReceptOrder` 因 `id=0` 在后端建新单 | [`recept_new.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) `onCheckout` |
+| 押金/租金 modal 改 `type="digit"` 数字键盘：`wx.showModal({editable:true})` 系统原生不支持数字键盘，改自建 `van-popup` + `<input type="digit">`（iOS 原生带小数点）；二次确认仍走 `wx.showModal` 保留 UX | [`rent_recept_form.{js,wxml,wxss}`](../snowmeet_wechat_mini/components/reception/rent_recept_form/) |
+
+#### 二、choose_identity 软授权对齐 direct_to_scanner（前后端各反复一次）
+
+迭代 3 轮终态：
+
+**前端**：保留 `choose_identity` 卡片「正常支付 / 替人代付」按钮**完全不变**（文案/布局/二次确认 modal），仅按钮事件按 `!result.scannerHasCell` 分流：
+- 有 cell → `bindtap="onChooseSelf/onChooseProxy"` 老路径
+- 无 cell → `open-type="getPhoneNumber"` + `bindgetphonenumber="onGetPhoneNumberAndChooseSelf/Proxy"` 新 handler
+- 新 handler 同意 → `_submitPhoneThenChoose(encData, iv, 'self'|'proxy')`（与 `onGetPhoneNumberAndConfirmDirect` 双 Promise 链同构）
+- 拒绝 → 走 `_confirm({choose:...})` fallback；替人代付路径在 modal 二次确认之前先弹手机号授权（顺序"手机号 → 代付确认 → 落库"用户拍板）
+
+**后端**：[`PaymentIdentityController._applyChoice`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 顶部加 `scannerMemberId==null` 兜底：用 `_loadSessionContext(sessionKey)` 反查 openid+unionid → `_createNewMember(phone=null, ...)` 自动建无 cell 游客会员 → 继续 choose:self/proxy。**与 `_applyConfirmDirect` 完全镜像**（共 10 行代码块）。修复了游客拒绝手机号授权后点选身份被 toast 拦下"扫码方尚未注册会员"。
+
+反复原因：用户原话「操你妈，你Y是不是脑子进水了！」（针对第一版加了 gate 卡片把原按钮挤掉）+「是我之前没描述清楚吗？」（针对第二版前端补对了但后端缺兜底）。教训：用户说"参考昨天测过的流程"时，**前后端两层兜底都要镜像**，不能只看前端。
+
+#### 三、alipay_snowmeet 4 阶段计划 + Phase A 落地（搁置）
+
+用户在当前目录新建支付宝小程序 `alipay_snowmeet/`（空白模板），要求做 alipay 版顾客扫码支付落地页对标 wechat `payment_entry`。
+
+**4 阶段计划**（详见 [`~/.claude/plans/y-luminous-hammock.md`](file:///Users/cangjie/.claude/plans/y-luminous-hammock.md)）：
+- A 后端 3 接口 ✅ 落地
+- B 小程序骨架（app.json + app.js + utils）⏸️
+- C payment_entry 页 + pay-identity-confirm 组件 ⏸️
+- D wechat 端把支付宝 mock 二维码替换成真实小程序唤起 URL ⏸️
+
+**Phase A 5 个改动**（编译通过 0 error 0 warning，**未 commit**）：
+
+| 文件 | 改动 |
+|---|---|
+| [`Models/Member/Member.cs`](../SnowmeetApi/Models/Member/Member.cs) | 加 `alipayPayerId` getter（对标 `wechatMiniOpenId`） |
+| [`MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | `MemberLogin` 顶部加 alipay 分支；新增 `_alipayMemberLogin`（`alipay.system.oauth.token` 换 access_token+user_id → MSA 反查不建 stub → 写 MiniSession `session_type='alipay_payerid'`）+ `_getAlipayMiniClient` |
+| [`OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | 新增 `AlipayPayByOrderPayment(paymentId, sessionKey)`：3 分支 op 字段补写 + `alipay.trade.create` 返 trade_no；新增 `_getAlipayMiniClientForOrder`；删 `using Aop.Api.Domain;` 避命名冲突 |
+| [`PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | `_extractPhone` alipay 真实化（AES 解密 my.getPhoneNumber 加密 response）；`_loadAlipayAesKey` helper；`_applyChoice` 加游客会员兜底（见 §二） |
+| 编译修 | OrderController 多处 `Aop.Api.Domain.AlipayTradeCreateModel` / `ExtendParams` 完全限定名 |
+
+**关键偏离**：原计划走 `alipay.user.phone.get`，但 SDK 不暴露该 API 类（`strings` 扫了 `AlipaySDKNet.Standard 4.8.50` + `OpenAPI 2.4.0` 两个 DLL 验证），换 alipay 标准的客户端加密路径（my.getPhoneNumber + 服务端 AES 解密）。
+
+**搁置原因**：支付宝注册授权未到位 — 小程序 appId 证书、AES 密钥、「获取会员手机号」能力签约都没到。等运维侧到位再恢复。
+
+#### 四、`pages/blt/beacon_scan` 蓝牙 Beacon 扫描页（新建）
+
+需求："获取附近的蓝牙beacon的ID和信号强度，实时获取" + 后续追加"苹果也要可以搜索到"。
+
+**双路径并行设计**：
+
+| 路径 | API | 两平台 | 关键约束 |
+|---|---|---|---|
+| A 通用 BLE | `wx.startBluetoothDevicesDiscovery + onBluetoothDeviceFound` | iOS✅ Android✅ | iOS 上 advertisData 不含 iBeacon manufacturer 数据（Apple CoreBluetooth 系统层过滤） |
+| B CoreLocation | `wx.startBeaconDiscovery({uuids}) + onBeaconUpdate` | iOS✅ Android✅ | **uuids 必填**（Apple 平台硬约束，没法扫未知 UUID） |
+
+**Dedup 策略**：iBeacon 在 `_devicesMap` 用 `iBeacon:UUID:major:minor` 作 key，A/B 两路径报同一 iBeacon 合并到同一行。合并时 A 给 `txPower`、B 给 `accuracy + proximity`，互不覆盖。`source` 字段标记 `'A' | 'B' | 'both'` UI 上显示来源 tag（灰/紫/绿）。
+
+**iBeacon 广播格式（25 字节定长 ManufacturerData 段）**：`4C 00 02 15`（Apple Company ID + iBeacon 类型 + 长度）+ 16B UUID + 2B major（BE）+ 2B minor（BE）+ 1B signed txPower。
+
+**性能优化**：
+- `allowDuplicatesKey:true` 让同一设备 RSSI 持续回调（不开则只一次）
+- `onBluetoothDeviceFound` 一秒可能回调几十次 → 200ms `_scheduleRender + _renderTimer` 节流避免 setData 卡 UI
+- `_devicesMap` 挂实例字段不进 `data`，绕过 diff 开销
+
+**UI**：4 格信号柱（按 RSSI 分档 ≥-55/-70/-85/-100）+ UUID textarea（换行/逗号/空格分隔，正则校验 8-4-4-4-12 格式，右上角实时显示 N 个有效）+ 错误条/警示条（红/黄区分）+ iBeacon block（UUID/Major/Minor/TX/距离/远近/来源 tag，点 UUID 复制剪贴板）
+
+**默认 UUID**（业务侧 2026-05-30 指定，textarea 开页预填）：
+- `01122334-4556-6778-899A-ABBCCDDEEFF0`
+- `01122334-4556-6778-899A-ABBCCDDEEFF1`
+
+**新增文件**：[`pages/blt/beacon_scan.{js,wxml,wxss,json}`](../snowmeet_wechat_mini/pages/blt/) 4 文件 + `app.json` 注册一行。
+
+#### 五、状态
+
+- ✅ 接待表单两处小迭代（去结算建新订单 + 数字键盘）
+- ✅ choose_identity 软授权前端 + 后端 `_applyChoice` 游客兜底
+- ⏸️ alipay_snowmeet Phase A（代码已落工作区编译通过未 commit；等支付宝授权下来恢复 B/C/D）
+- ✅ pages/blt/beacon_scan 双路径扫描页 + 默认 UUID 预填
+- 🚧 真机验证（用户自己测）：①接待表单去结算每次都生成新 order code ②押金/租金 modal 弹出后键盘为数字带小数点 ③扫码方未绑手机号 + 「正常支付」拒绝授权也能完成支付（兜底建游客会员） ④`/pages/blt/beacon_scan` 在 iOS 上能扫到默认 UUID 的 beacon（CoreLocation 路径）
+
+#### 六、关键发现 / 教训
+
+- **alipay 小程序 SDK 4.8.50 + OpenAPI 2.4.0 都不暴露 `AlipayUserPhoneGet*`**：选 `alipay.user.phone.get` 这条路前要查 SDK 是否真有，否则只能手写 `IAopRequest<T>` 实现（赌 SDK 内部接口签名，太脆）。`my.getPhoneNumber` + 服务端 AES 是事实标准
+- **`_applyChoice` 跟 `_applyConfirmDirect` 必须对齐**：两者都是 ConfirmPayIdentity 的子 handler，都要在 `scannerMemberId == null` 时兜底建无 cell 游客会员。这是 2026-05-29 删 MemberLogin stub 后的后端责任迁移，本场会话顺手补齐
+- **iOS CoreBluetooth 过滤 iBeacon 广播数据**：通用 BLE 扫描 (`wx.startBluetoothDevicesDiscovery`) 在 iOS 上 `advertisData` **不带 Apple 厂商 ID 那 25 字节**。要让 iOS 识别 iBeacon 必须用 `wx.startBeaconDiscovery({uuids})` 走 CoreLocation，且 uuids 必填
+- **iBeacon 广播 ManufacturerData 25 字节定长**：`4C 00 02 15` 前缀 + 16B UUID + 2B major BE + 2B minor BE + 1B signed txPower（校准 1m 处的 RSSI）。Eddystone 在 ServiceData 段而非 ManufacturerData
+- **微信小程序 `wx.showModal({editable:true})` 不支持数字键盘**：想要 type=digit 必须改自建 popup + `<input type="digit">`
+- **`onBluetoothDeviceFound` 高频回调必须节流**：一秒几十次，直接 setData 会卡 UI。200ms `_scheduleRender + _renderTimer` 合并；`_devicesMap` 挂实例字段不进 `data` 绕过 diff
+- **用户说"参考昨天测过的流程"时，前后端两层兜底都要镜像**：第一轮我只镜像前端按钮模式没镜像后端 `_applyConfirmDirect` 的游客建会员兜底，被 toast 拦下后用户怒（"是我之前没描述清楚吗？"）。下次类似需求 grep 一下兜底层有没有 mirror 缺位
+
+### 2026-05-31 — alipay 小程序 appId 换发 + 证书联调（cert/sign 反复定位 + 本机干净私钥推服务器收尾）
+
+服务器跑 alipay 小程序 onLaunch 时报 `支付宝证书加载失败`。一路追 4 类错（缺文件 → NRE → 模式不匹配 → RSA 签名异常），中间走了不少弯路（误判私钥坏、自己 verify 命令有 bug 追假问题），最后结论：**私钥本身一直没问题，是服务器上的 `.txt` 文件还残留之前手抓粘贴时引入的鬼字符**。本机干净文件 scp 覆盖收尾。详情见 [`sessions/2026-05-31_alipay_mini_cert_signing_debug.md`](sessions/2026-05-31_alipay_mini_cert_signing_debug.md)。
+
+#### 一、问题表象演化
+
+依次撞到：
+1. `Could not find file 'alipayRootCert.crt'`（根证书缺）
+2. `Could not find file 'appCertPublicKey_{appId}.crt'`（应用证书缺）
+3. `Object reference not set to an instance of an object`（NRE，未明确缺哪个）
+4. `RSA签名遭遇异常 / Index was outside the bounds of the array, privateKeySize=1624`（签名层）
+
+#### 二、关键定位
+
+- **`alipayRootCert.crt` 全平台共用**：验证项目里 3 个旧 appId 目录下根证书 MD5 完全一致（`b6612a80b13013892c8c5c0829f62367`），可跨 appId 直接拷
+- **`appCertPublicKey_{appId}.crt` 按 appId 独立**：3 个旧 appId 该文件 MD5 全不一样，必须为新 appId 单独从开放平台下载
+- **接口加签方式与代码模式必须对齐**：原 appId `2021006157678375` 开放平台配的是「密钥（公钥）模式」，但代码 [`MiniAppHelperController.cs:320`](../SnowmeetApi/Controllers/MiniAppHelperController.cs#L320) 用 `client.CertificateExecute(req)` 是「公钥证书」模式专用 → 模式不匹配。两条路：A 切平台到公钥证书 / B 改代码到公钥模式。中途短暂改过 B（已回滚），用户最终走 A
+- **应用私钥找不回 → 重新生成小程序拿新 appId**：旧 appId 当年私钥不在手边，公钥模式下应用私钥唯一存于本地，找不回就只能整副密钥对作废。用户在开放平台**新建**小程序拿到新 appId `2021006157624571`，公钥证书模式重申请整套证书
+
+#### 三、代码改动（7 处硬编码替换 `2021006157678375` → `2021006157624571`）
+
+| 文件 | 位置 |
+|---|---|
+| [SnowmeetApi/Controllers/MiniAppHelperController.cs](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | 行 411 注释 + 行 415 `const string appId` |
+| [SnowmeetApi/Controllers/OrderController.cs](../SnowmeetApi/Controllers/OrderController.cs) | 行 1872 注释 + 行 1874 `ALIPAY_MINI_APP_ID` |
+| [SnowmeetApi/Controllers/Order/PaymentIdentityController.cs](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | 行 31 `ALIPAY_MINI_APP_ID` |
+| [snowmeet_wechat_mini/components/order-payment/index.js](../snowmeet_wechat_mini/components/order-payment/index.js) | 行 82 注释 + 行 94 `alipays://platformapi/startapp?appId=` scheme URL |
+| [alipay_snowmeet/app.js](../alipay_snowmeet/app.js) | 行 10 注释 |
+
+中途插入又回滚的 2 处编辑（公钥模式分支）：`MiniAppHelperController.cs:320` `CertificateExecute → Execute` 和 `_getAlipayMiniClient` 重写。最终保留公钥证书模式，与项目里其他 8 个 appId 架构统一。
+
+#### 四、RSA 签名异常长尾排查（最耗时）
+
+签名层错误 `Index was outside the bounds of the array, privateKeySize=1624` 迭代 5 轮：
+
+1. **怀疑文件鬼字符**：`wc -l` 返 0（单行裸 base64 OK），`head -c 40` 返 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk` 跟健康样本完全一致，看上去格式没问题
+2. **openssl 验证报 "STORE routines unsupported"** —— 误判私钥结构损坏，让用户多走一轮换密钥工具
+3. **用户截图开发助手"密钥匹配 → 匹配成功"** —— 工具能解析，但 openssl 拒绝，矛盾
+4. **复现 openssl 命令** —— 发现是 `fold -w 64 key.txt; echo END` 末尾 fold 不加 trailing newline，导致 base64 跟 `-----END-----` 粘一起；LibreSSL 严格判错 `bad end line`。**我的 verify 命令一直是错的，整轮 false negative**
+5. **修 verify 命令（中间补 `echo ""`）后真实验证私钥** —— 输出 `Private-Key: (2048 bit, 2 primes)` ✓；公钥反推 vs 开放平台公钥**完全一致** ✓ → **私钥本身一直没问题**
+
+最终确认：**问题在服务器**。用户之前手抓本地私钥粘贴推到服务器时引入鬼字符（本地后来重做过、服务器没同步）。一行 scp 覆盖收尾：
+
+```bash
+scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2021006157624571/private_key_2021006157624571.txt \
+    ubuntu@<server>:/home/ubuntu/webs/SnowmeetApi/AlipayCertificate/2021006157624571/
+```
+
+#### 五、状态
+
+- ✅ 代码 7 处 appId 替换 + 编译通过
+- ✅ 本地证书目录 `2021006157624571/` 4 文件齐（含 openssl 验证通过的私钥）
+- ✅ 本地私钥反推公钥跟开放平台公钥一致（成对）
+- 🚧 服务器 scp 私钥覆盖 + 服务端重测（用户操作，期望 `RSA签名异常` → `oauth.token invalid auth code` 表示链路打通）
+- ⏸️ alipay_snowmeet Phase B-D 仍待恢复（小程序骨架/payment_entry+组件/wechat 端二维码替换）
+
+#### 六、关键发现 / 教训
+
+- **`alipayRootCert.crt` 全 appId 共用、`appCertPublicKey_{appId}.crt` 按 appId 独立**：缺前者直接拷其他 appId 目录；后者必须从开放平台为该 appId 单独下载
+- **接口加签方式有两套**：密钥（公钥）模式 vs 公钥证书模式。代码 `CertificateExecute(req)` + `CertParams` 是后者专用；前者用 `Execute(req)` + 构造时传支付宝公钥字符串。两边必须对齐
+- **应用私钥唯一存于本地**：开放平台只保存应用公钥，私钥丢了找不回 → 整副密钥对作废，只能重新生成上传公钥（或像本场一样重新生成整个小程序）
+- **LibreSSL（Mac 默认 openssl）比 OpenSSL 对 PEM 严格**：`-----END-----` 必须独占一行，前面要有换行。`fold -w 64 key.txt` 在最后一段不加 trailing newline，必须中间补一个 `echo ""`，否则 `bad end line`
+- **支付宝开发助手 "公私钥匹配" 是真实数学验证**：能匹配成功说明工具内存里那串私钥结构是合法的；如果同时 openssl 拒绝同一串，先怀疑 openssl 命令本身或环境（这次就是我命令错），而不是怀疑工具
+- **.NET SDK 4.8.50 PKCS#1 + PKCS#8 都吃**：项目里现有 8 个能工作的私钥全是 PKCS#8（前缀 `MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSk`），传统文档"PKCS#1 only"是老 SDK 的事
+- **本机改 → 服务器没同步是真正坑**：前 5 轮都假设"本地文件 = 服务器文件"，最后才意识到用户测试是直接上服务器跑的 / 服务器拷过去的是早先的坏版本。Q1（哪个环境跑的）+ Q2（私钥/公钥配对验证）这两问应该早 3 轮就提，省去整个 false negative 弯路
+- **私钥提取要避免剪贴板**：任何手抓+TextEdit/记事本+保存的链路都可能引入空格/CRLF/不可见字符。最稳是 `pbpaste | LC_ALL=C tr -cd 'A-Za-z0-9+/='` 严格过滤，或 openssl 自己生成直接 pipe 到文件不经剪贴板
+- **诊断命令出问题时先在本机复现验证再让用户跑**：5 轮 openssl 假阴性如果第 1 轮我就 `bash + verify` 测一遍自己的命令，能立刻看出 `bad end line` 不是私钥问题。下次给 cert/key 验证命令前先本机跑一遍**自检
