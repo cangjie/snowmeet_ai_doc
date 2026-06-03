@@ -1955,3 +1955,40 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 28 份 xlsx 全量重生成 + 抽样验证通过
 - ✅ 4 份 merged xlsx 含新列：`【退款K】退款账号 / 退款人`（主 sheet 和年度{业务}明细 sheet）+ `退款K账号 / 退款K退款人`（支付明细 sheet）+ `操作人`（支付流水 sheet）
 - ⏸️ 接下来切回支付宝小程序线：先修 my.getPhoneNumber AES 解密 `not a valid Base-64 string` pending bug
+
+### 2026-06-03（续）— 支付宝 my.getPhoneNumber AES 解密：诊断版后端（pending 真机回归）
+
+接续 6-2 留下的 alipay AES 解密 pending bug，本节切片只做诊断准备，未修根因。详见 [`sessions/2026-06-03_alipay_aes_decrypt_diagnostic.md`](sessions/2026-06-03_alipay_aes_decrypt_diagnostic.md)。
+
+#### 一、改动：[`PaymentIdentityController._extractPhone`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) alipay 分支加诊断
+
+- 三处 `Convert.FromBase64String(aesKey/encData/zeroIv)` **分别 try-catch**，失败时把 `length + head 片段` 拼进异常 message
+- `_loadAlipayAesKey()` 包一层异常透传，区分"文件不存在"vs"读取/解码失败"
+- `Console.WriteLine` 打 `aesKey.Length / head12 / BOM 标志` + `encData.Length / head40` + 解密成功后 `json head80`
+- 部署 SnowmeetApi `bd0baa74` → origin/ai（编译 0 错 + 14 历史无关警告）
+
+#### 二、真机首轮回归（pending — 服务器没部署到最新）
+
+真机跑 alipay_snowmeet → 扫码 → payment_entry → 点身份按钮 → my.getPhoneNumber 同意 → 前端 toast 显示：
+
+> 手机号解析失败: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters.
+
+**关键：toast 里只有原始 .NET FormatException 文本，没有 `bd0baa74` 新加的 `aesKey/encData/aes_key.txt` 前缀诊断** → 服务器跑的还是老版本（6-2 `fecea2bb`），bd0baa74 未生效。
+
+诊断三步骤（晚上回归用）：
+1. SSH `cd /home/ubuntu/webs/SnowmeetApi`，跑 `git log -1 --oneline` 看本地 commit、`git log -1 origin/ai --oneline` 看远端 head、`ls -la SnowmeetApi.dll` 看时间戳
+2. 若 commit ≠ bd0baa74：`sudo git pull --ff-only origin ai`
+3. 必须 `sudo dotnet publish -c Release -o /home/ubuntu/webs/SnowmeetApi` 而非 `dotnet build`（build 不会更新 deploy 目标），再 `sudo systemctl restart mini.snowmeet.top.service` → `systemctl status` 看 Started 时间是不是刚才
+
+#### 三、关键发现 / 待补
+
+- **systemd 服务名**：`mini.snowmeet.top.service`（Content root `/home/ubuntu/webs/SnowmeetApi`）。journalctl 命令：`sudo journalctl -u mini.snowmeet.top.service -f`
+- **支付宝小程序 my.getPhoneNumber 触发链**：刷新页面只调 `CheckPayerIdentity`（GET，不走 `_extractPhone`）；必须**点身份按钮触发 my.getPhoneNumber 授权 → 同意**，才会走 `ConfirmPayIdentity action=submit_phone` 进 `_extractPhone`
+- **强假设待真机日志验证**：alipay `my.getPhoneNumber` 新版 SDK 可能把 `res.response` 返成 JSON 包装 `{"response":"<base64>","sign":"...","signType":"RSA2"}` 而不是直接 base64 串。前端 `_getPhoneThen` 用 `(res.response || res.encryptedData) || ''` 当成 base64 直传 → 后端 `Convert.FromBase64String` 自然炸。如果真是这样，diag 输出会显示 `encData head40={"response":"...`，修复要么前端解 JSON 取内层 `response` 字段，要么后端兼容两种格式
+- **3 条备选修复路径**（等日志定）：① 前端 JSON.parse 取内层 response；② aes_key.txt BOM/CRLF 清理（`.TrimStart('﻿')` + 字符过滤）；③ encData 字符级清洗（`Replace("\r","").Replace("\n","").Replace(" ","+")`）
+
+#### 四、状态
+
+- ✅ 诊断版后端代码 + commit + push（origin/ai bd0baa74）
+- 🚧 服务器部署到 bd0baa74（用户晚上回归 pull + publish + restart）
+- ⏸️ 真机回归 + 三段 base64 诊断输出 + 定根因
