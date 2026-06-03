@@ -7,8 +7,9 @@
 固定 10 列：
     订单号 / 支付订单号 / 支付方式 / 支付账户（微信=真实 mch_id / 支付宝='') / 顾客ID (微信 openid / 支付宝 ali_buyer_id)
     / 支付日期 / 支付时间 / 支付金额 / 退款金额 / 支付结余
-动态 maxRefund × 4 列：
+动态 maxRefund × 6 列：
     退款k日期 / 退款k时间 / 退款k金额 / 退款k方式（=原支付方式）
+    / 退款k账号（微信=真实 mch_id / 支付宝='支付宝' / 其他='') / 退款k退款人（pr.staff_id→staff.name）
 动态 maxShare × 3 列：
     分账k金额 / 分账k成功（是/否/作废/''） / 分账k对象（order_share_relation.name）
     - 是：success=1
@@ -101,10 +102,12 @@ def fetch_payments(conn, order_codes):
                 op.paid_date                                          AS paid_date,
                 op.create_date                                        AS create_date,
                 op.amount                                             AS amount,
-                op.out_trade_no                                       AS out_trade_no
+                op.out_trade_no                                       AS out_trade_no,
+                pay_sa.name                                           AS pay_staff_name
             FROM [order] o
             JOIN order_payment op ON op.order_id = o.id
             LEFT JOIN wepay_key wk ON wk.id = op.mch_id
+            LEFT JOIN staff pay_sa ON pay_sa.id = op.staff_id
             WHERE op.status = N'支付成功'
               AND op.valid = 1
               AND o.code IN ({placeholders})
@@ -126,6 +129,7 @@ def fetch_payments(conn, order_codes):
                 "paid_date": r.paid_date or r.create_date,  # paid_date NULL 时用 create_date 兜底
                 "amount": float(r.amount or 0),
                 "out_trade_no": r.out_trade_no or "",
+                "pay_staff_name": r.pay_staff_name or "",
             })
     return pay_rows
 
@@ -186,8 +190,10 @@ def fetch_refunds(conn, payment_ids):
                 pr.payment_id    AS payment_id,
                 pr.amount        AS amount,
                 pr.create_date   AS create_date,
-                pr.out_refund_no AS out_refund_no
+                pr.out_refund_no AS out_refund_no,
+                sa.name          AS staff_name
             FROM payment_refund pr
+            LEFT JOIN staff sa ON sa.id = pr.staff_id
             WHERE pr.payment_id IN ({placeholders})
               AND {REFUND_COND}
             ORDER BY pr.payment_id, pr.create_date, pr.id
@@ -198,6 +204,7 @@ def fetch_refunds(conn, payment_ids):
                 "amount": float(r.amount or 0),
                 "create_date": r.create_date,
                 "out_refund_no": r.out_refund_no or "",
+                "staff_name": r.staff_name or "",
             })
     return refund_by_pid
 
@@ -249,9 +256,18 @@ def build_headers_and_rows(pay_rows, refund_by_pid, share_by_pid):
         "支付日期", "支付时间", "支付金额", "退款金额", "支付结余",
     ]
     for k in range(1, maxRefund + 1):
-        headers += [f"退款{k}日期", f"退款{k}时间", f"退款{k}金额", f"退款{k}方式"]
+        headers += [f"退款{k}日期", f"退款{k}时间", f"退款{k}金额", f"退款{k}方式",
+                    f"退款{k}账号", f"退款{k}退款人"]
     for k in range(1, maxShare + 1):
         headers += [f"分账{k}金额", f"分账{k}成功", f"分账{k}对象"]
+
+    def refund_acct_for(p):
+        """退款账号：微信→真实 mch_id（沿用支付账户）；支付宝→字串「支付宝」；其他→空"""
+        if p["pay_method"] == "微信支付":
+            return p["pay_account"]  # 已是 str(real_mch_id) 或 ""
+        elif p["pay_method"] == "支付宝":
+            return "支付宝"
+        return ""
 
     rows = []
     for p in pay_rows:
@@ -273,9 +289,11 @@ def build_headers_and_rows(pay_rows, refund_by_pid, share_by_pid):
                     split_time(r["create_date"]),
                     round(r["amount"], 2),
                     p["pay_method"],  # 退款方式 = 原支付通道（payment_refund 无 pay_method 列）
+                    refund_acct_for(p),
+                    r["staff_name"],
                 ]
             else:
-                row += [None, None, None, None]
+                row += [None, None, None, None, None, None]
         for k in range(maxShare):
             if k < len(shares):
                 s = shares[k]
@@ -293,8 +311,9 @@ def build_transaction_rows(pay_rows, refund_by_pid, share_by_pid):
     - 退款：payment_refund 命中 REFUND_COND（state=1 OR refund_id 非空），交易金额取负
     - 分账：payment_share success=1 AND valid=1，交易金额取负（站在商家本主体角度算流出）
     支付方式/支付账户：退款/分账继承自所属 payment（payment_refund 无 pay_method 列；分账走原通道）
+    操作人：支付行 = op.staff_id→staff.name；退款行 = pr.staff_id→staff.name；分账行 = 空（系统触发无人工操作）
     """
-    headers = ["订单号", "支付方式", "支付账户", "商户订单号", "类型", "交易金额", "日期", "时间"]
+    headers = ["订单号", "支付方式", "支付账户", "商户订单号", "类型", "交易金额", "日期", "时间", "操作人"]
     pid_ctx = {p["payment_id"]: p for p in pay_rows}
     rows = []
 
@@ -308,6 +327,7 @@ def build_transaction_rows(pay_rows, refund_by_pid, share_by_pid):
             "类型": "支付",
             "金额": round(p["amount"], 2),
             "_dt": p["paid_date"],
+            "操作人": p["pay_staff_name"],
         })
 
     # 退款（负）
@@ -322,6 +342,7 @@ def build_transaction_rows(pay_rows, refund_by_pid, share_by_pid):
                 "类型": "退款",
                 "金额": -round(r["amount"], 2),
                 "_dt": r["create_date"],
+                "操作人": r["staff_name"],
             })
 
     # 分账（负 — 站在商家本主体角度是流出）
@@ -338,6 +359,7 @@ def build_transaction_rows(pay_rows, refund_by_pid, share_by_pid):
                 "类型": "分账",
                 "金额": -round(s["amount"], 2),
                 "_dt": s["response_time"] or s["create_date"],
+                "操作人": "",
             })
 
     # 按 日期+时间 升序（None 落最前）
@@ -349,6 +371,7 @@ def build_transaction_rows(pay_rows, refund_by_pid, share_by_pid):
             r["订单号"], r["支付方式"], r["支付账户"], r["商户订单号"], r["类型"],
             r["金额"],
             split_date(r["_dt"]), split_time(r["_dt"]),
+            r["操作人"],
         ])
     return headers, final_rows
 
@@ -389,7 +412,7 @@ def main():
     conn.close()
 
     headers, rows, maxRefund, maxShare = build_headers_and_rows(pay_rows, refund_by_pid, share_by_pid)
-    print(f"\n输出列：{len(headers)}（固定 10 + 退款 {maxRefund}×4 + 分账 {maxShare}×3）")
+    print(f"\n输出列：{len(headers)}（固定 10 + 退款 {maxRefund}×6 + 分账 {maxShare}×3）")
     print(f"输出行：{len(rows)}")
 
     # 打开目标 xlsx，幂等地删旧 sheet 重建
@@ -404,9 +427,9 @@ def main():
 
     # 金额列锁定 0.00 显示格式（避开科学计数法）
     money_col_idxs = [8, 9, 10]  # 支付金额、退款金额、支付结余（1-based）
-    refund_block_end = 10 + maxRefund * 4
+    refund_block_end = 10 + maxRefund * 6  # 退款 K 组：日期/时间/金额/方式/账号/退款人 = 6 列
     for k in range(maxRefund):
-        money_col_idxs.append(10 + k * 4 + 3)  # 退款k金额
+        money_col_idxs.append(10 + k * 6 + 3)  # 退款k金额
     for k in range(maxShare):
         money_col_idxs.append(refund_block_end + k * 3 + 1)  # 分账k金额
     for col_idx in money_col_idxs:

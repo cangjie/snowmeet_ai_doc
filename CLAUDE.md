@@ -1931,3 +1931,93 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 真机/DB 直查验证 Invalidate 生效（3 条 OP 的 valid 翻转 + core_data_mod_log 留痕）
 - 🚧 客户端 5-31 之后版本（含 `showAlipayMiniQrCode` 真实调用）部署到所有真机/线上版 — 验证选支付宝调 GetAlipayMiniPayment、DB 出现 `pay_method='支付宝'` 的 OP
 - ⏸️ **支付宝手机号 AES 解密报错（pending）**：下次切片首要排查 `_extractPhone` 入参实际形状 + 前端 URL 编码 + aes_key.txt 字节序
+
+### 2026-06-03 — 4 业务财年报表退款列扩展：加退款账号 + 退款人 + 支付流水操作人
+
+接续 6-1 4 业务财年报表合并线。用户原话：「需要修改 6月1日导出的所有的报表。各个退款列，需要增加退款的账号，如果是微信支付，需要写入微信支付的商户号，如果是支付宝，直接填写支付宝。另外还需要增加每笔退款的退款人，根据 payment_refund 的 staff_id 关联。」详见 [`sessions/2026-06-03_refund_account_staff_cols.md`](sessions/2026-06-03_refund_account_staff_cols.md)。plan：`~/.claude/plans/6-1-payment-refund-staff-id-prancy-whisper.md`。
+
+#### 一、Source 代码改动（9 文件）
+
+- 4 个 fy skill 主脚本 [`skills/export_{rent,retail,ski_pass,care}_order_fiscal_year/*.py`](skills/) 同构改动：
+  - `REFUND_DETAIL_SQL` 加 2 个 SELECT 列 + 2 个 LEFT JOIN：`refund_account`（CASE WHEN 微信支付 THEN wepay_key.mch_id WHEN 支付宝 THEN N'支付宝' ELSE N''），`refund_staff`（pr.staff_id → staff.name）
+  - `ref_by_oid` 元组从 3 项扩到 5 项
+  - headers 退款段每 K 从 4 列扩到 6 列：追加 `【退款K】退款账号` / `【退款K】退款人`
+  - seg3 数据填充对齐
+- [`add_payment_detail_sheet_to_fy_xlsx.py`](add_payment_detail_sheet_to_fy_xlsx.py)：
+  - `fetch_payments` 加 `LEFT JOIN staff pay_sa ON pay_sa.id = op.staff_id` 取 `pay_staff_name`
+  - `fetch_refunds` 加 `LEFT JOIN staff sa ON sa.id = pr.staff_id` 取 `staff_name`
+  - `build_headers_and_rows` 退款 K 组 4→6 列；`money_col_idxs` 偏移 `10 + k*4 + 3 → 10 + k*6 + 3`
+  - `build_transaction_rows` 末尾加「操作人」列（支付行=op staff、退款行=pr staff、分账行=空）
+- [`add_retail_detail_merged_xlsx.py`](add_retail_detail_merged_xlsx.py)：顺手修 nanshan 过期路径（`销售单列表_c393a061-...xls` → `南山_销售单列表.xls`）
+- 4 份 [`SKILL.md`](skills/) 列结构小节同步「每笔 4 列 → 6 列」
+
+#### 二、产物重生成（28 份 xlsx）
+
+按 [`merge_fy_orders.py` INPUTS](merge_fy_orders.py) 跑全量：
+1. 19 份单店 fy xlsx（rent 5 + retail 7 + ski_pass 2 + care 5）
+2. 每份 add_payment_detail（支付明细 + 支付流水 sheet）
+3. 5 份 retail `add_*_retail_detail_merged_xlsx.py`（写 base + 另存 _with_detail.xlsx）+ 2 份 ski_pass `add_skipass_detail_merged_sheet.py`（含 chongli 雪票列表 + annotate）+ 5 份 care `add_care_detail_merged_sheet.py`
+4. `merge_fy_orders.py --biz all` 重新合并 4 份 merged xlsx
+
+抽样验证（merged_rent 主 sheet）：
+
+| 订单号 | 金额 | 方式 | 退款账号 | 退款人 |
+|---|---|---|---|---|
+| WT_ZL_251021_00001 | ¥150 | 微信支付 | `1636404775` | 崔洋（个人） |
+| WT_ZL_251022_00003 | ¥880 | 支付宝 | `支付宝` | 韩冬垚-工作号 |
+| WT_ZL_251022_00006 | ¥0.1 | 微信支付 | `1636404775` | 肖志强（工作号） |
+
+支付流水「操作人」列：支付行/退款行均显示真实员工姓名，分账行为 None。
+
+#### 三、关键发现 / 教训
+
+- **retail base xlsx 的「七色米订单号」列是手工/外部维护的**，FY skill 不生成它；重跑 FY skill 会把这列冲掉。本次写补丁脚本 `_backfill_mi7_col.py` 从 git `14f32e0` (6-1 commit) 抽 `code → mi7` mapping 回填到新文件（nanshan 471 / chongli 169 / wanlong 138 / wanlong_service 23 / headquarters 40）。未来再次重跑 retail FY 前要么先备份 mi7 列、要么用同样脚本回填
+- **`add_retail_detail_merged_xlsx.py` 的 SRC_XLS 是 nanshan 专版的旧文件名**（`销售单列表_c393a061-...xls`），CLAUDE.md 5-19 续 提到的改名 → 本次顺手改为 `南山_销售单列表.xls`
+- **`add_*_retail_detail_merged_xlsx.py` 系列 5 个店脚本都在两处写文件**：`OUT_XLSX`（另存 *_with_detail.xlsx 备份）+ `SRC_XLSX`（把「年度零售明细」sheet 幂等注入 base xlsx）。所以 merge_fy_orders 只读 base xlsx 也能拿到「年度零售明细」sheet
+- **PowerShell heredoc 把 `\\` 吃成单 `\` → Python f-string `f'{DOC}\\add_payment_detail...'` 变 `f'{DOC}\add_payment_detail...'`**，其中 `\a` 是 BEL 转义（0x07），路径变成 `D:\snowmeet\snowmeet_ai_doc\x07dd_payment_detail...`。写 Python 驱动脚本路径建议直接用正斜杠或 raw string，不要靠 heredoc 转义
+- **退款方式 CASE 表达式只规定微信/支付宝**：其他通道（储值支付/现金/挂账等）退款账号统一返 `N''` 空串，与现有支付账号列对其他通道处理一致
+- **merge_fy_orders.py 的 `union_headers + remap_rows` 按列名自动适配新列**：4 skill 新加 2 列后 merge 脚本零修改即可跟上
+
+#### 四、状态
+
+- ✅ 9 个源文件改完 + 4 份 SKILL.md 同步
+- ✅ 28 份 xlsx 全量重生成 + 抽样验证通过
+- ✅ 4 份 merged xlsx 含新列：`【退款K】退款账号 / 退款人`（主 sheet 和年度{业务}明细 sheet）+ `退款K账号 / 退款K退款人`（支付明细 sheet）+ `操作人`（支付流水 sheet）
+- ⏸️ 接下来切回支付宝小程序线：先修 my.getPhoneNumber AES 解密 `not a valid Base-64 string` pending bug
+
+### 2026-06-03（续）— 支付宝 my.getPhoneNumber AES 解密：诊断版后端（pending 真机回归）
+
+接续 6-2 留下的 alipay AES 解密 pending bug，本节切片只做诊断准备，未修根因。详见 [`sessions/2026-06-03_alipay_aes_decrypt_diagnostic.md`](sessions/2026-06-03_alipay_aes_decrypt_diagnostic.md)。
+
+#### 一、改动：[`PaymentIdentityController._extractPhone`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) alipay 分支加诊断
+
+- 三处 `Convert.FromBase64String(aesKey/encData/zeroIv)` **分别 try-catch**，失败时把 `length + head 片段` 拼进异常 message
+- `_loadAlipayAesKey()` 包一层异常透传，区分"文件不存在"vs"读取/解码失败"
+- `Console.WriteLine` 打 `aesKey.Length / head12 / BOM 标志` + `encData.Length / head40` + 解密成功后 `json head80`
+- 部署 SnowmeetApi `bd0baa74` → origin/ai（编译 0 错 + 14 历史无关警告）
+
+#### 二、真机首轮回归（pending — 服务器没部署到最新）
+
+真机跑 alipay_snowmeet → 扫码 → payment_entry → 点身份按钮 → my.getPhoneNumber 同意 → 前端 toast 显示：
+
+> 手机号解析失败: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters.
+
+**关键：toast 里只有原始 .NET FormatException 文本，没有 `bd0baa74` 新加的 `aesKey/encData/aes_key.txt` 前缀诊断** → 服务器跑的还是老版本（6-2 `fecea2bb`），bd0baa74 未生效。
+
+诊断三步骤（晚上回归用）：
+1. SSH `cd /home/ubuntu/webs/SnowmeetApi`，跑 `git log -1 --oneline` 看本地 commit、`git log -1 origin/ai --oneline` 看远端 head、`ls -la SnowmeetApi.dll` 看时间戳
+2. 若 commit ≠ bd0baa74：`sudo git pull --ff-only origin ai`
+3. 必须 `sudo dotnet publish -c Release -o /home/ubuntu/webs/SnowmeetApi` 而非 `dotnet build`（build 不会更新 deploy 目标），再 `sudo systemctl restart mini.snowmeet.top.service` → `systemctl status` 看 Started 时间是不是刚才
+
+#### 三、关键发现 / 待补
+
+- **systemd 服务名**：`mini.snowmeet.top.service`（Content root `/home/ubuntu/webs/SnowmeetApi`）。journalctl 命令：`sudo journalctl -u mini.snowmeet.top.service -f`
+- **支付宝小程序 my.getPhoneNumber 触发链**：刷新页面只调 `CheckPayerIdentity`（GET，不走 `_extractPhone`）；必须**点身份按钮触发 my.getPhoneNumber 授权 → 同意**，才会走 `ConfirmPayIdentity action=submit_phone` 进 `_extractPhone`
+- **强假设待真机日志验证**：alipay `my.getPhoneNumber` 新版 SDK 可能把 `res.response` 返成 JSON 包装 `{"response":"<base64>","sign":"...","signType":"RSA2"}` 而不是直接 base64 串。前端 `_getPhoneThen` 用 `(res.response || res.encryptedData) || ''` 当成 base64 直传 → 后端 `Convert.FromBase64String` 自然炸。如果真是这样，diag 输出会显示 `encData head40={"response":"...`，修复要么前端解 JSON 取内层 `response` 字段，要么后端兼容两种格式
+- **3 条备选修复路径**（等日志定）：① 前端 JSON.parse 取内层 response；② aes_key.txt BOM/CRLF 清理（`.TrimStart('﻿')` + 字符过滤）；③ encData 字符级清洗（`Replace("\r","").Replace("\n","").Replace(" ","+")`）
+
+#### 四、状态
+
+- ✅ 诊断版后端代码 + commit + push（origin/ai bd0baa74）
+- 🚧 服务器部署到 bd0baa74（用户晚上回归 pull + publish + restart）
+- ⏸️ 真机回归 + 三段 base64 诊断输出 + 定根因
