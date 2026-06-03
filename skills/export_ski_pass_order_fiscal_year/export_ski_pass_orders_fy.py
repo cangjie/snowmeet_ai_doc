@@ -188,10 +188,16 @@ REFUND_DETAIL_SQL = f"""
 SELECT o.id AS oid,
        pr.create_date AS rt,
        pr.amount,
-       op.pay_method AS refund_method
+       op.pay_method AS refund_method,
+       CASE WHEN op.pay_method = N'微信支付' THEN wk.mch_id
+            WHEN op.pay_method = N'支付宝'   THEN N'支付宝'
+            ELSE N'' END                            AS refund_account,
+       sa.name                                       AS refund_staff
 FROM [order] o
 JOIN payment_refund pr ON pr.order_id = o.id
 LEFT JOIN order_payment op ON op.id = pr.payment_id
+LEFT JOIN wepay_key wk ON wk.id = op.mch_id
+LEFT JOIN staff sa ON sa.id = pr.staff_id
 WHERE {ORDER_FILTER} AND {REFUND_COND}
 ORDER BY o.id ASC, pr.create_date ASC, pr.id ASC
 """
@@ -280,8 +286,8 @@ def main():
     print('退款明细 ...')
     cur.execute(refund_detail_sql, *params)
     ref_by_oid = defaultdict(list)
-    for oid, rt, amt, rm in cur.fetchall():
-        ref_by_oid[oid].append((rt, amt, rm))
+    for oid, rt, amt, rm, racct, rstaff in cur.fetchall():
+        ref_by_oid[oid].append((rt, amt, rm, racct, rstaff))
     print(f'  退款笔: {sum(len(v) for v in ref_by_oid.values())}')
     cn.close()
 
@@ -337,7 +343,8 @@ def main():
                     f'【支付{k}】支付方式', f'【支付{k}】支付账号']
     for k in range(1, max_refund + 1):
         headers += [f'【退款{k}】日期', f'【退款{k}】时间', f'【退款{k}】金额',
-                    f'【退款{k}】退款方式']
+                    f'【退款{k}】退款方式',
+                    f'【退款{k}】退款账号', f'【退款{k}】退款人']
     # 段4（雪票特化：张数/成交价/度假区分布/减免 + 分账/会员/收款）
     headers += ['雪票张数', '成交价合计', '万龙张数', '南山张数', '减免合计', '隐藏订单',
                 '应分账金额', '实分账金额', '待分账金额', '业务', '门店',
@@ -397,11 +404,12 @@ def main():
         rlist = ref_by_oid.get(oid, [])
         for k in range(max_refund):
             if k < len(rlist):
-                rt, amt, rm = rlist[k]
+                rt, amt, rm, racct, rstaff = rlist[k]
                 rd_, rtm = split_dt(rt)
-                seg3 += [rd_, rtm, round(float(amt), 2) if amt is not None else None, rm]
+                seg3 += [rd_, rtm, round(float(amt), 2) if amt is not None else None,
+                         rm, racct or '', rstaff or '']
             else:
-                seg3 += [None, None, None, None]
+                seg3 += [None, None, None, None, None, None]
 
         seg4 = [skipass_cnt, round(float(g('成交价合计') or 0), 2), g('万龙张数') or 0,
                 g('南山张数') or 0, round(float(g('减免合计') or 0), 2), g('隐藏订单'),

@@ -25,7 +25,7 @@ from openpyxl.utils import get_column_letter  # noqa: E402
 sys.stdout.reconfigure(encoding="utf-8")
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-SRC_XLS = os.path.join(BASE, "销售单列表_c393a061-a3c1-4479-9611-f3f577a509c5.xls")
+SRC_XLS = os.path.join(BASE, "南山_销售单列表.xls")
 SRC_XLSX = os.path.join(BASE, "nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx")
 OUT_XLSX = os.path.join(BASE, "nanshan_retail_orders_fy_with_detail.xlsx")
 
