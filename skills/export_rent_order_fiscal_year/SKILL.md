@@ -103,9 +103,9 @@ python export_rent_orders_fy.py --shop 万龙体验中心 --include-invalid \
 
 `【支付k】日期 / 时间 / 金额 / 支付方式 / 支付账号`，第 k 笔成功有效支付按支付时间（`COALESCE(paid_date, create_date)`）升序。支付账号：微信支付 → `wepay_key.mch_id`（真实商户号），其他为空。不足 P 笔补空。
 
-### 段 3：动态退款区（重复 R 次，每笔 4 列）
+### 段 3：动态退款区（重复 R 次，每笔 6 列）
 
-`【退款k】日期 / 时间 / 金额 / 退款方式`，第 k 笔有效退款按 `payment_refund.create_date` 升序。**退款方式取原支付通道**：`payment_refund.payment_id → order_payment.pay_method`（payment_refund 表本身无方式列）。不足 R 笔补空。
+`【退款k】日期 / 时间 / 金额 / 退款方式 / 退款账号 / 退款人`，第 k 笔有效退款按 `payment_refund.create_date` 升序。**退款方式取原支付通道**：`payment_refund.payment_id → order_payment.pay_method`（payment_refund 表本身无方式列）。**退款账号**：微信支付 → 真实微信商户号 `wepay_key.mch_id`；支付宝 → 字串"支付宝"；其他通道 → 空串。**退款人**：`payment_refund.staff_id → staff.name`。不足 R 笔补空。
 
 ### 段 4：固定中段（14 列）
 
