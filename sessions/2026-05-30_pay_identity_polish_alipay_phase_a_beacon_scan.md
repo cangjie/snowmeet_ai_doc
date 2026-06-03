@@ -96,7 +96,7 @@ this.setData({ order: {
 | C | `payment_entry` 页 + `pay-identity-confirm` 组件 |
 | D | wechat 端把支付宝 mock 二维码替换成真实小程序唤起 URL |
 
-**关键决策**：小程序 appId `2021006157678375`（独立于商户 appId `2021004143665722`）；MSA type `alipay_payerid`；MiniSession.session_type `alipay_payerid`；sessionKey 装 alipay `access_token`。
+**关键决策**：小程序 appId `2021006157624571`（独立于商户 appId `2021004143665722`）；MSA type `alipay_payerid`；MiniSession.session_type `alipay_payerid`；sessionKey 装 alipay `access_token`。
 
 完整计划已落 [`~/.claude/plans/y-luminous-hammock.md`](file:///Users/cangjie/.claude/plans/y-luminous-hammock.md)。
 
@@ -128,7 +128,7 @@ this.setData({ order: {
 - 客户端 `my.getPhoneNumber()` 返 `response`（AES-128-CBC + 全 0 IV + PKCS7 加密 JSON）
 - 服务端用「接口加密方式」配置的 AES 密钥解密（base64，16/24/32 字节）
 - 复用现有 [`Util.AES_decrypt`](SnowmeetApi/Util.cs)（wechat 通道也是这一套）
-- 加 `_loadAlipayAesKey()` 从 `AlipayCertificate/2021006157678375/aes_key.txt` 读
+- 加 `_loadAlipayAesKey()` 从 `AlipayCertificate/2021006157624571/aes_key.txt` 读
 
 ### 3.4 暂搁置：支付宝注册授权未到位
 
@@ -137,7 +137,7 @@ this.setData({ order: {
 **Phase A 代码已落工作区（SnowmeetApi/* 5 个文件改动），未 commit**。等支付宝那边小程序 appId 注册 + 证书签发 + AES 密钥配置 + 「获取会员手机号」能力开通到位再恢复 Phase B-D。
 
 **部署清单**（运维侧给到才能真跑）：
-- `SnowmeetApi/AlipayCertificate/2021006157678375/` 放 4 个文件：`private_key_2021006157678375.txt` / `appCertPublicKey_2021006157678375.crt` / `alipayCertPublicKey_RSA2.crt` / `alipayRootCert.crt`
+- `SnowmeetApi/AlipayCertificate/2021006157624571/` 放 4 个文件：`private_key_2021006157624571.txt` / `appCertPublicKey_2021006157624571.crt` / `alipayCertPublicKey_RSA2.crt` / `alipayRootCert.crt`
 - 同目录加 `aes_key.txt`（开放平台「接口加密方式」生成的 AES 密钥 base64）
 - 开放平台开通：JSAPI 支付能力 + 获取会员手机号能力
 
