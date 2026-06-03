@@ -1567,6 +1567,35 @@ WHERE source='支付前身份验证' AND valid=0;
 
 接续 5-20 多店财年导出线。本次把上月按店铺导出的财年报表合并成按业务（租赁/零售/雪票/养护）共 4 份的总表，全 sheet 拼接（主+支付明细+支付流水+各业务明细+雪票列表）；中间尝试过两轮"重判旧列"改动均回滚，最后走"独立合并脚本不动 skill"路线；会话尾追加怀北/渔阳两店 fy 报表，再次重跑合并。详见 [`sessions/2026-06-01_merge_fy_orders_by_business.md`](sessions/2026-06-01_merge_fy_orders_by_business.md)。plan：`~/.claude/plans/is-test-0-whimsical-patterson.md`。
 
+### 2026-06-02 — alipay 小程序 MemberLogin 实时 auth_code 误判失败（oauth.token 成功但仅返 open_id）
+
+用户在支付宝小程序开发工具里实时触发 `my.getAuthCode`，后端 `MiniAppHelper/MemberLogin?openIdType=alipay_payerid` 仍返回 `支付宝 oauth.token 失败：`。先给 [`MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) 加了更完整的错误输出，第二轮用户贴回响应体后确认：`alipay.system.oauth.token` **其实成功了**，返回了 `access_token` / `refresh_token` / `open_id`，只是 SDK 字段里没有 `UserId`，旧代码把“缺 `UserId`”当失败，导致把成功响应误判成失败。详见 [`sessions/2026-06-02_alipay_memberlogin_openid_fallback.md`](sessions/2026-06-02_alipay_memberlogin_openid_fallback.md)。
+
+#### 一、根因
+
+- 当前 [`MiniAppHelperController._alipayMemberLogin`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) 成功条件写成：`!IsError && AccessToken 非空 && UserId 非空`
+- 但支付宝小程序 `auth_base` 场景下，这次实际返回体只有 `open_id`，没有 `user_id`
+- 结果：oauth.token 成功，后端却因 `UserId == null` 走失败分支，向前端返回 `code=1`
+
+#### 二、修复
+
+- **错误日志增强**：oauth.token 失败时把 `code / sub_code / msg / sub_msg / body` 片段拼回 message，不再是空冒号
+- **payer 标识回退策略**：优先 `user_id`，缺失时从 `tokenResp.Body` 解析 `open_id` 回退
+- **成功判定放宽为真实业务判定**：`access_token` 非空且 `payerId(user_id/open_id 任一)` 非空即可视为成功
+- **MSA 反查兼容双值**：`member_social_account.type='alipay_payerid'` 查询同时兼容历史可能写入的 `user_id` 或 `open_id`
+- **mini_session 持久化同步改写**：`session_type='alipay_payerid'` 对应的 `wechat_openid` 复用列、返回对象 `alipay_payerid`、以及 staff 反查，统一改用最终 `payerId`
+
+#### 三、验证
+
+- 本地 `dotnet build` 通过，0 error
+- 预期部署后：MemberLogin 返回 `code=0`，`data.session_key=access_token`；未注册用户 `member=null` 属正常，由后续 PaymentIdentity 流程建会员
+
+#### 四、关键教训
+
+- **别把 SDK 某个字段是否缺失当成 OAuth 成败本身**：支付宝这条链路真正决定登录是否成功的是 `access_token + payer 可识别标识`，不是 `UserId` 属性一定要有
+- **先增强诊断再猜测根因**：这次从空 message 到 body 直出，只用一轮就看出 token 其实成功，避免继续误追 appId/证书
+- **`alipay_payerid` 在现网里本质上是“支付宝付款方唯一标识位”**，不应在实现上绑死为 `user_id` 一种具体字段；`open_id` 也必须能承载
+
 #### 一、两轮回滚（重判旧列后用户拍板放弃）
 
 1. **「测试」列按 `[order].is_test` 重判**：写 [`rebuild_test_column_by_is_test.py`](rebuild_test_column_by_is_test.py)，14 份报表「测试」列改为 `o.is_test=1→'是'`；同步把 4 个 fy skill SQL 改成 `CASE WHEN o.is_test = 1 THEN N'是' ELSE N'' END`。结果：租赁 704→204、零售 173→114、雪票 573→0（财年内 ski_pass 业务 is_test=1 零单）、养护 969→207
