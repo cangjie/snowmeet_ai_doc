@@ -2022,3 +2022,75 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 诊断版后端代码 + commit + push（origin/ai bd0baa74）
 - 🚧 服务器部署到 bd0baa74（用户晚上回归 pull + publish + restart）
 - ⏸️ 真机回归 + 三段 base64 诊断输出 + 定根因
+
+### 2026-06-03（续2）— MemberLogin alipay payerid→cell 兜底 + 推迟建会员原则贯穿到 alipay 全链路
+
+接续 6-3 续 留的 AES 解密 pending bug。两轮 commit：① `e60105e` MemberLogin 二次匹配链 + AES helper 根因修；② `5855be1` 用户原则贯穿 alipay 全链路。详见 [`sessions/2026-06-03_alipay_memberlogin_payerid_cell_and_deferred_member_creation.md`](sessions/2026-06-03_alipay_memberlogin_payerid_cell_and_deferred_member_creation.md)。plan：`~/.claude/plans/memberlogin-1-api-payerid-member-social-humble-castle.md`。
+
+#### 一、第一轮 `e60105e`：MemberLogin alipay 二次匹配链 + AES bug 根因修
+
+**`_alipayMemberLogin` 拆首次/二次两子方法**（[`MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs)）：
+- 首次（有 code）：oauth.token → payerId → MSA(`alipay_payerid`) → 直查 MSA 看 `cell` 是否齐 → 写 mini_session（**用新加的 `alipay_payerid` 列替代 5-30 往 `wechat_openid` 列塞 payerId 的 hack**）→ 返 `needPhone` 信号
+- 二次（有 sessionKey + encData）：mini_session 反查 → `AlipayPhoneDecryptHelper.Decrypt` 解 encData → 仍 null 时按 phone 反查 MSA(`cell`) → 命中后 `_ensureAlipayPayerIdMsa` INSERT alipay 记录 → 更新 mini_session(cell, member_id) → 返回
+- API 签名扩展：`MemberLogin(code, openIdType, aliSessionKey=null, aliEncData=null)`（`ali` 前缀避微信分支同名 `sessionKey` 局部变量 CS0136 冲突）
+- 守 5-29 原则：MemberLogin 永不建新 Member
+
+**Schema + Code2Session**：`mini_session` 加 `alipay_payerid varchar(64) NULL` + `cell varchar(15) NULL`（DB 已加，[`MiniSession.cs`](../SnowmeetApi/Models/Member/MiniSession.cs) 补两 nullable 字段；DDL 备忘 [`sql/2026-06-03_mini_session_add_alipay_cell.sql`](sql/2026-06-03_mini_session_add_alipay_cell.sql)）；`Code2Session` 加 `cell` + `needPhone`
+
+**新建 [`Helpers/AlipayPhoneDecryptHelper.cs`](../SnowmeetApi/Helpers/AlipayPhoneDecryptHelper.cs)**（~160 行）：JSON 包装解包（my.getPhoneNumber 新 SDK 返 `{"response":"<base64>","sign":"...","signType":"RSA2"}` 整段当 base64 直传）+ base64 字符级清洗（去 CRLF/LF/空白）+ `% 4` 补 `=` padding（URL 传输丢 `==`）+ aes_key.txt BOM/CRLF 清理（显式去 UTF-8 BOM `﻿`）+ 多路径 mobile 查找（`jsonObj["mobile"] ?? "phoneNumber" ?? SelectToken("response.mobile") ?? ...`）+ 嵌套 response 字符串再解 JSON + alipay code/sub_code/msg/sub_msg 错误透传。每步 `Console.WriteLine` 打 `[AlipayPhoneDecrypt]` 标记诊断
+
+**`_extractPhone` alipay 分支收口到 helper**（[`PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs#L546)），与 MemberLogin 二次调用同源；`_loadSessionContext` 按 `session_type` 分流（alipay 取 `alipay_payerid` 列，空时 fallback `wechat_openid` 兼容历史 session）
+
+**rebase 远端 6 个新 commit**：`bd0baa7` 诊断 / `2ae4742 pay` JSON-wrap / `15dacb2 phone` 多路径 mobile 查找 + `_submitPhone` alipay 软依赖兜底 — 全数搬进 helper，`_extractPhone` 收口为一行 `Decrypt(...)`，软依赖兜底独立保留
+
+**本机 Python 模拟验证用户实际 encData**：raw 207 → JSON 解包内层 192 → `% 4 == 0` 无需 padding → base64 解 144 字节（9 个 AES-128 块）合法密文。**编码层面 helper 应该能处理**
+
+#### 二、第二轮 `5855be1`：用户原则贯穿 alipay 全链路
+
+**用户原话**："如果没查询到会员ID，那么在验证手机号后，生成会员ID，仅仅是在支付成功后，才生成"。原则范围限 **alipay 通道**（wechat 已稳定不动），物化锚点统一搬到支付宝 notify
+
+**PaymentIdentity 三入口 alipay 分支去 `_createNewMember`**：
+- `_submitPhone`：`scannerMember==null && phoneOwner==null` 分支按 `payerType` 拆，alipay 把解出的 phone 写进 `mini_session.cell` 后早返回（不建会员、OP.member_id 留 null）；wechat 维持
+- `_applyChoice` / `_applyConfirmDirect`：`pre.scannerMemberId == null` 分支同样拆，alipay 不 bootstrap 建会员，`op.member_id = pre.scannerMemberId`（可空），仅写 `is_proxy_pay` 意图；`int scannerMemberId = (int)` → `int? scannerMemberId =` 下游链路
+
+**[`AlipayPayByOrderPayment`](../SnowmeetApi/Controllers/OrderController.cs) 容忍 OP.member_id null**：不再要求 `GetMemberBySessionKey` 返非 null member，改直查 `mini_session` 拿 `alipay_payerid` 作 buyerId（`session.member_id` 可空）；三分支（首次/换人/buyer_id 不匹配）按 `sessionMemberId` 可空适配；换人分支增加 `sessionMemberId != null` 守卫（guest 接续不视为换人，跳过 CoreDataModLog）
+
+**[`AliController.CallBack`](../SnowmeetApi/Controllers/Order/AliController.cs) `trade_success` 加兜底物化**：在 `DealSuccessPaidOrder` 调用之前插入 `payment.member_id == null && buyerId 非空 → _materializeAlipayMemberOnPaid(payment, buyerId)`。新 helper 5 步：
+1. MSA(`alipay_payerid=buyerId, valid=1`) → 命中即用
+2. 没命中 → 最新 alipay session（`session_type='alipay_payerid' AND alipay_payerid=buyerId`，order by expire_date desc）→ 拿 cell → MSA(`cell`) → 命中即用
+3. 都没命中 → 建新 Member（`source='支付宝支付成功', valid=1`），有 cell 则一并写 MSA(`cell`)
+4. **所有路径都补 MSA(`alipay_payerid=buyerId, member_id=该会员, valid=1`)**，把 payerId 永久绑给该会员
+5. session.member_id 同步回填（下次同一 session 走 PaymentIdentity 不再走兜底）
+
+**soft-fail UX 改进**：`_submitPhone` alipay 软失败 message 加 `+ ex.Message`，前端 toast 直接显示 helper 报的具体错（`aesKey 不是合法 base64 (len=X head12=...)` / `解密结果中无 mobile 字段 (code=10000, subCode=...)` 等），不用 SSH 抓 journalctl 即时定位 AES bug 根因
+
+#### 三、关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`SnowmeetApi/Models/Member/MiniSession.cs`](../SnowmeetApi/Models/Member/MiniSession.cs) | +`alipay_payerid` + `cell` 两 nullable string |
+| [`SnowmeetApi/Helpers/AlipayPhoneDecryptHelper.cs`](../SnowmeetApi/Helpers/AlipayPhoneDecryptHelper.cs) | 新建，AES bug 根因修 + 多路径 mobile + 嵌套 response + alipay 错误透传 |
+| [`SnowmeetApi/Controllers/MiniAppHelperController.cs`](../SnowmeetApi/Controllers/MiniAppHelperController.cs) | MemberLogin 加 `aliSessionKey`/`aliEncData`；`_alipayMemberLogin` 拆首次/二次；mini_session 写新列；`_ensureAlipayPayerIdMsa`；`Code2Session` +`cell` +`needPhone` |
+| [`SnowmeetApi/Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | `_extractPhone` alipay 收口到 helper；`_loadSessionContext` 按 session_type 分流；三入口 alipay 分支去 `_createNewMember`；soft-fail message 带 ex.Message |
+| [`SnowmeetApi/Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | `AlipayPayByOrderPayment` 直查 mini_session 拿 buyerId，三分支按 sessionMemberId 可空适配 |
+| [`SnowmeetApi/Controllers/Order/AliController.cs`](../SnowmeetApi/Controllers/Order/AliController.cs) | `CallBack` trade_success 调 `_materializeAlipayMemberOnPaid` 兜底建/绑会员 |
+| [`snowmeet_ai_doc/sql/2026-06-03_mini_session_add_alipay_cell.sql`](sql/2026-06-03_mini_session_add_alipay_cell.sql) | DDL 备忘（prod 已加列） |
+
+#### 四、关键发现 / 教训
+
+- **`Util.UrlDecode` 在 base64 上无害**：`HttpUtility.UrlDecode + Replace(" ","+")` round-trip 把 `+` → space → `+`。但若 raw JSON 里有外部 whitespace（pretty-print）会被错转 `+` 破坏 JSON，compact JSON 安全
+- **C# 参数 vs 局部变量同名 CS0136 不挑顺序**：哪怕参数仅在 alipay 分支用、wechat 分支后才声明同名局部变量，编译器仍按"参数在整个方法体可见 + 局部变量重复声明"判错；用前缀绕开
+- **`Member` 在 AliController 命名空间下与 `Aop.Api.Domain.Member` 歧义**：建实例时必须完全限定 `new SnowmeetApi.Models.Member { ... }`，否则 CS0104
+- **`GetMemberBySessionKey` 是 member-side 强约束**：session 命中但 `member_id` 为 null 时直接返 null，调用方拿不到 session 本体。alipay 推迟建会员后 session.member_id 可能长期 null → 上游必须改成直查 mini_session 表（payerid + cell 两列即可）
+- **alipay 流程的 4 个建会员/绑会员锚点**：PaymentIdentity 三入口 + AlipayPayByOrderPayment + AliController.CallBack。原则贯穿要 4 处一起改，缺一处链路就断（典型：`_submitPhone` 不建 + `AlipayPayByOrderPayment` 仍要求 member → 卡死）
+- **AES 解密失败的诊断信息要回到响应里**：journalctl 在生产很难即时拿到，把 `ex.Message`（含 length/head/JSON wrap 等清洗诊断）拼到 soft-fail message 里直接前端 toast 看，调试 round trip 比 SSH 快一个数量级
+- **`_materializeAlipayMemberOnPaid` 是 alipay 物化锚点**：4 个建会员/绑会员锚点中，前 3 个（PaymentIdentity 三入口）都改成"不建"，第 4 个（AliController.CallBack）变成"唯一兜底入口"。这与 wechat 路径"PaymentIdentity 仍建 stub" 不同，是 alipay 流程的独立设计
+
+#### 五、状态
+
+- ✅ 两轮 commit + push 到 origin/ai（`e60105e` + `5855be1`），dotnet build 0 error
+- ✅ DDL 备忘 `fd55d40` push 到 snowmeet_ai_doc/origin/main
+- 🚧 **服务器部署 `5855be1`**：`cd /home/ubuntu/webs/SnowmeetApi && sudo git pull --ff-only origin ai && sudo dotnet publish -c Release -o /home/ubuntu/webs/SnowmeetApi && sudo systemctl restart mini.snowmeet.top.service`
+- 🚧 **真机重跑 paymentId=42572**：toast 现在带 helper ex.Message，回吐具体错误（aes_key.txt 脏 / appId 不匹配 / 解密结果无 mobile 等）
+- 🚧 **AES 真正修复**：拿到 toast 全文后定根因，三条备选路径之一收口
+- ⏸️ alipay 全链路真机端到端验证：扫码 → submit_phone（解密成功）→ choose/confirm_direct（OP.member_id 留 null）→ AlipayPayByOrderPayment（直查 session 拿 buyerId 调 trade.create）→ trade_success notify（`_materializeAlipayMemberOnPaid` 兜底建/绑会员）→ DSP sync Order.member_id
