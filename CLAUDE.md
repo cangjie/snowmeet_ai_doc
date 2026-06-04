@@ -2094,3 +2094,35 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - 🚧 **真机重跑 paymentId=42572**：toast 现在带 helper ex.Message，回吐具体错误（aes_key.txt 脏 / appId 不匹配 / 解密结果无 mobile 等）
 - 🚧 **AES 真正修复**：拿到 toast 全文后定根因，三条备选路径之一收口
 - ⏸️ alipay 全链路真机端到端验证：扫码 → submit_phone（解密成功）→ choose/confirm_direct（OP.member_id 留 null）→ AlipayPayByOrderPayment（直查 session 拿 buyerId 调 trade.create）→ trade_success notify（`_materializeAlipayMemberOnPaid` 兜底建/绑会员）→ DSP sync Order.member_id
+
+### 2026-06-04 — start-work 执行 + 支付宝手机号解析失败根因定位（sign_type 配置）
+
+本场从 `start-work` 开始，先读取项目上下文并盘点 4 个子仓库状态；随后定位用户反馈的 `PaymentIdentity/ConfirmPayIdentity` 返回 `choose_identity` 且 message 含 `subCode=isv.missing-default-signature-type` 问题。结论与账号是否绑手机号无关，根因在支付宝小程序应用侧签名配置。会话归档见 [`sessions/2026-06-04_start-work_and_alipay_signature_type_diagnosis.md`](sessions/2026-06-04_start-work_and_alipay_signature_type_diagnosis.md)。
+
+#### 一、start-work 基线
+
+- 已读取 [`snowmeet_ai_doc/CLAUDE.md`](CLAUDE.md) 并确认当前主线仍在支付身份验证与 alipay 手机号链路。
+- 多仓库状态：
+  - `alipay_snowmeet`：`main`（behind 1），本地改动 `app.js`
+  - `snowmeet_wechat_mini`：`ai`（behind 2），本地改动 `components/order-payment/index.js`
+  - `SnowmeetApi`：`ai`，工作区干净
+  - `snowmeet_ai_doc`：`main`，工作区干净（会话开始时）
+
+#### 二、本次故障定位结论
+
+- 用户现场返回：`code=0`、`status=choose_identity`、message 含 `支付宝 getPhoneNumber 解密失败: Missing Required Arguments (code=40001, subCode=isv.missing-default-signature-type)`。
+- 该错误来自支付宝返回体（非本地 AES/base64 解析错误）：[`Helpers/AlipayPhoneDecryptHelper.cs`](../SnowmeetApi/Helpers/AlipayPhoneDecryptHelper.cs) 在解密后读取 `code/sub_code/msg` 并透传。
+- 结论：**问题不在用户账号是否绑定手机号，而在支付宝开放平台/小程序应用默认签名方式配置缺失（sign_type）**。
+- 侧面证据：本机 `AlipayCertificate/2021006157624571/` 可见证书与私钥文件，但缺少 `aes_key.txt`（会导致另一类错误，需部署环境一并核对）。
+
+#### 三、代码改动（本机已完成）
+
+- 文件：[`../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs)
+- 变更：alipay `submit_phone` 软失败分支不再把底层错误文案回传前端（`message = ""`），仅 server log 保留诊断；流程继续按未授权手机号分支走。
+- 验证：`dotnet build SnowmeetApi.csproj -nologo` 通过（0 error，历史 warning 12 条）。
+
+#### 四、状态
+
+- ✅ 完成：故障根因定位（配置侧）+ 用户端降噪修复（软失败不再显示技术错误文案）
+- 🚧 待执行：将 SnowmeetApi 新改动部署到服务器后复测
+- 🚧 待核对（支付宝开放平台）：默认签名方式 `RSA2`、证书链生效、手机号能力开通、`aes_key.txt` 已在部署环境落地
