@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-07）
+## 当前状态（截至 2026-06-08）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -194,6 +194,9 @@ dotnet run
 - ✅ 顾客扫码支付落地页（`pages/order/payment_entry`）轻量化重做 + 租赁订单友好展示
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）、支付完成后父页面 `onPaid` 处理（跳转 `rent_details` 或工作台）
+- ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
+- ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
+- 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
 - 第二步剩余：扫描条码（`Rent/QueryByBarcode`）入口（目前仅 toast 占位）
 - 第二步：去结算按钮入口（已在 `onCheckout` 接通 `Order/PlaceRentOrder` + navigateTo settle）
 - 养护 / 零售 业务的接待表单组件（目前仅租赁完成）
@@ -2147,3 +2150,22 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
   - `order-payment/index.js:116` qrText 由 `https://mini.snowmeet.top/mapp/order/payment_entry?paymentId=` 改为 `https://mini.snowmeet.top/mapp/order_payment?paymentId=`
   - 旧版 recept 流程的 `components/payment/payment.js:160` 仍用旧路径 `/mapp/order/payment_entry`，本次未动（用户只要求改新版 settle 页，待确认是否统一）
 - 📌 **普通链接二维码「扫码打开小程序」答疑（无代码）**：体验版/开发版要生效必须在公众平台规则里填「测试链接」；正式版靠「发布」规则生效。域名需先验证归属（校验文件）。扫码跳进小程序时原始 URL 在启动参数 `q` 字段（URL-encoded），入口页要 `decodeURIComponent(options.q)` 解析 `paymentId`
+
+### 2026-06-08 — 手机号匹配会员回填 + 押金/租金弹窗自动清空 + 支付二维码状态实时显示（方案 A）
+
+会话归档见 [`sessions/2026-06-08_reception_autofill_and_payment_live_status.md`](sessions/2026-06-08_reception_autofill_and_payment_live_status.md)。三件相对独立的事，前两件纯前端，第三件前后端 + 生产库加列。
+
+- ✅ **开单入口手机号匹配会员自动回填姓名/性别**（`pages/admin/reception/recept_entry.js`）
+  - `onCellInput` 防抖 450ms + 去重触发查询，匹配到会员回填 `real_name`/`gender`（仅档案有值时覆盖）+ 轻提示「已匹配会员信息」
+  - data.js 新增**静默** `getMemberByNumSilentPromise`：查不到/无权限/网络错都 resolve(null) 且不弹 toast。**Why 不用现成 `getMemberByNumPromise`**：它走 `performWebRequest`，code!=0 一律 toast，接待散客大量非会员会被「会员不存在」刷屏
+  - 触发门槛 `shouldLookupPhone`：国内 11 位或 `+` E.164；抽 `normalizePhone` 复用
+  - 📌 **真机「入口页没回填、下一页却匹配到」根因 = 登录竞态**：`app.globalData.sessionKey` 由 `loginPromiseNew`（wx.login+MemberLogin 网络往返）异步写入；入口页是落地首页**没 await 登录**，落地即输号码时 sessionKey 还空 → 后端判无权限 → 返 null 不回填。下一页 recept_new 有 `await app.loginPromiseNew` 所以能命中。**修复**：`tryMatchMemberByCell` 改为 `Promise.resolve(app.loginPromiseNew).then(...)` 等登录再查。另埋 console.warn（命中会员但 real_name/gender 空）便于二次定性
+- ✅ **押金/租金修改弹窗点开自动清空**（`components/reception/rent_recept_form/rent_recept_form.js`）
+  - 该弹窗是自定义 `amountModal`（非 wx.showModal，为支持 `type="digit"` 小数点键盘）。原把当前值预填进 `value` 要手删
+  - 改：`value:''`（开局空、focus 自动聚焦弹键盘），当前值放 placeholder「原 ¥xxx」；`onAmountModalConfirm` 留空=不改直接关不报错，输 0 仍有效。仅改新版 reception，旧版 recept 未同步
+- ✅ **支付二维码状态实时显示（方案 A，前后端 + 加列）**（`components/order-payment/` + 后端）
+  - 四态：`waiting` 等待扫码 / `scanned` 顾客已扫码（`customer_open_date` 落戳）/ `paying` 顾客支付中（`submit_time`|`prepay_id`|`open_id` 已写）/ `paid` 已收款（`status=支付成功`）/ `cancelled`（valid=0 或取消）
+  - 后端：`OrderPayment.cs` 加 `customer_open_date`（DateTime?）列；`GetOrderFromPaymentByCustomer` 首次打开且待支付时落戳（单独 tracked 只更该字段）；新增只读 `GetPaymentLiveStatus/{paymentId}`（店员鉴权）返回 `{stage,status,paid}`。编译 0 错误（分支 ai）
+  - 前端：data.js 静默 `getPaymentLiveStatusPromise`；order-payment 出码后每 2s 轮询刷 `payStage`/`payStageLabel`，**WS 仍负责 paid 收尾**，与轮询经 `_paidHandled` 去重（避免重复 `triggerEvent('paid')`，轮询 paid 分支兜底拉单）；wxml/wxss 四态分色 + 脉冲圆点
+  - 📌 **上线顺序关键**：EF 加列后所有 order_payment 查询都 SELECT 该列，**必须先在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**，否则列不存在 → 支付查询全挂。小程序端可独立发布（后端没上前轮询静默返 null，停在「等待扫码」）
+  - 📌 验证：`GetWepayPayment`/`GetAlipayMiniPayment` 建单都不写 `submit_time`/`open_id`/`prepay_id`，所以「paying」对微信/支付宝都不会一出码就误判；`submit_time` 已被「向网关发起 prepay」占用，故另加列表达「已扫码」
