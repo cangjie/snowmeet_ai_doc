@@ -2126,3 +2126,40 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 完成：故障根因定位（配置侧）+ 用户端降噪修复（软失败不再显示技术错误文案）
 - 🚧 待执行：将 SnowmeetApi 新改动部署到服务器后复测
 - 🚧 待核对（支付宝开放平台）：默认签名方式 `RSA2`、证书链生效、手机号能力开通、`aes_key.txt` 已在部署环境落地
+
+### 2026-06-05 — alipay 手机号解密失败闭环（应用网关未配置）+ 联调诊断加固
+
+接续 6-4 的 sign_type 诊断，本场围绕 `PaymentIdentity/ConfirmPayIdentity submit_phone` 持续联调，最终确认「后端解密链路正常，但解出的明文是支付宝 40001 错误对象」，并由用户确认根因是**支付宝应用网关未配置默认签名类型**。会话归档见 [`sessions/2026-06-05_alipay_phone_sign_type_root_cause.md`](sessions/2026-06-05_alipay_phone_sign_type_root_cause.md)。
+
+#### 一、关键结论
+
+- 用用户现场 `encData.response` + 本地 `aes_key.txt` 离线解密，明文稳定复现：`code=40001`、`subCode=isv.missing-default-signature-type`。
+- 这说明不是数据库写入分支异常，也不是本地 AES/base64 算法失败；而是支付宝上游返回错误响应，导致拿不到 `mobile/phoneNumber`。
+- `confirmPayIdentity` 返回 `code=0` + `status=choose_identity` 但手机号不入库，属于 submit_phone 软失败路径的预期行为。
+
+#### 二、本场代码调整（联调向）
+
+- `alipay_snowmeet/components/pay-identity-confirm/index.{axml,js}`：
+  - 无手机号分支改成 `getAuthorize` 按钮触发后再调 `my.getPhoneNumber`。
+  - 增加前端诊断日志：`onGetAuthorize meta` / `getPhoneNumber success meta`。
+  - 识别 `response` 为错误 JSON 时不再送后端解密，直接走兜底 action。
+- `alipay_snowmeet/app.js`：
+  - `alipayUserId` 优先从 `sessionObj.alipay_payerid` 回填，避免未注册会员场景 `scannerId` 为空。
+  - 启动时打印 `my.getAccountInfoSync()` 的运行时 `appId/envVersion` 用于环境自证。
+- `SnowmeetApi/Controllers/Order/PaymentIdentityController.cs`：
+  - submit_phone alipay 软失败改为前端降噪（`errorCode/errorMessage` 清空，顶层 `message` 置空）。
+  - 增加 `debugInfo` 返回字段（线上若部署新包可直接看软失败摘要）。
+  - 增加 `encMeta` 结构化日志（`shape/rawLen/decodedLen/hasResponse/hasCode/signType/subCode`）。
+
+#### 三、状态
+
+- ✅ 根因闭环：用户确认「支付宝应用网关未配置默认签名类型」。
+- ✅ 本地复现实证：同一密文可稳定解出支付宝 40001 错误对象。
+- 🚧 待执行：开放平台补齐应用网关默认签名类型并生效后，再跑真机回归（预期 submit_phone 可解到手机号并落库）。
+- 🚧 待执行：如需在线上直接查看 `debugInfo`，需先部署本场后端改动。
+
+#### 四、经验沉淀
+
+- `my.getAuthCode` 能拿到 payerId，不代表 `my.getPhoneNumber` 的签名/加密配置也已生效；两条能力链路需分别验收。
+- 当 `encData` 解密后得到 `code/subCode/msg` 时，先判定为上游业务错误对象，不要误判为本地 AES 解密失败。
+- 联调阶段应同时保留「前端回调 meta + 后端 encMeta」两端证据，避免只能靠服务器日志单点排查。
