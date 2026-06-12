@@ -1,0 +1,110 @@
+
+[1/14] retail / nanshan
+  $ python add_retail_detail_merged_xlsx.py 
+  FAILED rc=1
+  STDOUT:
+
+  STDERR:
+���벻����: D:\snowmeet\snowmeet_ai_doc\���۵��б�_c393a061-a3c1-4479-9611-f3f577a509c5.xls
+
+
+[2/14] retail / chongli
+  $ python add_chongli_retail_detail_merged_xlsx.py 
+  FAILED rc=1
+  STDOUT:
+销售明细单1: 910 单据 / 1268 明细行（all 全店全量）
+
+  STDERR:
+������� ȱ��ͷ����ɫ�׶����š�: ['ҵ��', '����', 'Ӫ/��', '�������', '��Ӫ�����', '�����', '�·�', '��������', '����ʱ��', '֧������', '֧���ϼ�', '�˿����', '�˿�ϼ�', '��������', '����״̬', '����˿�����', '����˿�ʱ��', '��֧��1������', '��֧��1��ʱ��', '��֧��1�����', '��֧��1��֧����ʽ', '��֧��1��֧���˺�', '���˿�1������', '���˿�1��ʱ��', '���˿�1�����', '���˿�1���˿ʽ', '���˿�1���˿��˺�', '���˿�1���˿���', '���ۼ���', '���۶�ϼ�', '�д�����', '����ϼ�', '���ض���', 'Ӧ���˽��', 'ʵ���˽��', '�����˽��', 'ҵ��', '�ŵ�', '�ͻ�����', '�绰', '�˿�openid', '�տʽ', '֧���˺�', '������', 'ҵ������', 'ҵ��ʱ��', '��������', '����ʱ��', '֧���ܽ��', '�˿��ܽ��', '��������', '��Ա����', '��Աopenid', '����', '��ʱ����', '�ͻ�����', '��/��']
+
+
+[3/14] retail / wanlong
+  $ python add_wanlong_retail_detail_merged_xlsx.py 
+  FAILED rc=1
+  STDOUT:
+销售明细单1: 871 单据 / 1193 明细行（含万龙两店）
+
+  STDERR:
+������� ȱ��ͷ����ɫ�׶����š�: ['ҵ��', '����', 'Ӫ/��', '�������', '��Ӫ�����', '�����', '�·�', '��������', '����ʱ��', '֧������', '֧���ϼ�', '�˿����', '�˿�ϼ�', '��������', '����״̬', '����˿�����', '����˿�ʱ��', '��֧��1������', '��֧��1��ʱ��', '��֧��1�����', '��֧��1��֧����ʽ', '��֧��1��֧���˺�', '���˿�1������', '���˿�1��ʱ��', '���˿�1�����', '���˿�1���˿ʽ', '���˿�1���˿��˺�', '���˿�1���˿���', '���ۼ���', '���۶�ϼ�', '�д�����', '����ϼ�', '���ض���', 'Ӧ���˽��', 'ʵ���˽��', '�����˽��', 'ҵ��', '�ŵ�', '�ͻ�����', '�绰', '�˿�openid', '�տʽ', '֧���˺�', '������', 'ҵ������', 'ҵ��ʱ��', '��������', '����ʱ��', '֧���ܽ��', '�˿��ܽ��', '��������', '��Ա����', '��Աopenid', '����', '��ʱ����', '�ͻ�����', '��/��']
+
+
+[4/14] retail / wanlong_service
+  $ python add_wanlong_service_retail_detail_merged_xlsx.py 
+  FAILED rc=1
+  STDOUT:
+销售明细单1: 871 单据 / 1193 明细行（含万龙两店）
+
+  STDERR:
+������� ȱ��ͷ����ɫ�׶����š�: ['ҵ��', '����', 'Ӫ/��', '�������', '��Ӫ�����', '�����', '�·�', '��������', '����ʱ��', '֧������', '֧���ϼ�', '�˿����', '�˿�ϼ�', '��������', '����״̬', '����˿�����', '����˿�ʱ��', '��֧��1������', '��֧��1��ʱ��', '��֧��1�����', '��֧��1��֧����ʽ', '��֧��1��֧���˺�', '���ۼ���', '���۶�ϼ�', '�д�����', '����ϼ�', '���ض���', 'Ӧ���˽��', 'ʵ���˽��', '�����˽��', 'ҵ��', '�ŵ�', '�ͻ�����', '�绰', '�˿�openid', '�տʽ', '֧���˺�', '������', 'ҵ������', 'ҵ��ʱ��', '��������', '����ʱ��', '֧���ܽ��', '�˿��ܽ��', '��������', '��Ա����', '��Աopenid', '����', '��ʱ����', '�ͻ�����', '��/��']
+
+
+[5/14] retail / headquarters
+  $ python add_headquarters_retail_detail_merged_xlsx.py 
+  FAILED rc=1
+  STDOUT:
+销售明细单1: 910 单据 / 1268 明细行（all 全店全量）
+
+  STDERR:
+������� ȱ��ͷ����ɫ�׶����š�: ['ҵ��', '����', 'Ӫ/��', '�������', '��Ӫ�����', '�����', '�·�', '��������', '����ʱ��', '֧������', '֧���ϼ�', '�˿����', '�˿�ϼ�', '��������', '����״̬', '����˿�����', '����˿�ʱ��', '��֧��1������', '��֧��1��ʱ��', '��֧��1�����', '��֧��1��֧����ʽ', '��֧��1��֧���˺�', '���ۼ���', '���۶�ϼ�', '�д�����', '����ϼ�', '���ض���', 'Ӧ���˽��', 'ʵ���˽��', '�����˽��', 'ҵ��', '�ŵ�', '�ͻ�����', '�绰', '�˿�openid', '�տʽ', '֧���˺�', '������', 'ҵ������', 'ҵ��ʱ��', '��������', '����ʱ��', '֧���ܽ��', '�˿��ܽ��', '��������', '��Ա����', '��Աopenid', '����', '��ʱ����', '�ͻ�����', '��/��']
+
+
+[6/14] ski_pass / chongli 雪票列表 sheet
+  $ python add_skipass_list_sheet_to_chongli_fy.py 
+  保存 D:\snowmeet\snowmeet_ai_doc\chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+    保存后 sheets: ['年度雪票', '支付明细', '支付流水', '雪票列表']
+  完成
+
+[7/14] ski_pass / chongli annotate
+  $ python annotate_skipass_list_sheet.py 
+  底色黄（已取消+实付>20）: 2
+  保存 D:\snowmeet\snowmeet_ai_doc\chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+  完成
+
+[8/14] ski_pass / chongli detail
+  $ python add_skipass_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx --shop 崇礼旗舰店
+  保存 D:\snowmeet\snowmeet_ai_doc\chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度雪票', '支付明细', '支付流水', '雪票列表', '年度雪票明细']
+  完成
+
+[9/14] ski_pass / nanshan detail
+  $ python add_skipass_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx --shop 南山
+  保存 D:\snowmeet\snowmeet_ai_doc\nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度雪票', '支付明细', '支付流水', '年度雪票明细']
+  完成
+
+[10/14] care / wanlong_service
+  $ python add_care_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx --shop 万龙服务中心
+  保存 D:\snowmeet\snowmeet_ai_doc\wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度养护', '支付明细', '支付流水', '年度养护明细']
+  完成
+
+[11/14] care / chongli
+  $ python add_care_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx --shop 崇礼旗舰店
+  保存 D:\snowmeet\snowmeet_ai_doc\chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度养护', '支付明细', '支付流水', '年度养护明细']
+  完成
+
+[12/14] care / nanshan
+  $ python add_care_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx --shop 南山
+  保存 D:\snowmeet\snowmeet_ai_doc\nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度养护', '支付明细', '支付流水', '年度养护明细']
+  完成
+
+[13/14] care / huaibei
+  $ python add_care_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx --shop 怀北
+  保存 D:\snowmeet\snowmeet_ai_doc\huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度养护', '支付明细', '支付流水', '年度养护明细']
+  完成
+
+[14/14] care / yuyang
+  $ python add_care_detail_merged_sheet.py --xlsx D:/snowmeet/snowmeet_ai_doc/yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx --shop 渔阳
+  保存 D:\snowmeet\snowmeet_ai_doc\yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx
+    sheets: ['年度养护', '支付明细', '支付流水', '年度养护明细']
+  完成
+
+=== DONE; failed: 5
+  - retail / nanshan
+  - retail / chongli
+  - retail / wanlong
+  - retail / wanlong_service
+  - retail / headquarters
