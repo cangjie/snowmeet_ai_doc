@@ -1,0 +1,319 @@
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:42: SyntaxWarning: "\e" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\e"? A raw string is also an option.
+  'rent':     'skills\export_rent_order_fiscal_year\export_rent_orders_fy.py',
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:43: SyntaxWarning: "\e" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\e"? A raw string is also an option.
+  'retail':   'skills\export_retail_order_fiscal_year\export_retail_orders_fy.py',
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:44: SyntaxWarning: "\e" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\e"? A raw string is also an option.
+  'ski_pass': 'skills\export_ski_pass_order_fiscal_year\export_ski_pass_orders_fy.py',
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:45: SyntaxWarning: "\e" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\e"? A raw string is also an option.
+  'care':     'skills\export_care_order_fiscal_year\export_care_orders_fy.py',
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:50: SyntaxWarning: "\{" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\{"? A raw string is also an option.
+  out = f'{DOC}\{prefix}_{biz}_orders_fy_2025-05-01_2026-04-30.xlsx'
+D:\snowmeet\snowmeet_ai_doc\_run_all_fy.py:54: SyntaxWarning: "\{" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\{"? A raw string is also an option.
+  cmd1 = [PY, f'{DOC}\{SKILL_PATH[biz]}', '--shop', shop, '--out', out]
+
+======================================================================
+[1/19] rent / 万龙体验中心 (wanlong)
+======================================================================
+$ python skills\export_rent_order_fiscal_year\export_rent_orders_fy.py --shop 万龙体验中心 --out wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx  （111 列 × 2319 行）
+    完成。文件大小: 679.7 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度租赁
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[2/19] rent / 崇礼旗舰店 (chongli)
+======================================================================
+$ python skills\export_rent_order_fiscal_year\export_rent_orders_fy.py --shop 崇礼旗舰店 --out chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx  （67 列 × 192 行）
+    完成。文件大小: 57.9 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度租赁
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[3/19] rent / 南山 (nanshan)
+======================================================================
+$ python skills\export_rent_order_fiscal_year\export_rent_orders_fy.py --shop 南山 --out nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx  （56 列 × 232 行）
+    完成。文件大小: 65.4 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度租赁
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[4/19] rent / 怀北 (huaibei)
+======================================================================
+$ python skills\export_rent_order_fiscal_year\export_rent_orders_fy.py --shop 怀北 --out huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx  （56 列 × 13 行）
+    完成。文件大小: 9.1 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度租赁
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[5/19] rent / 渔阳 (yuyang)
+======================================================================
+$ python skills\export_rent_order_fiscal_year\export_rent_orders_fy.py --shop 渔阳 --out yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx  （56 列 × 25 行）
+    完成。文件大小: 12.6 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度租赁
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[6/19] retail / 万龙体验中心 (wanlong)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 万龙体验中心 --out wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （57 列 × 186 行）
+    完成。文件大小: 46.0 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[7/19] retail / 万龙服务中心 (wanlong_service)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 万龙服务中心 --out wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （51 列 × 31 行）
+    完成。文件大小: 12.7 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[8/19] retail / 崇礼旗舰店 (chongli)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 崇礼旗舰店 --out chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （57 列 × 261 行）
+    完成。文件大小: 59.4 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[9/19] retail / 南山 (nanshan)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 南山 --out nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （57 列 × 497 行）
+    完成。文件大小: 110.7 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[10/19] retail / 总部 (headquarters)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 总部 --out headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （51 列 × 47 行）
+    完成。文件大小: 14.4 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[11/19] retail / 怀北 (huaibei)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 怀北 --out huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （51 列 × 9 行）
+    完成。文件大小: 7.7 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[12/19] retail / 渔阳 (yuyang)
+======================================================================
+$ python skills\export_retail_order_fiscal_year\export_retail_orders_fy.py --shop 渔阳 --out yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx  （51 列 × 17 行）
+    完成。文件大小: 9.0 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度零售
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[13/19] ski_pass / 崇礼旗舰店 (chongli)
+======================================================================
+$ python skills\export_ski_pass_order_fiscal_year\export_ski_pass_orders_fy.py --shop 崇礼旗舰店 --out chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx  （58 列 × 709 行）
+    完成。文件大小: 151.2 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度雪票
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[14/19] ski_pass / 南山 (nanshan)
+======================================================================
+$ python skills\export_ski_pass_order_fiscal_year\export_ski_pass_orders_fy.py --shop 南山 --out nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx  （93 列 × 852 行）
+    完成。文件大小: 196.5 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度雪票
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[15/19] care / 万龙服务中心 (wanlong_service)
+======================================================================
+$ python skills\export_care_order_fiscal_year\export_care_orders_fy.py --shop 万龙服务中心 --out wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx  （65 列 × 4601 行）
+    完成。文件大小: 1059.0 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度养护
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[16/19] care / 崇礼旗舰店 (chongli)
+======================================================================
+$ python skills\export_care_order_fiscal_year\export_care_orders_fy.py --shop 崇礼旗舰店 --out chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx  （54 列 × 26 行）
+    完成。文件大小: 12.2 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度养护
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[17/19] care / 南山 (nanshan)
+======================================================================
+$ python skills\export_care_order_fiscal_year\export_care_orders_fy.py --shop 南山 --out nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx  （54 列 × 86 行）
+    完成。文件大小: 24.7 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度养护
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[18/19] care / 怀北 (huaibei)
+======================================================================
+$ python skills\export_care_order_fiscal_year\export_care_orders_fy.py --shop 怀北 --out huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx  （54 列 × 6 行）
+    完成。文件大小: 7.0 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度养护
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+[19/19] care / 渔阳 (yuyang)
+======================================================================
+$ python skills\export_care_order_fiscal_year\export_care_orders_fy.py --shop 渔阳 --out yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx
+  写 Excel: D:\snowmeet\snowmeet_ai_doc\yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx  （49 列 × 2 行）
+    完成。文件大小: 6.3 KB
+  完成: D:\snowmeet\snowmeet_ai_doc\yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx
+$ python add_payment_detail_sheet_to_fy_xlsx.py --xlsx yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx --main-sheet 年度养护
+  ADD_PAYMENT_DETAIL FAILED rc=2
+  STDOUT:
+
+  STDERR:
+C:\Users\test\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'D:\\snowmeet\\snowmeet_ai_doc\x07dd_payment_detail_sheet_to_fy_xlsx.py': [Errno 22] Invalid argument
+
+
+======================================================================
+ALL DONE; failed: 19
+  - rent / 万龙体验中心 : add_payment_detail
+  - rent / 崇礼旗舰店 : add_payment_detail
+  - rent / 南山 : add_payment_detail
+  - rent / 怀北 : add_payment_detail
+  - rent / 渔阳 : add_payment_detail
+  - retail / 万龙体验中心 : add_payment_detail
+  - retail / 万龙服务中心 : add_payment_detail
+  - retail / 崇礼旗舰店 : add_payment_detail
+  - retail / 南山 : add_payment_detail
+  - retail / 总部 : add_payment_detail
+  - retail / 怀北 : add_payment_detail
+  - retail / 渔阳 : add_payment_detail
+  - ski_pass / 崇礼旗舰店 : add_payment_detail
+  - ski_pass / 南山 : add_payment_detail
+  - care / 万龙服务中心 : add_payment_detail
+  - care / 崇礼旗舰店 : add_payment_detail
+  - care / 南山 : add_payment_detail
+  - care / 怀北 : add_payment_detail
+  - care / 渔阳 : add_payment_detail

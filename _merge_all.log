@@ -1,0 +1,102 @@
+
+== 处理业务 rent ==
+  读 wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx [年度租赁] = 2319 行 × 111 列
+  读 wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 2125 行 × 34 列
+  读 wanlong_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 5767 行 × 9 列
+  读 chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx [年度租赁] = 192 行 × 67 列
+  读 chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 184 行 × 22 列
+  读 chongli_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 355 行 × 9 列
+  读 nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx [年度租赁] = 232 行 × 56 列
+  读 nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 231 行 × 16 列
+  读 nanshan_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 462 行 × 9 列
+  读 huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx [年度租赁] = 13 行 × 56 列
+  读 huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 11 行 × 16 列
+  读 huaibei_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 21 行 × 9 列
+  读 yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx [年度租赁] = 25 行 × 56 列
+  读 yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 22 行 × 16 列
+  读 yuyang_rent_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 44 行 × 9 列
+  DB query: 2781 个唯一订单号 → 2781 命中
+  写 sheet「年度租赁」: 2781 行 × 109 列；is_test=1: 106；收款方式→储值支付: 46
+  写 sheet「支付明细」: 2573 行 × 34 列
+  写 sheet「支付流水」: 6649 行 × 9 列
+  ✓ 写入 D:\snowmeet\snowmeet_ai_doc\merged_rent_orders_fy_2025-05-01_2026-04-30.xlsx
+
+== 处理业务 retail ==
+  读 wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 186 行 × 58 列
+  读 wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 144 行 × 16 列
+  读 wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 148 行 × 9 列
+  读 wanlong_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售明细] = 178 行 × 69 列
+  读 wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 31 行 × 52 列
+  读 wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 25 行 × 10 列
+  读 wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 25 行 × 9 列
+  读 wanlong_service_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售明细] = 23 行 × 63 列
+  读 chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 261 行 × 58 列
+  读 chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 204 行 × 16 列
+  读 chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 206 行 × 9 列
+  读 chongli_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售明细] = 302 行 × 69 列
+  读 nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 497 行 × 58 列
+  读 nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 468 行 × 16 列
+  读 nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 469 行 × 9 列
+  读 nanshan_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售明细] = 585 行 × 69 列
+  读 headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 47 行 × 52 列
+  读 headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 47 行 × 10 列
+  读 headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 47 行 × 9 列
+  读 headquarters_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售明细] = 67 行 × 63 列
+  读 huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 9 行 × 51 列
+  读 huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 2 行 × 10 列
+  读 huaibei_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 2 行 × 9 列
+  读 yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx [年度零售] = 17 行 × 51 列
+  读 yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 7 行 × 10 列
+  读 yuyang_retail_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 7 行 × 9 列
+  DB query: 1048 个唯一订单号 → 1048 命中
+  写 sheet「年度零售」: 1048 行 × 56 列；is_test=1: 129；收款方式→储值支付: 0
+  写 sheet「支付明细」: 897 行 × 16 列
+  写 sheet「支付流水」: 904 行 × 9 列
+  写 sheet「年度零售明细」: 1155 行 × 66 列
+  ✓ 写入 D:\snowmeet\snowmeet_ai_doc\merged_retail_orders_fy_2025-05-01_2026-04-30.xlsx
+
+== 处理业务 ski_pass ==
+  读 chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [年度雪票] = 709 行 × 58 列
+  读 chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 552 行 × 28 列
+  读 chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 810 行 × 9 列
+  读 chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [雪票列表] = 613 行 × 29 列
+  读 chongli_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [年度雪票明细] = 709 行 × 67 列
+  读 nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [年度雪票] = 852 行 × 93 列
+  读 nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 463 行 × 49 列
+  读 nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 1002 行 × 9 列
+  读 nanshan_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx [年度雪票明细] = 931 行 × 102 列
+  DB query: 1561 个唯一订单号 → 1561 命中
+  写 sheet「年度雪票」: 1561 行 × 91 列；is_test=1: 0；收款方式→储值支付: 0
+  写 sheet「支付明细」: 1015 行 × 58 列
+  写 sheet「支付流水」: 1812 行 × 9 列
+  写 sheet「雪票列表」: 613 行 × 29 列
+  写 sheet「年度雪票明细」: 1640 行 × 99 列
+  ✓ 写入 D:\snowmeet\snowmeet_ai_doc\merged_ski_pass_orders_fy_2025-05-01_2026-04-30.xlsx
+
+== 处理业务 care ==
+  读 wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护] = 4601 行 × 65 列
+  读 wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 3746 行 × 16 列
+  读 wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 3768 行 × 9 列
+  读 wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护明细] = 4981 行 × 87 列
+  读 chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护] = 26 行 × 54 列
+  读 chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 21 行 × 10 列
+  读 chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 21 行 × 9 列
+  读 chongli_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护明细] = 31 行 × 76 列
+  读 nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护] = 86 行 × 54 列
+  读 nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 56 行 × 10 列
+  读 nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 56 行 × 9 列
+  读 nanshan_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护明细] = 92 行 × 76 列
+  读 huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护] = 6 行 × 54 列
+  读 huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 1 行 × 10 列
+  读 huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 1 行 × 9 列
+  读 huaibei_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护明细] = 6 行 × 76 列
+  读 yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护] = 2 行 × 49 列
+  读 yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付明细] = 0 行 × 10 列
+  读 yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx [支付流水] = 0 行 × 9 列
+  读 yuyang_care_orders_fy_2025-05-01_2026-04-30.xlsx [年度养护明细] = 2 行 × 71 列
+  DB query: 4721 个唯一订单号 → 4721 命中
+  写 sheet「年度养护」: 4721 行 × 63 列；is_test=1: 208；收款方式→储值支付: 230
+  写 sheet「支付明细」: 3824 行 × 16 列
+  写 sheet「支付流水」: 3846 行 × 9 列
+  写 sheet「年度养护明细」: 5112 行 × 84 列
+  ✓ 写入 D:\snowmeet\snowmeet_ai_doc\merged_care_orders_fy_2025-05-01_2026-04-30.xlsx

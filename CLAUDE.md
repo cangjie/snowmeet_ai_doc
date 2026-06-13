@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-08）
+## 当前状态（截至 2026-06-12）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -193,7 +193,8 @@ dotnet run
 - ✅ 第五步：支付结算页 mvp 完成（settle/index + order-summary-card + order-payment，微信支付走通、支付宝 mock、其他方式确认收款）
 - ✅ 顾客扫码支付落地页（`pages/order/payment_entry`）轻量化重做 + 租赁订单友好展示
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
-- 第五步剩余：支付宝小程序对接（替换当前 mock）、支付完成后父页面 `onPaid` 处理（跳转 `rent_details` 或工作台）
+- ✅ 支付完成后父页面 `onPaid` 处理（2026-06-12）：settle 弹「收款成功」modal →「查看订单」(`redirectTo` rent_details) /「继续开单」(`reLaunch` recept_entry)
+- 第五步剩余：支付宝小程序对接（替换当前 mock）
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -233,7 +234,7 @@ dotnet run
 - 分类树 `categoryItems / _categoryChildMap` 不持久化，重新进入 `recept_new` 时第一次点开分类 modal 会重新拉取顶级 + 子分类（懒加载）。如频繁打开影响体验，可改成 page 级缓存或 globalData
 - 主项分类切换会触发 `Rent/SaveRentRecept`（通过 `triggerEvent('syncRent', { needUpdate: true })`），保存返回的 rental 经 properties observer 回流刷新。如果后端返回的 priceList 不含我们刚拉的内容会被覆盖（目前未发现问题）
 - 结算页支付宝当前为微信二维码 mock，扫码会按微信支付完成（已标 TODO，等支付宝小程序方案落地）
-- 结算页 `onPaid` 仅 `console.log`，未做跳转/刷新；父页面后续处理待定
+- 结算页 `onPaid`（2026-06-12 落地）：弹「收款成功」`wx.showModal` →「查看订单」`redirectTo` rent_details /「继续开单」`reLaunch` recept_entry（与 reception-tabbar「开单」一致）。按钮文案受 `wx.showModal` ≤4 字限制。「查看订单」当前写死跳 `rent_details`（仅租赁），养护/零售详情页未做时再按 `order.type` 扩展
 - 支付组件 WebSocket 仅在选中微信/支付宝并生成二维码后开启；切换支付方式时关闭旧 socket 再开新的，若用户在 prepay 调用中途切换会有短暂残留请求（无功能影响）
 - `pages/order/payment_entry` 目前仅对 `order.type=='租赁'` 做友好明细展示（编码/名称/品类 + 押金/日租金）；餐饮/零售/押金等其它类型走"最小版"（订单信息 + 金额 + 按钮），后续按业务需要扩展
 - **`Member.wechatMiniOpenId` 是后端计算属性**（getter 遍历 `memberSocialAccounts` 找 type=`wechat_mini_openid`），需要序列化时 MSA 集合被一并带回。顾客扫码 payment_entry 这种深链场景下 `app.globalData.member` 可能不齐全，导致前端取该字段为空。新接口（如 `PaymentIdentity/CheckPayerIdentity`）若需要扫码方 openid 都得做 sessionKey → `mini_session.member_id` 反查兜底
@@ -289,6 +290,9 @@ dotnet run
 - **`wx.showShareImageMenu` 真机专属，模拟器必 fail**（2026-06-07）：settle 页二维码「转发给微信好友」按钮（`order-payment/index.js onShareQrCode`）在 DevTools 模拟器调用一定走 `fail` → 落到 `wx.previewImage` 兜底（表现为"只显示图片不弹分享面板"），不是 bug。原生「发送给朋友」面板只在**真机预览/调试**出现。基础库 3.5.8 已满足 2.14.3 门槛，无关版本。另：`wx.downloadFile` 下二维码 PNG，正式版要把 `requestPrefix` 域加入公众平台「downloadFile 合法域名」否则真机下载失败
 - **微信支付二维码链接新旧路径并存**（2026-06-07）：新版 settle 流程 `order-payment/index.js:116` 已改 `https://mini.snowmeet.top/mapp/order_payment?paymentId=`；旧版 recept 流程 `components/payment/payment.js:160` 仍是 `/mapp/order/payment_entry`，未统一（用户只要求改新版，待确认是否一并切换）
 - **普通链接二维码「扫码打开小程序」配置要点**（2026-06-07 答疑）：体验版/开发版生效**必须填「测试链接」**（公众平台 →「扫普通链接二维码打开小程序」规则），正式版靠「发布」规则生效；域名需先验证归属。**跳进小程序时原始 URL 在启动参数 `q` 字段（URL-encoded）**，入口页要 `decodeURIComponent(options.q)` 解析 `paymentId`，不是普通的 `options.paymentId`。若只想让二维码在微信里打开 H5 网页则完全不需要这套规则
+- **「切支付宝但 order_payment 仍是微信支付」= 线上后端是 6/2 修复前旧构建**（2026-06-10 排查定性，无代码改动）：当前源码 HEAD `f455a87` 路由全对 —— [order-payment/index.js:97](../snowmeet_wechat_mini/components/order-payment/index.js#L97) 点支付宝调 `Order/GetAlipayMiniPayment`，[OrderController.cs:1754](../SnowmeetApi/Controllers/OrderController.cs#L1754) 插入的就是 `pay_method="支付宝"`，且这一行自 `95b0bbd`(5/31 新增该接口) 起从未写过微信支付。真正的旧 bug 在**作废旧待支付单时只过滤同种支付方式**：旧 `GetWepayPayment` 只清 `pay_method=="微信支付"`、旧 `GetAlipayMiniPayment` 只清 `pay_method=="支付宝"`（见 `7315358` diff）。于是**先点微信再切支付宝**时，微信待支付单没被作废，与新建的支付宝单**同时 `valid=1 待支付`**；下游/查询取「有效待支付」时命中残留的微信单 → 表现为「永远微信支付」（新插入的那条其实是支付宝）。已由 `a127a16 switch payment` + `7315358 set paymethod`（均 **2026-06-02**）统一改用 `InvalidatePendingOrderPayments`（[OrderController.cs:1290](../SnowmeetApi/Controllers/OrderController.cs#L1290)，不分方式清掉所有待支付单 + 关闭微信/支付宝预下单）修复。能生成真实支付宝二维码 ⇒ 线上 ≥`95b0bbd`；仍复现 ⇒ <`a127a16`，即线上构建落在 **[5/31, 6/2)**。**修复在本地源码、未部署** —— 重新部署 SnowmeetApi（HEAD `f455a87`）到 `snowmeet.wanlonghuaxue.com` 即可，无需改码。自检：切支付宝后该订单 `order_payment` 只剩 1 条 `valid=1 待支付`（支付宝），`core_data_mod_log` 有 scene=`切换为支付宝` 把微信行置 valid=0
+- **全版本域名统一 mini.snowmeet.top**（2026-06-12，已 commit `34bf8438`）：[app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) 删掉按环境 `getDomain()` 读 `domain.txt` 切域名的**两处复制 switch**，所有版本（开发/体验/正式）冷启动都用 globalData 默认 `mini.snowmeet.top`，不再读 domain.txt（旧缓存自动失效、无需清缓存）。顺手修 `case 'trail'` typo → `'trial'`（envVersion 体验版真实值）。`pages/admin/env` 手动切域名调试页保留但只会话内临时生效。**图片/上传等写死的 `snowmeet.wanlonghuaxue.com`（含 [data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片前缀 + uploadDomain CDN）一律保留不动**（用户拍板，只改 `requestPrefix`/`domainName`）
+- **「顾客已扫码」状态唯一依赖 `order_payment.customer_open_date`**（2026-06-12 排查）：`GetPaymentLiveStatus` 的 `scanned` 阶段只看这一个字段，由 `GetOrderFromPaymentByCustomer` 顾客打开 payment_entry 时落戳（[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444)，无条件、status=待支付 即落）。**支付宝靠 `submit_time` 走「支付中」分支绕过它**（生成支付时就写 submit_time）→ 支付宝能显示状态、微信不显示=该戳没落。**排查"代码对但线上行为不对"的顺序：先 DB 直查 `customer_open_date` 全表是否有任何非空（0 条 = 从没工作过，不是偶发），再确认服务 `ExecStart` 实际加载的 dll 是不是最近 `dotnet publish` 的**（`git log=f455a87` ≠ 在跑的 dll 被替换；`publish -o` 必须 = `ExecStart` 目录，否则编到没在跑的地方、restart 永远旧 dll）。另：模拟器做不了「扫普通链接二维码打开小程序」（真机专属），测落戳要么真机扫、要么自定义编译直接开 `payment_entry?paymentId=X`
 
 ---
 
@@ -2206,3 +2210,44 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
   - 前端：data.js 静默 `getPaymentLiveStatusPromise`；order-payment 出码后每 2s 轮询刷 `payStage`/`payStageLabel`，**WS 仍负责 paid 收尾**，与轮询经 `_paidHandled` 去重（避免重复 `triggerEvent('paid')`，轮询 paid 分支兜底拉单）；wxml/wxss 四态分色 + 脉冲圆点
   - 📌 **上线顺序关键**：EF 加列后所有 order_payment 查询都 SELECT 该列，**必须先在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**，否则列不存在 → 支付查询全挂。小程序端可独立发布（后端没上前轮询静默返 null，停在「等待扫码」）
   - 📌 验证：`GetWepayPayment`/`GetAlipayMiniPayment` 建单都不写 `submit_time`/`open_id`/`prepay_id`，所以「paying」对微信/支付宝都不会一出码就误判；`submit_time` 已被「向网关发起 prepay」占用，故另加列表达「已扫码」
+
+### 2026-06-10 — 「切支付宝 order_payment 仍是微信支付」根因定位：线上后端旧构建（纯排查，无改码）
+
+会话归档见 [`sessions/2026-06-10_alipay_paymethod_always_wechat_stale_backend.md`](sessions/2026-06-10_alipay_paymethod_always_wechat_stale_backend.md)。用户反复追问「最终支付页切微信/支付宝，新插入的 order_payment 一律微信支付」；上一轮我误判为前端 stale build，用户用「现在能生成真实支付宝二维码」否定。本轮逐层读源码 + 翻 git 史定性。
+
+- **源码路由全对，排除源码 bug**：前端 [order-payment/index.js:63/92/97](../snowmeet_wechat_mini/components/order-payment/index.js#L63) `onMethodTap` → 支付宝走 `showAlipayMiniQrCode` → 调 `Order/GetAlipayMiniPayment`，二维码用返回的 `payment.id` 编 `alipays://...page=pages/payment_entry/index?paymentId=`；后端 [OrderController.cs:1722](../SnowmeetApi/Controllers/OrderController.cs#L1722) 先 `InvalidatePendingOrderPayments` 再插 `pay_method="支付宝"`（[:1754](../SnowmeetApi/Controllers/OrderController.cs#L1754)）。组件 `attached` 只 `loadOrder`、不预建任何 payment，`payMethod` 初始 `''` —— 无「默认微信行」干扰
+- 📌 **关键认知：支付宝 scheme 二维码只编 `paymentId`、不编 pay_method** —— 所以「二维码能跳进 payment_entry」**不能证明**那条记录是支付宝；它能证明的只是「前端是新版（在编 alipay scheme）+ 后端有 `GetAlipayMiniPayment`（≥`95b0bbd`）」
+- **git 史钉死根因**（`SnowmeetApi` 工作区干净 = HEAD `f455a87`，无未提交改动）：
+  - `95b0bbd`(5/31 新增 `GetAlipayMiniPayment`) 的插入行从第一天就是 `pay_method="支付宝"` —— **新插入行从来不是微信支付**
+  - 旧版作废逻辑**只清同种支付方式**：旧 `GetWepayPayment` 只 `Equals("微信支付")`、旧 `GetAlipayMiniPayment` 只 `Equals("支付宝")`（`7315358` diff 删的就是这段）→ **先点微信再切支付宝，微信待支付单不被作废**，与新支付宝单同时 `valid=1`；查「有效待支付」命中残留微信单 = 表象「永远微信支付」
+  - `a127a16 switch payment` + `7315358 set paymethod`（均 **2026-06-02**）统一改 `InvalidatePendingOrderPayments`（[:1290](../SnowmeetApi/Controllers/OrderController.cs#L1290)，不分方式全清 + 关微信/支付宝预下单）。同批还顺手给 `GetAlipayPaymentQrCode`/`EffectUnpaidOrder` 接上同一作废、`WechatPayByOrderPayment` 加 `valid==1` 守卫
+- **结论 + 动作**：线上构建落在 **[5/31, 6/2)**（能出真实支付宝码 ⇒ ≥`95b0bbd`；仍复现 ⇒ <`a127a16`）。修复已在本地源码、未部署。**重新部署 SnowmeetApi（HEAD `f455a87`）到 `snowmeet.wanlonghuaxue.com` 即可，无需改码**。自检：切支付宝后该订单只剩 1 条 `valid=1 待支付`（支付宝）、`core_data_mod_log` 有 scene=`切换为支付宝`
+- 📌 **教训**：用户两次反馈同一现象时，「重新构建/部署」这类答案要先用源码+git 史坐实「源码已对、线上滞后」再说，不能停在第一直觉的 stale build 上空转（详见 memory feedback）
+
+### 2026-06-12 — settle 支付完成弹窗 + 全版本域名统一 mini.snowmeet.top + 「等待扫码」不刷新长排查
+
+会话归档见 [`sessions/2026-06-12_settle_onpaid_domain_unify_live_status_debug.md`](sessions/2026-06-12_settle_onpaid_domain_unify_live_status_debug.md)。三件小改 + 一场长 debug（最后一项未在会话内闭环，用户后用 copilot 解决）。
+
+#### 一、settle 页支付完成后弹窗（snowmeet_wechat_mini，已 commit `2f2ddbc5`）
+- [pages/payment/settle/index.js](../snowmeet_wechat_mini/pages/payment/settle/index.js) `onPaid` 由 `console.log` 改为 `wx.showModal`「收款成功」：confirm「查看订单」→ `redirectTo` `/pages/admin/rent/rent_details?id=`；cancel「继续开单」→ `reLaunch` `/pages/admin/reception/recept_entry`
+- `reLaunch` 与 [reception_tabbar.js:52](../snowmeet_wechat_mini/components/reception_tabbar/reception_tabbar.js#L52)「开单」一致；`paid` 事件三路径（微信 WS/轮询、支付宝、其他 `effectUnpaidOrder`）都 triggerEvent('paid')，一个 handler 覆盖、`_paidHandled` 去重只弹一次；按钮文案受 `wx.showModal` 4 字上限约束
+
+#### 二、全版本域名统一 mini.snowmeet.top（snowmeet_wechat_mini，已 commit `34bf8438`）
+- 现象：测试环境（开发版）默认域名还是旧 `snowmeet.wanlonghuaxue.com`，没跟 globalData 默认值
+- 根因：登录流程 [app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) **两处复制的 switch** 对 `trail`/`develop` 调 `getDomain()` 读本地 `domain.txt`、catch 兜底硬编码又是旧域名；且 `case 'trail'` 是 typo（真实 envVersion 是 `'trial'`）→ 体验版落到 default 反用了新域名、开发版用旧的（"开发版旧、体验版新"的诡异不一致）
+- 修复：删两处 switch（globalData 默认对所有版本生效）+ `getDomain()` 兜底改 `mini.snowmeet.top` + typo 修 `'trial'`。冷启动不再读 domain.txt → 旧缓存自动失效、**无需清缓存**。`pages/admin/env` 调试页保留（只会话内临时切）
+- **写死的旧域名一律不动**（用户拍板）：[data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片显示前缀 + 静态图 + `uploadDomain` CDN 全留 `snowmeet.wanlonghuaxue.com`，只改 `requestPrefix`/`domainName`
+
+#### 三、活跃页面里用 FirstUI 的清单（纯盘点，无改码）
+- wxml 含 `<fui-` 的 16 页：14 活 / 2 死。活 = 餐饮 fd 模块 8 页（[admin.js](../snowmeet_wechat_mini/pages/admin/admin.js) 的 `nav` 动态分发跳入，正是当初静态 BFS 误判为 C-2 的原因）+ new_rent_list/rent_details/retail_order_list/care_order_list/fire_care_list + order_entry(扫码落地)；死 = `admin/recept/recept_new`（旧版接待、无运行时入口）+ `printer/gprinter/print_task`
+- 新流程页（reception/settle/payment_entry）按约定都没用 fui；fui 存量主体在餐饮 fd 模块
+
+#### 四、「微信扫码后店员端仍显示『等待扫码』」长排查（paymentId 42601/42602/42603；未会话内闭环）
+- 现象：微信待支付单店员端卡「等待扫码」不跳「顾客已扫码」；**支付宝却能显示状态**
+- 逐层排除：① 前端轮询失败静默 `resolve(null)` 不报错（[data.js:170](../snowmeet_wechat_mini/utils/data.js#L170)）→ 接口拿不到就永远停「等待扫码」 ② 接口/域名都对（模拟器 `requestPrefix`=mini.snowmeet.top；`GetPaymentLiveStatus` 探活返 200「没有权限」=路由在=f455a87）③ `customer_open_date` 列已加 ④ 枚举比较正常（已支付微信单 42599 → `stage:paid`，排除编码问题）
+- **DB 直查定性**（`100.28.143.19/snowmeet_new`）：`order_payment.customer_open_date` **全表 0 条非空**——这个落「已扫码」的戳从来没成功落过。直接打 `GetOrderFromPaymentByCustomer/42602` 16 次返 200，仍 0 条、新单 42603 也 None；42602 status 字节 `B4FDD6A7B8B6`（GBK「待支付」干净，LEN=3）→ 落戳条件本应为真
+- **支付宝为何能显示**：支付宝待支付单 `submit_time` 已 SET → [GetPaymentLiveStatus](../SnowmeetApi/Controllers/OrderController.cs#L2496) 走 `submit_time!=null`→「支付中」分支绕过落戳；微信待支付单全 NULL，「顾客已扫码」唯一依赖 `customer_open_date` → 永不亮
+- **源码侧 100% 有落戳**：committed `f455a87`（本地+origin/ai+`git status` 干净）[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444) `trackedPayment.customer_open_date = DateTime.Now`，与 `GetPaymentLiveStatus` 同属 f455a87 同一处 69 行改动（`git show --stat`）
+- **结论：线上跑的 DLL 不是这份 f455a87 build 的**——有接口、却没落戳；干净构建不可能"有接口没落戳"。`git log=f455a87` 没错，但运行的二进制是旧的/编到了别处，强烈怀疑 `dotnet publish -o` 目录 ≠ 服务 `ExecStart` 加载目录 →「重启/重开单无数次无效」（重启跑同一旧 dll，restart≠rebuild）。我未在会话内拿到服务器 `ExecStart`/dll 时间戳坐实最后一环，用户后用 copilot 自行解决
+- 顺带：模拟器**做不了「扫普通链接二维码打开小程序」**（真机专属），测落戳要真机扫或自定义编译直接开 `payment_entry?paymentId=X`
+- 📌 **教训**：「代码对、线上行为不对」先 DB 直查关键字段**全表是否有任何非空**（区分"从没工作过"vs"偶发"），再核服务实际加载的 dll 时间戳；`git pull` ≠ 在跑的 dll 被换，多问一句"服务 `ExecStart` 指哪个 dll、`publish -o` 写哪"能少绕几轮
