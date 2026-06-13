@@ -2251,3 +2251,24 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - **结论：线上跑的 DLL 不是这份 f455a87 build 的**——有接口、却没落戳；干净构建不可能"有接口没落戳"。`git log=f455a87` 没错，但运行的二进制是旧的/编到了别处，强烈怀疑 `dotnet publish -o` 目录 ≠ 服务 `ExecStart` 加载目录 →「重启/重开单无数次无效」（重启跑同一旧 dll，restart≠rebuild）。我未在会话内拿到服务器 `ExecStart`/dll 时间戳坐实最后一环，用户后用 copilot 自行解决
 - 顺带：模拟器**做不了「扫普通链接二维码打开小程序」**（真机专属），测落戳要真机扫或自定义编译直接开 `payment_entry?paymentId=X`
 - 📌 **教训**：「代码对、线上行为不对」先 DB 直查关键字段**全表是否有任何非空**（区分"从没工作过"vs"偶发"），再核服务实际加载的 dll 时间戳；`git pull` ≠ 在跑的 dll 被换，多问一句"服务 `ExecStart` 指哪个 dll、`publish -o` 写哪"能少绕几轮
+
+### 2026-06-13 — start-work 修未解决的 CLAUDE.md merge 冲突 + end-work 二次合并（origin 缺 06-05 险些丢失）
+
+会话起始 start-work，纯文档/git 维护，无业务改码。归档见 [`sessions/2026-06-13_doc_merge_conflict_repair.md`](sessions/2026-06-13_doc_merge_conflict_repair.md)。
+
+#### 一、start-work：CLAUDE.md 残留未解决的 merge 冲突
+- start-work 第 1 步 `git pull --ff-only` 失败：working tree 有 unmerged paths，CLAUDE.md 含 `<<<<<<< / ======= / >>>>>>>` 三标记（HEAD 侧=06-05 条目；`29a3d73` 侧=06-07+06-08 条目）+ 两个 incoming session 文件已 staged + 06-05 session 文件 untracked
+- 性质=纯追加冲突（两侧都在 dev log 末尾各加条目，无语义冲突）→ 保留全部、按 06-05→06-07→06-08 时序删三标记 → `git add CLAUDE.md sessions/2026-06-05_*.md` → 完成 merge commit `a3c3025`，工作树干净后再展示项目上下文
+
+#### 二、（忽略）"滤波 API"提问 = 问错项目
+- 用户问"昨天最后做的滤波 api 用法"；4 仓全搜 `滤波/filter/kalman/smooth` 0 命中；查 06-12 未归档提交（settle onPaid 弹窗 + 域名统一，作者 zhx/cangjie）也无关 → 用户答"问错项目"，忽略
+
+#### 三、end-work：origin 中途又前进 3 commit，且**缺 06-05**
+- end-work 时 doc 仓 `[ahead 2, behind 3]`：另一台机器在本会话期间 push 了 06-10/06-12 的 end-work 归档（`45f82b9`/`9102580`/`c9f2bc3`）
+- **关键**：`git show origin/main:CLAUDE.md | grep 06-05` = 0 命中，origin/main **从来没有 06-05 条目/session 文件**——06-05 工作在本机 06-09 commit `22c8e7a` 里、本会话前一直没 push；另一台机器的 06-10/06-12 归档建立在不含 06-05 的线性历史上 → 若直接 `reset --hard origin/main` 会永久丢 06-05
+- 因两侧改的是 CLAUDE.md 不同区段（我在中部插 06-05、origin 在末尾追 06-10/06-12），`git merge origin/main` **零冲突自动合并**，结果含全部 06-04~06-12
+
+📌 **关键发现 / 教训**：
+- **本机一个 commit（`22c8e7a` 06-05）长期没 push，险些被另一台机器的线性 end-work 历史"绕过"丢失**：跨机协作下本地领先 commit 不及时 push，等别的机器在更早基点上继续 end-work，远端历史就不含你那段——再同步要靠 merge 而非 reset 才能保住。重申已记入 feedback 的规矩：本机做完即 push，别攒
+- **同一会话内 doc 仓可能两层分叉**：start-work 时一层（working tree 遗留冲突），end-work 时又一层（远端中途前进）。end-work push 前必须 `git fetch` 看 `ahead/behind`，behind 非 0 先 merge 再 push，绝不盲 push
+- **追加型 dev-log 冲突天然可全留**：两侧都往末尾加条目时按时序保留全部 + 删标记即可，不用取舍；非重叠区段 git 还能自动 merge 免手动
