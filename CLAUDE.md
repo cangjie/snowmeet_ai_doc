@@ -177,7 +177,7 @@ dotnet run
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
-- 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡）
+- 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`）
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
@@ -216,6 +216,8 @@ dotnet run
 - 页面可达性 review：`snowmeet_ai_doc/unreachable_pages.md` 列出 75 个从 index/mine BFS 不可达的页面（含 62 个完全孤立），需人工逐项区分 QR 扫码入口 vs 死代码后清理
 - 南山「年度雪票明细」85 单押金合计 ≠ 退款金额合计（非关闭）待业务侧确认是否需追退；典型场景=顾客未还卡，押金没退（脚本里曾试加粉底标红、用户已取消还原，仅靠数据本身排查）
 - 崇礼「雪票列表」标黄 2 单（已取消但实付>20）+ 标灰 68 单（渠道订单号无法匹配年度雪票）待业务确认
+- `rent_order_detail` 顶部 showcase 三格金额（超时/租金/小计）字段名拼写 bug 待修（见已知遗留），修时用 `util.showAmount` 转 2 位
+- 新接口 `Rent/UpdateRentalDayChargesByStaff` 需随 SnowmeetApi 重新部署才生效（无库表变更）；按天超时费功能待真机/模拟器端到端验证
 
 **已知遗留**
 - **macOS 上 pyodbc + msodbcsql18**：unixODBC 默认查 `/etc/odbcinst.ini` 但 brew 装的 msodbcsql18 注册在 `/opt/homebrew/etc/odbcinst.ini`。所有 pyodbc 脚本启动前要 `export ODBCSYSINI=/opt/homebrew/etc`（写到 shell rc 或脚本 wrapper 都行）。已在 `snowmeet_ai_doc/skills/export_rent_order/SKILL.md` 文档化
@@ -294,6 +296,10 @@ dotnet run
 - **「切支付宝但 order_payment 仍是微信支付」= 线上后端是 6/2 修复前旧构建**（2026-06-10 排查定性，无代码改动）：当前源码 HEAD `f455a87` 路由全对 —— [order-payment/index.js:97](../snowmeet_wechat_mini/components/order-payment/index.js#L97) 点支付宝调 `Order/GetAlipayMiniPayment`，[OrderController.cs:1754](../SnowmeetApi/Controllers/OrderController.cs#L1754) 插入的就是 `pay_method="支付宝"`，且这一行自 `95b0bbd`(5/31 新增该接口) 起从未写过微信支付。真正的旧 bug 在**作废旧待支付单时只过滤同种支付方式**：旧 `GetWepayPayment` 只清 `pay_method=="微信支付"`、旧 `GetAlipayMiniPayment` 只清 `pay_method=="支付宝"`（见 `7315358` diff）。于是**先点微信再切支付宝**时，微信待支付单没被作废，与新建的支付宝单**同时 `valid=1 待支付`**；下游/查询取「有效待支付」时命中残留的微信单 → 表现为「永远微信支付」（新插入的那条其实是支付宝）。已由 `a127a16 switch payment` + `7315358 set paymethod`（均 **2026-06-02**）统一改用 `InvalidatePendingOrderPayments`（[OrderController.cs:1290](../SnowmeetApi/Controllers/OrderController.cs#L1290)，不分方式清掉所有待支付单 + 关闭微信/支付宝预下单）修复。能生成真实支付宝二维码 ⇒ 线上 ≥`95b0bbd`；仍复现 ⇒ <`a127a16`，即线上构建落在 **[5/31, 6/2)**。**修复在本地源码、未部署** —— 重新部署 SnowmeetApi（HEAD `f455a87`）到 `snowmeet.wanlonghuaxue.com` 即可，无需改码。自检：切支付宝后该订单 `order_payment` 只剩 1 条 `valid=1 待支付`（支付宝），`core_data_mod_log` 有 scene=`切换为支付宝` 把微信行置 valid=0
 - **全版本域名统一 mini.snowmeet.top**（2026-06-12，已 commit `34bf8438`）：[app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) 删掉按环境 `getDomain()` 读 `domain.txt` 切域名的**两处复制 switch**，所有版本（开发/体验/正式）冷启动都用 globalData 默认 `mini.snowmeet.top`，不再读 domain.txt（旧缓存自动失效、无需清缓存）。顺手修 `case 'trail'` typo → `'trial'`（envVersion 体验版真实值）。`pages/admin/env` 手动切域名调试页保留但只会话内临时生效。**图片/上传等写死的 `snowmeet.wanlonghuaxue.com`（含 [data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片前缀 + uploadDomain CDN）一律保留不动**（用户拍板，只改 `requestPrefix`/`domainName`）
 - **「顾客已扫码」状态唯一依赖 `order_payment.customer_open_date`**（2026-06-12 排查）：`GetPaymentLiveStatus` 的 `scanned` 阶段只看这一个字段，由 `GetOrderFromPaymentByCustomer` 顾客打开 payment_entry 时落戳（[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444)，无条件、status=待支付 即落）。**支付宝靠 `submit_time` 走「支付中」分支绕过它**（生成支付时就写 submit_time）→ 支付宝能显示状态、微信不显示=该戳没落。**排查"代码对但线上行为不对"的顺序：先 DB 直查 `customer_open_date` 全表是否有任何非空（0 条 = 从没工作过，不是偶发），再确认服务 `ExecStart` 实际加载的 dll 是不是最近 `dotnet publish` 的**（`git log=f455a87` ≠ 在跑的 dll 被替换；`publish -o` 必须 = `ExecStart` 目录，否则编到没在跑的地方、restart 永远旧 dll）。另：模拟器做不了「扫普通链接二维码打开小程序」（真机专属），测落戳要么真机扫、要么自定义编译直接开 `payment_entry?paymentId=X`
+- **`rent_order_detail` 顶部 showcase 五格金额字段名拼写错位（既存 bug，待修）**：WXML 用 `item.totalOverTimeAmount`(大写 T)/`item.totalSummaryAmount`/`item.totalRentSummaryAmount`，后端 `Rental` 计算属性是 `totalOvertimeAmount`/`totalSummary`/`totalRentalAmount`，对不上 → 这三格恒显 ¥0（`totalDiscountAmount`/`totalRepairationAmount` 拼写对、正常）。所以在「租金明细」里改了超时费，行的小计会变、但**顶部那三格不跟着变**。修时注意后端返回是裸 `double`，要用 `util.showAmount` 转 2 位避免浮点尾数，别 `¥{{裸值}}`
+- **超时费改为「按天」存**（2026-06-14 拍板）：`rent_order_detail` 走新接口 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs) 按 `rental_date` upsert 每天一条 `charge_type=超时费`（无则建、清零 `valid=0`）。`totalOvertimeAmount` getter 仍按 type 求和，多天自动累加。**注意两条编辑路径并存**：旧 `UpdateRental`（`_filledOverTimeCharge`，作废全部超时费明细只重建一条、整单单值）+ 新按天接口；若对同一 rental 再走旧路径，会把按天的多条合并成一条
+- **`rent_order_detail` 租金明细已从「逐 detail 行」改为「按天聚合行」**：`renderOrder` 把 `rental.details` 按 `formatDate(rental_date)` 聚合成 `rental.feeRows`（仅 `charge_type∈{租金,超时费}` 且 `valid==1`；赔偿金不进此表，仍走租赁物每件「赔偿」按钮）。WXML 改 iterate `item.feeRows`、行可点 `onEditDayCharge`。每行真理之源是当天的「租金」detail id（`row.rentDetailId`）；理论上「某天只有超时费没有租金」会无法编辑（已 toast 拦截，罕见）
+- **新接口减免守卫复用既有归属键**：`biz_type=租赁 / sub_biz_type=日租金 / sub_biz_id=租金detail.id / ticket_code=null`，与旧 `UpdateRentalDetails` 一致；只在「现有日租金减免 != 新减免」时才调 `UpdateSingleDiscount`，规避其 `amount==0 且无现有行` 的 NRE
 
 ---
 
@@ -2287,3 +2293,18 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 📌 **本轮经验**：
 - 微信小程序双列布局在窄屏下优先用明确 `width/flex-basis` 与容器留白，少用复杂 `calc()`，稳定性更高
 - 视觉重排要先保业务事件绑定不动，再替换结构层，能显著降低回归风险
+
+### 2026-06-14（续） — 租金明细按天超时费列 + 行内三字段编辑弹窗
+
+会话归档见 [`sessions/2026-06-14_rent_detail_perday_overtime.md`](sessions/2026-06-14_rent_detail_perday_overtime.md)。需求：`rent_order_detail` 的「租金明细」表在 租金/减免 之间加「超时费」列；点某天行弹窗改 当天租金/超时费/减免，确定即存。改动跨 `SnowmeetApi` + `snowmeet_wechat_mini`。
+
+- ✅ **先删冗余「保存」按钮**：备注行 `保存` 与输入框绑同一 `onModMemo`，纯重复入口，删之；点输入框即弹 `wx.showModal({editable})` 存，零功能损失
+- ✅ **超时费定为「按天」**（用户拍板，非整单）：每天一条 `rental_detail(charge_type=超时费)`，与当天 租金 同 `rental_date` 归到一行
+- ✅ **后端新接口** [`Rent/UpdateRentalDayChargesByStaff/{rentalId}`](../SnowmeetApi/Controllers/RentController.cs)（POST，query 参数 `rentDetailId/rent/overtime/discount/scene`）：改当天租金额 + 按天 upsert 超时费（无则建、清零则 `valid=0`）+ 按需写减免，全程 `core_data_mod_log`
+- ✅ **前端**：`rent_order_detail.js` 把 `rental.details` 按天聚合成 `feeRows`（租金+超时费 merge，赔偿金不进此表）；表头/行加超时费列、行可点；自定义 3 字段弹窗（纯 `view`+`input`、`type=digit`、`catchtap=noop` 防穿透）；保存后用返回的 rental 就地 `renderOrder` 刷新
+- ✅ 编译/语法校验：`dotnet build` 0 error；两个 js `node --check` 通过。**未做真机/模拟器运行验证**（环境无微信开发者工具）；新接口需随后端重新部署才生效
+
+📌 **本轮坑**：
+- `OrderController.UpdateSingleDiscount(amount=0)` 在「无现有减免行」时会走 else 取 `discount.id` → NRE；调用前必须先比对「现有减免 != 新减免」才调（新接口已加守卫，沿用既有归属键 `biz_type=租赁/sub_biz_type=日租金/sub_biz_id=rentDetail.id/ticket_code=null`）
+- `catchtap="true"` 会被当成"绑定名为 `true` 的方法" → 控制台报错；阻止冒泡要绑一个真实的 `noop(){}` 空方法
+- 顶部 showcase 三格金额恒显 ¥0 是**既存拼写 bug**（见已知遗留），本次未动
