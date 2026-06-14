@@ -171,12 +171,13 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-12）
+## 当前状态（截至 2026-06-14）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
+- 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡）
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
@@ -2272,3 +2273,17 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - **本机一个 commit（`22c8e7a` 06-05）长期没 push，险些被另一台机器的线性 end-work 历史"绕过"丢失**：跨机协作下本地领先 commit 不及时 push，等别的机器在更早基点上继续 end-work，远端历史就不含你那段——再同步要靠 merge 而非 reset 才能保住。重申已记入 feedback 的规矩：本机做完即 push，别攒
 - **同一会话内 doc 仓可能两层分叉**：start-work 时一层（working tree 遗留冲突），end-work 时又一层（远端中途前进）。end-work push 前必须 `git fetch` 看 `ahead/behind`，behind 非 0 先 merge 再 push，绝不盲 push
 - **追加型 dev-log 冲突天然可全留**：两侧都往末尾加条目时按时序保留全部 + 删标记即可，不用取舍；非重叠区段 git 还能自动 merge 免手动
+
+### 2026-06-14 — 租赁订单详情页新版补齐旧版能力 + 租赁信息区按参考稿重排
+
+会话归档见 [`sessions/2026-06-14_rent_order_detail_layout_alignment.md`](sessions/2026-06-14_rent_order_detail_layout_alignment.md)。主改动在 `snowmeet_wechat_mini`，本次主要完成新版 `rent_order_detail` 的信息密度、交互补齐和视觉重排。
+
+- ✅ **订单信息区紧凑化**：姓名/订单号同一行、手机号/门店同一行、手机号可一键拨打；订单号展示加三字标题位并按规则截断显示（前缀省略号）
+- ✅ **支付信息改为四块摘要 + 可折叠明细**：首屏仅显示支付总金额/退款总金额/支付笔数/退款笔数；支付流水改为「支付明细」折叠区，避免挤占首屏
+- ✅ **新版补齐旧版租赁物操作能力**：在 `rent_order_detail.js` 补齐发放、归还、设未归还、暂存、更换、赔偿编辑、备注编辑、发放记录/更换记录展开、全部归还等操作入口与状态处理
+- ✅ **租赁信息样式按参考稿重排**：`rent_order_detail.wxml/.wxss` 将租赁卡改为「摘要条 + 起租/退租双框 + 费用网格 + 小计条 + 备注输入/保存」结构，并保留后续租金明细/租赁物明细折叠交互
+- ✅ **全页一致性**：已将关键紧凑规则落到新版页面并做静态校验（wxml/wxss 无错误）
+
+📌 **本轮经验**：
+- 微信小程序双列布局在窄屏下优先用明确 `width/flex-basis` 与容器留白，少用复杂 `calc()`，稳定性更高
+- 视觉重排要先保业务事件绑定不动，再替换结构层，能显著降低回归风险
