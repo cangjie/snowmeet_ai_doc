@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-14）
+## 当前状态（截至 2026-06-15）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -297,9 +297,12 @@ dotnet run
 - **全版本域名统一 mini.snowmeet.top**（2026-06-12，已 commit `34bf8438`）：[app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) 删掉按环境 `getDomain()` 读 `domain.txt` 切域名的**两处复制 switch**，所有版本（开发/体验/正式）冷启动都用 globalData 默认 `mini.snowmeet.top`，不再读 domain.txt（旧缓存自动失效、无需清缓存）。顺手修 `case 'trail'` typo → `'trial'`（envVersion 体验版真实值）。`pages/admin/env` 手动切域名调试页保留但只会话内临时生效。**图片/上传等写死的 `snowmeet.wanlonghuaxue.com`（含 [data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片前缀 + uploadDomain CDN）一律保留不动**（用户拍板，只改 `requestPrefix`/`domainName`）
 - **「顾客已扫码」状态唯一依赖 `order_payment.customer_open_date`**（2026-06-12 排查）：`GetPaymentLiveStatus` 的 `scanned` 阶段只看这一个字段，由 `GetOrderFromPaymentByCustomer` 顾客打开 payment_entry 时落戳（[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444)，无条件、status=待支付 即落）。**支付宝靠 `submit_time` 走「支付中」分支绕过它**（生成支付时就写 submit_time）→ 支付宝能显示状态、微信不显示=该戳没落。**排查"代码对但线上行为不对"的顺序：先 DB 直查 `customer_open_date` 全表是否有任何非空（0 条 = 从没工作过，不是偶发），再确认服务 `ExecStart` 实际加载的 dll 是不是最近 `dotnet publish` 的**（`git log=f455a87` ≠ 在跑的 dll 被替换；`publish -o` 必须 = `ExecStart` 目录，否则编到没在跑的地方、restart 永远旧 dll）。另：模拟器做不了「扫普通链接二维码打开小程序」（真机专属），测落戳要么真机扫、要么自定义编译直接开 `payment_entry?paymentId=X`
 - **`rent_order_detail` 顶部 showcase 五格金额字段名拼写错位（既存 bug，待修）**：WXML 用 `item.totalOverTimeAmount`(大写 T)/`item.totalSummaryAmount`/`item.totalRentSummaryAmount`，后端 `Rental` 计算属性是 `totalOvertimeAmount`/`totalSummary`/`totalRentalAmount`，对不上 → 这三格恒显 ¥0（`totalDiscountAmount`/`totalRepairationAmount` 拼写对、正常）。所以在「租金明细」里改了超时费，行的小计会变、但**顶部那三格不跟着变**。修时注意后端返回是裸 `double`，要用 `util.showAmount` 转 2 位避免浮点尾数，别 `¥{{裸值}}`
-- **超时费改为「按天」存**（2026-06-14 拍板）：`rent_order_detail` 走新接口 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs) 按 `rental_date` upsert 每天一条 `charge_type=超时费`（无则建、清零 `valid=0`）。`totalOvertimeAmount` getter 仍按 type 求和，多天自动累加。**注意两条编辑路径并存**：旧 `UpdateRental`（`_filledOverTimeCharge`，作废全部超时费明细只重建一条、整单单值）+ 新按天接口；若对同一 rental 再走旧路径，会把按天的多条合并成一条
+- **超时费改为 rental 级单条存**（2026-06-15 拍板，原 6-14「按天」改）：`rent_order_detail` 走 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs#L5410) upsert，命中键 = `rental_id + charge_type=超时费 + valid=1`（**不带 rental_date 窗口**，全 rental 唯一一条）：超时费=0 命中则 `valid=0`、不命中不处理；≠0 命中改 amount、不命中插入。`totalOvertimeAmount` getter 仍按 type 求和。**前端显示连带影响**：`renderOrder` 的 `feeRows` 仍按 `rental_date` 聚合，这条超时费只挂在它 `rental_date`（首建那天）对应的行，其它天显示 ¥0；从别天改金额会更新但 rental_date 不动（视觉反直觉、数据正确）。租金/减免仍按天（`rentDetailId` 定位）。旧 `UpdateRental`（`_filledOverTimeCharge` 整单单值）若再走会把多条合并成一条
 - **`rent_order_detail` 租金明细已从「逐 detail 行」改为「按天聚合行」**：`renderOrder` 把 `rental.details` 按 `formatDate(rental_date)` 聚合成 `rental.feeRows`（仅 `charge_type∈{租金,超时费}` 且 `valid==1`；赔偿金不进此表，仍走租赁物每件「赔偿」按钮）。WXML 改 iterate `item.feeRows`、行可点 `onEditDayCharge`。每行真理之源是当天的「租金」detail id（`row.rentDetailId`）；理论上「某天只有超时费没有租金」会无法编辑（已 toast 拦截，罕见）
 - **新接口减免守卫复用既有归属键**：`biz_type=租赁 / sub_biz_type=日租金 / sub_biz_id=租金detail.id / ticket_code=null`，与旧 `UpdateRentalDetails` 一致；只在「现有日租金减免 != 新减免」时才调 `UpdateSingleDiscount`，规避其 `amount==0 且无现有行` 的 NRE
+- **⚠️ 全局 `QueryTrackingBehavior.NoTracking` 是大坑（2026-06-15 踩，耗 1 整轮排查）**：[`Startup.cs:48`](../SnowmeetApi/Startup.cs#L48) 配了 `.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)` → **所有 EF 查询默认返回不被跟踪的实体**，`load 实体 → 改字段 → SaveChanges()` 会**静默不持久化**（SaveChanges 只写 `AddAsync` 的实体，返回行数也只算那些，不报错）。本控制器 30+ 处更新都显式 `_db.X.Entry(x).State = EntityState.Modified` 正是为此。`UpdateRentalDayChargesByStaff`（6-14 新加）漏写 → 改租金/改超时费/清超时费 valid 全不生效，只有 `AddAsync` 插新超时费能存（典型症状：接口返 code=0 成功但 DB 没变）。已在 3 处补 `State=Modified`（[`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs) 5441/5471/5480）。**今后任何「查实体→改→存」的新代码必须显式 `Entry(x).State=Modified` 或查询带 `.AsTracking()`**
+- **两个同名 `RentalDetail` 类易读错文件**：`SnowmeetApi.Models.Rent.RentalDetail`（[`Models/Rent/RentalDetail.cs`](../SnowmeetApi/Models/Rent/RentalDetail.cs)，旧 view model，只有 name/cell/shop/staff 无 id/valid/charge_type）vs `SnowmeetApi.Models.RentalDetail`（EF 实体，`[Table("rental_detail")]` 在 [`Models/Rent/Rental.cs:287`](../SnowmeetApi/Models/Rent/Rental.cs#L287)，有 id/valid/charge_type/amount/rental_id/rental_date）。`_db.rentalDetail` 用的是后者，排查实体映射别开错文件
+- **`rental_detail.charge_type` 是 `varchar(50) Chinese_PRC_CI_AS`（GBK 存储）**：`SELECT CONVERT(varbinary,charge_type)` 看到 `超时费` = `B3ACCAB1B7D1`（GBK 6 字节，非 UTF-16LE）。但 EF 默认把 string 属性映射成 nvarchar，发 `N'超时费'` 参数与 varchar 列在 Chinese 排序规则下隐式转换仍能命中，所以**编码不是「EF 查不到超时费」的根因**（2026-06-15 曾误判一轮）
 
 ---
 
@@ -2308,3 +2311,41 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - `OrderController.UpdateSingleDiscount(amount=0)` 在「无现有减免行」时会走 else 取 `discount.id` → NRE；调用前必须先比对「现有减免 != 新减免」才调（新接口已加守卫，沿用既有归属键 `biz_type=租赁/sub_biz_type=日租金/sub_biz_id=rentDetail.id/ticket_code=null`）
 - `catchtap="true"` 会被当成"绑定名为 `true` 的方法" → 控制台报错；阻止冒泡要绑一个真实的 `noop(){}` 空方法
 - 顶部 showcase 三格金额恒显 ¥0 是**既存拼写 bug**（见已知遗留），本次未动
+
+### 2026-06-15 — 编辑租金明细弹窗(数字键盘+自动清空) + 超时费改 rental 级单条 + 租赁物明细卡按模版重构 + UpdateRentalDayCharges 静默不存根因(NoTracking)
+
+会话归档见 [`sessions/2026-06-15_rent_detail_card_redesign_and_notracking_fix.md`](sessions/2026-06-15_rent_detail_card_redesign_and_notracking_fix.md)。四件事，主改 `rent_order_detail`（前端）+ `RentController.cs`（后端）。改动在 SnowmeetApi(ai) + snowmeet_wechat_mini(ai) 工作区，**待部署**。
+
+#### 一、编辑租金明细弹窗：数字键盘 + 点输入框自动清空（前端 `rent_order_detail.{wxml,js}`）
+- 三个输入框（租金/超时费/减免）本就是 `type="digit"`（带小数点数字键盘），无须改
+- 套 6-08 押金/租金弹窗方案：打开时 `_dayChargeXxx` 置空、原值存 `_dayChargeXxxOrig` 作 placeholder；确定时留空字段回退原值（新增 helper `_resolveDayChargeVal`）。效果：点输入框即空、直接输金额、不用退格删原值；只改某项不碰其它两项 → 其它保持原值
+
+#### 二、超时费改 rental 级单条（后端 `UpdateRentalDayChargesByStaff`）
+- 命中键去掉 `rental_date` 当天窗口 → `rental_id + charge_type=超时费 + valid=1`（全 rental 唯一一条）。规则同前：=0 命中作废/不命中不理、≠0 命中改 amount/不命中插入
+- 连带：前端 feeRows 仍按天聚合，这条超时费只显示在它 rental_date（首建那天）的行（详见已知遗留）
+
+#### 三、租赁物明细卡片按 `templates/rent/order_detail_0614.html` 重构（前端 wxml+wxss+js）
+- 模版是带计算样式的 DOM 导出（1.3MB 单行），strip style/om-id 后还原结构 + 配色 token
+- 新结构：浅蓝头部条（图标+名称+状态徽章+编码·分类）→ 发放/归还双列时间线(状态圆点 `_picked`/`_returned`) → 赔偿金额/备注分隔行 → 等宽图标操作行(归还实心蓝/暂存·更换描边/赔偿红描边) → 发放记录/更换记录展开
+- material-symbols 项目没加载 → 全部映射 van-icon；事件绑定 + 状态条件分支(已发放/已归还/已暂存 + refundAmount>0 disabled)原样保留；`rid-*` class 与 wxss 一一对应、`<view>` 标签 168/168 平衡
+- 设计 token：主色 `#006495` / 文字 `#0b1c30`·`#3f4850`·`#6f7881` / 危险红 `#ba1a1a` / 头部条 `#eff4ff` / 分隔线 `rgba(191,199,209,.3)`
+
+#### 四、⚠️ 关键 bug：`UpdateRentalDayChargesByStaff` 改超时费 valid 不变（systematic debugging 全程）
+- 用户报：调接口设 overtime=0，超时费 detail 112415 的 valid 应变 0 但没变。本地起 SnowmeetApi（config.sqlServer 直连生产）真调复现：返 **code=0 成功但 DB valid 仍=1**
+- 逐层排除（读源码 + DB 直查 + 插桩）：编码✗(EF 查得到 112415)、触发器✗(无)、事务✗(无显式)、减免 NRE✗(discount 0.01 相等被跳过)、GetRental 回写✗(全 AsNoTracking 只读)
+- 插桩铁证：`SaveChanges 返回 1` 但 DB 没变 → 那个 1 是 `coreDataModLog` 的 INSERT，`otDetail` 的 UPDATE 压根没生成
+- **根因**：`Startup.cs:48` 全局 `QueryTrackingBehavior.NoTracking` → 查出的 otDetail 不被跟踪 → 改 valid + SaveChanges 无效。本控制器其它 30+ 处更新全显式 `Entry(x).State=Modified`，唯独这新方法漏了
+- **修复**：3 处加 `_db.Entry(x).State = EntityState.Modified`（改租金 5441 / 清超时费 5471 / 改超时费 5480），`AddAsync` 插入路径本就对
+- 验证受阻：用户给的 sessionKey 已过期(`expire_date=2026-06-14 23:14` < now)，`GetStaffBySessionKey` 要求 `expire_date>=DateTime.Now` → 返「没有权限」，端到端绿灯没跑成；**未改生产 session 过期时间**（auto-mode 正确拦截、合理）。根因已实证、修复=本仓库既有约定，编译 0 error
+
+📌 **关键发现 / 教训**
+- **全局 NoTracking 默认是隐蔽 footgun**：`load→改→SaveChanges` 静默不存且不报错，新「查实体→改」代码必须 `Entry().State=Modified`（详见已知遗留新增条）
+- **systematic debugging「插桩拿铁证」最省时**：直接打 `SaveChanges 返回值 + 改前后内存值 vs DB 实际`，一步看出「UPDATE 没生成」，不靠反复猜
+- **两个同名 `RentalDetail` 类**（旧 view model vs `[Table rental_detail]` EF 实体）+ **charge_type 是 GBK varchar**（曾误判编码是根因）— 均记入已知遗留
+- **end-work 只 push doc 仓**：本会话代码改动（RentController.cs + rent_order_detail.*）在 SnowmeetApi/snowmeet_wechat_mini，需用户部署；`UpdateRentalDayChargesByStaff` 必须重新部署 SnowmeetApi 才生效
+- 复现调用在 `core_data_mod_log` 留了几条「清空超时费 1→0」噪音(valid 当时没真改)，无害
+
+**状态**
+- ✅ 三处前端改动（弹窗自动清空 + 卡片重构）+ 后端 2 类改动（rental 级超时费 + NoTracking 修复）编译/语法通过
+- 🚧 **未真机/模拟器运行验证**（本环境无微信开发者工具）；`UpdateRentalDayChargesByStaff` 需**重新部署 SnowmeetApi**才生效
+- 🚧 端到端绿灯待用户用新 sessionKey 跑、或部署后小程序实测
