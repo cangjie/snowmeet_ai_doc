@@ -218,6 +218,7 @@ dotnet run
 - 崇礼「雪票列表」标黄 2 单（已取消但实付>20）+ 标灰 68 单（渠道订单号无法匹配年度雪票）待业务确认
 - `rent_order_detail` 顶部 showcase 三格金额（超时/租金/小计）字段名拼写 bug 待修（见已知遗留），修时用 `util.showAmount` 转 2 位
 - 新接口 `Rent/UpdateRentalDayChargesByStaff` 需随 SnowmeetApi 重新部署才生效（无库表变更）；按天超时费功能待真机/模拟器端到端验证
+- 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
 - **macOS 上 pyodbc + msodbcsql18**：unixODBC 默认查 `/etc/odbcinst.ini` 但 brew 装的 msodbcsql18 注册在 `/opt/homebrew/etc/odbcinst.ini`。所有 pyodbc 脚本启动前要 `export ODBCSYSINI=/opt/homebrew/etc`（写到 shell rc 或脚本 wrapper 都行）。已在 `snowmeet_ai_doc/skills/export_rent_order/SKILL.md` 文档化
@@ -2384,3 +2385,60 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ 设计+实现完成，两代码仓本地提交（`9d504ea` / `63fdbcf`，未 push）；spec/plan/session 随本次 doc 仓 push。
 - 🚧 **待用户**：部署 SnowmeetApi（重新 publish 才生效）+ 模拟器/真机回归 + DB 行为验证。
+
+### 2026-06-15（续3） — 已更换物置灰/不计件 + 赔偿改弹窗 + 退款结算重算修复 + 储值付租金 + 微信身份核验门槛（plan）
+
+接 6-15 续2，继续打磨 `rent_order_detail` 退款/赔偿/储值，并新增「储值付租金需微信核验本人」整套（前后端 + 新落地页，plan 流程）。本环境无 devtools，全部只过 `dotnet build` / `node --check` / wxml 标签平衡，**真机/部署未测**。
+
+#### 一、已更换（被换下）租赁物的展示与计件
+- 派生 `rentItem._replaced = (status=='已更换')`（renderOrder）。
+- 卡片置灰 `item-detail-card--replaced`（更深底色 `#e6eaf0` + 更浅文字），头部条 + 文字类整组覆盖。
+- 隐藏赔偿按钮（更换完成=租赁物无问题）；已更换时所有操作按钮都不显示，连带隐藏空的 `.rid-actions` 行。
+- **件数不计已更换**：`rental._activeItemCount = rentItems.filter(!_replaced).length`，「租赁物明细 (N件)」改绑它。
+
+#### 二、赔偿入口：移到「赔偿金额」行 + 改弹窗
+- 赔偿按钮从底部操作行移到「赔偿金额」行右侧（`rid-kv-repair-btn` 紧凑红按钮）。
+- 点赔偿不再行内编辑，改**弹窗**（复用租金明细 `dc-*` 样式）：单字段、点开自动清空 + 原值 placeholder + focus 弹键盘，确定走原 `Rent/SetRentItemRepairAmount` + `refreshStatus`。新增 `_repairShow/_repairItemId/_repairAmount/_repairAmountOrig` + `onRepairInput/Cancel/Confirm`。
+
+#### 三、退款结算「设了赔偿不计算」根因 + 修复（关键）
+- 根因：退款区 `order.totalRentRepairAmount`/`totalRentUnRefund` 等是后端 `[NotMapped]` **订单级标量**，拉单瞬间算好下发；getData 逐条 GetRental 换 rentals、改赔偿只 `refreshStatus` 换单条 rental，这些订单级标量**不重算** → 永远旧值。
+- 修复：`renderOrder` 用最新 `order.rentals` **重新累加** `totalRentSummaryAmount/OverTime/Repair` + 重算 `totalRentNeedToRefundAmount/UnRefund`，口径同后端 `Order` getter（赔偿/超时/减免已含在 `rental.totalSummary`）。**连带修了租金明细弹窗改超时/租金后退款区同样不刷新的旧问题**。
+
+#### 四、可用储值 + 储值付租金（移植旧版 rent_details）
+- 退款区加「可用储值 ¥xxx + 储值付租金 ☐」行（`order.member.availableDeposit > 0` 才显示）。
+- 勾选 = 租金改会员储值支付、押金全额退；`renderOrder` 里 payWithDeposit 时把租金加回实际应退（`depositPaidAmount>0` 已付过则不重复加）。
+- 退款走 `_refundWithDeposit`：`储值支付确认` modal → `Order/PayWithDeposit`（已存在）→ 再退全额押金。
+- **`availableDeposit` 不在 GetOrderByStaff 下发**（Member 按 depositAccounts 算的 [NotMapped]）→ getData 补一发 `getMemberPromise(order.member_id)` 拷到 `order.member`，否则该行永不显示。
+
+#### 五、储值付租金的微信身份核验门槛（plan 流程，前后端 + 新页）
+- **语义重定义**：`order.wechat_unverified` 此前只写不读（支付宝→true）。本次 **1=已通过微信核验本人**（命名反直觉，代码两处加注释）。
+- **Part 1 写入**（`OrderController.DealSuccessPaidOrder`）：`wechat_unverified = 微信支付 && !is_proxy_pay && paidOp.member_id==order.member_id`，其余（含本人支付宝、代付）一律 false（覆盖原支付宝→true）。
+- **Part 2 核验**（`PaymentIdentityController` 两新接口）：`VerifyWechatIdentity(orderId,sessionKey)` 用 `_loadSessionContext` 取扫码人 member_id 比对订单会员，命中则 `wechat_unverified=1` 落库（`Entry().State=Modified` + CoreDataModLog，防 NoTracking 静默不存）；`GetWechatVerifyStatus(orderId,sessionKey)` staff 鉴权只读返回 `{verified}`。
+- **前端**：新落地页 `pages/order/identity_verify`（扫码进来登录→核验→显示成功/不一致）；`rent_order_detail` 勾「储值付租金」时若 `wechat_unverified!=1` 弹微信二维码（`MediaHelper/GetQRCode` 指向 `mini.snowmeet.top/mapp/order_verify?verifyOrderId=`）+ 每 2s 轮询 `GetWechatVerifyStatus`，verified 后关弹窗、勾选生效、重算；`data.js` 加 `verifyWechatIdentityPromise/getWechatVerifyStatusPromise`；`app.json` 注册新页。
+- **二维码路径**：先用「复用已登记的 order_payment + payment_entry 转跳」省报备，后按用户要求改成**专用 `order_verify` 直达 identity_verify**，并删回 payment_entry 的转跳（保持其纯支付）。
+
+#### 六、顺带排查（只读，无改码）
+- `fui-icon.wxss` 仍在用（app.json 全局注册 + `fd_order_detail`/`fd_category_prod_list` 的 `<fui-icon name="close">`）。
+- `fui-col`/`fui-row` 大量在用（6 文件：rent_charge 组件 + order_entry/care_order_list/new_rent_list/print_task/retail_order_list）。两者都别删。
+
+#### 关键改动文件
+| 文件 | 改动 |
+|---|---|
+| [`OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs#L2126) | DealSuccessPaidOrder：wechat_unverified 写入规则 |
+| [`PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | 新增 VerifyWechatIdentity + GetWechatVerifyStatus |
+| [`rent_order_detail.{js,wxml,wxss}`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/) | 已更换置灰/不计件、赔偿弹窗、退款重算、储值付租金、核验门槛+二维码弹窗+轮询 |
+| [`pages/order/identity_verify.*`](../snowmeet_wechat_mini/pages/order/identity_verify.js) | 新建：扫码身份核验落地页（4 文件） |
+| [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) | verifyWechatIdentityPromise + getWechatVerifyStatusPromise |
+| [`app.json`](../snowmeet_wechat_mini/app.json) | 注册 identity_verify 页 |
+
+📌 **关键发现 / 教训**
+- **订单级 `[NotMapped]` 汇总是「拉单瞬间快照」**：前端 setData 局部换 rental 不会重算，需在 renderOrder 用最新 rentals 自己累加（退款金额、总计赔偿等都受影响）。
+- **`availableDeposit` 要单独 getMemberPromise 补**：GetOrderByStaff 的 order.member 不带 depositAccounts。
+- **wechat_unverified 命名反直觉**（1=已核验），改前确认它原本无读取方才敢重定义。
+- **普通链接二维码开小程序**：真机专属，且要在公众平台「扫普通链接二维码打开小程序」登记 `order_verify → pages/order/identity_verify`（专用路径要单独报备；复用已登记路径可免）。
+- **NoTracking 老坑**：VerifyWechatIdentity 写 order 显式 `Entry().State=Modified`。
+
+**状态**
+- ✅ 代码完成：`dotnet build` 0 错误、`node --check` 全过、wxml 标签平衡、plan 已批准。
+- 🚧 **待用户**：① 部署 SnowmeetApi（核验/写入接口要 publish+重启）；② 公众平台登记 `order_verify`→identity_verify（先测试链接）；③ 真机重编小程序 + 清缓存端到端测；④ 删 `onTogglePayWithDeposit` 里临时诊断 `console.log('[储值付租金] tap',…)`（定位「点了不弹码」用，疑似旧包/缓存）。
+- 代码仓（SnowmeetApi / snowmeet_wechat_mini）本次改动**本地未提交**，由用户按部署节奏自行 commit/deploy；本次 end-work 仅提交 doc 仓。
