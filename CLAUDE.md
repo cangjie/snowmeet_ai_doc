@@ -297,7 +297,7 @@ dotnet run
 - **全版本域名统一 mini.snowmeet.top**（2026-06-12，已 commit `34bf8438`）：[app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) 删掉按环境 `getDomain()` 读 `domain.txt` 切域名的**两处复制 switch**，所有版本（开发/体验/正式）冷启动都用 globalData 默认 `mini.snowmeet.top`，不再读 domain.txt（旧缓存自动失效、无需清缓存）。顺手修 `case 'trail'` typo → `'trial'`（envVersion 体验版真实值）。`pages/admin/env` 手动切域名调试页保留但只会话内临时生效。**图片/上传等写死的 `snowmeet.wanlonghuaxue.com`（含 [data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片前缀 + uploadDomain CDN）一律保留不动**（用户拍板，只改 `requestPrefix`/`domainName`）
 - **「顾客已扫码」状态唯一依赖 `order_payment.customer_open_date`**（2026-06-12 排查）：`GetPaymentLiveStatus` 的 `scanned` 阶段只看这一个字段，由 `GetOrderFromPaymentByCustomer` 顾客打开 payment_entry 时落戳（[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444)，无条件、status=待支付 即落）。**支付宝靠 `submit_time` 走「支付中」分支绕过它**（生成支付时就写 submit_time）→ 支付宝能显示状态、微信不显示=该戳没落。**排查"代码对但线上行为不对"的顺序：先 DB 直查 `customer_open_date` 全表是否有任何非空（0 条 = 从没工作过，不是偶发），再确认服务 `ExecStart` 实际加载的 dll 是不是最近 `dotnet publish` 的**（`git log=f455a87` ≠ 在跑的 dll 被替换；`publish -o` 必须 = `ExecStart` 目录，否则编到没在跑的地方、restart 永远旧 dll）。另：模拟器做不了「扫普通链接二维码打开小程序」（真机专属），测落戳要么真机扫、要么自定义编译直接开 `payment_entry?paymentId=X`
 - **`rent_order_detail` 顶部 showcase 五格金额字段名拼写错位（既存 bug，待修）**：WXML 用 `item.totalOverTimeAmount`(大写 T)/`item.totalSummaryAmount`/`item.totalRentSummaryAmount`，后端 `Rental` 计算属性是 `totalOvertimeAmount`/`totalSummary`/`totalRentalAmount`，对不上 → 这三格恒显 ¥0（`totalDiscountAmount`/`totalRepairationAmount` 拼写对、正常）。所以在「租金明细」里改了超时费，行的小计会变、但**顶部那三格不跟着变**。修时注意后端返回是裸 `double`，要用 `util.showAmount` 转 2 位避免浮点尾数，别 `¥{{裸值}}`
-- **超时费改为 rental 级单条存**（2026-06-15 拍板，原 6-14「按天」改）：`rent_order_detail` 走 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs#L5410) upsert，命中键 = `rental_id + charge_type=超时费 + valid=1`（**不带 rental_date 窗口**，全 rental 唯一一条）：超时费=0 命中则 `valid=0`、不命中不处理；≠0 命中改 amount、不命中插入。`totalOvertimeAmount` getter 仍按 type 求和。**前端显示连带影响**：`renderOrder` 的 `feeRows` 仍按 `rental_date` 聚合，这条超时费只挂在它 `rental_date`（首建那天）对应的行，其它天显示 ¥0；从别天改金额会更新但 rental_date 不动（视觉反直觉、数据正确）。租金/减免仍按天（`rentDetailId` 定位）。旧 `UpdateRental`（`_filledOverTimeCharge` 整单单值）若再走会把多条合并成一条
+- **⚠️ 此条已作废（2026-06-15 续2 又改回「按天」）**：见开发日志「2026-06-15（续2）」。超时费现按天 upsert（命中键带 `rental_date` 当天窗口，每天可各一笔），并支持「免除」当日费用。以下为被撤销的旧描述，保留备查 → ~~**超时费改为 rental 级单条存**（2026-06-15 拍板，原 6-14「按天」改）：`rent_order_detail` 走 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs#L5410) upsert，命中键 = `rental_id + charge_type=超时费 + valid=1`（**不带 rental_date 窗口**，全 rental 唯一一条）~~：超时费=0 命中则 `valid=0`、不命中不处理；≠0 命中改 amount、不命中插入。`totalOvertimeAmount` getter 仍按 type 求和。**前端显示连带影响**：`renderOrder` 的 `feeRows` 仍按 `rental_date` 聚合，这条超时费只挂在它 `rental_date`（首建那天）对应的行，其它天显示 ¥0；从别天改金额会更新但 rental_date 不动（视觉反直觉、数据正确）。租金/减免仍按天（`rentDetailId` 定位）。旧 `UpdateRental`（`_filledOverTimeCharge` 整单单值）若再走会把多条合并成一条
 - **`rent_order_detail` 租金明细已从「逐 detail 行」改为「按天聚合行」**：`renderOrder` 把 `rental.details` 按 `formatDate(rental_date)` 聚合成 `rental.feeRows`（仅 `charge_type∈{租金,超时费}` 且 `valid==1`；赔偿金不进此表，仍走租赁物每件「赔偿」按钮）。WXML 改 iterate `item.feeRows`、行可点 `onEditDayCharge`。每行真理之源是当天的「租金」detail id（`row.rentDetailId`）；理论上「某天只有超时费没有租金」会无法编辑（已 toast 拦截，罕见）
 - **新接口减免守卫复用既有归属键**：`biz_type=租赁 / sub_biz_type=日租金 / sub_biz_id=租金detail.id / ticket_code=null`，与旧 `UpdateRentalDetails` 一致；只在「现有日租金减免 != 新减免」时才调 `UpdateSingleDiscount`，规避其 `amount==0 且无现有行` 的 NRE
 - **⚠️ 全局 `QueryTrackingBehavior.NoTracking` 是大坑（2026-06-15 踩，耗 1 整轮排查）**：[`Startup.cs:48`](../SnowmeetApi/Startup.cs#L48) 配了 `.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)` → **所有 EF 查询默认返回不被跟踪的实体**，`load 实体 → 改字段 → SaveChanges()` 会**静默不持久化**（SaveChanges 只写 `AddAsync` 的实体，返回行数也只算那些，不报错）。本控制器 30+ 处更新都显式 `_db.X.Entry(x).State = EntityState.Modified` 正是为此。`UpdateRentalDayChargesByStaff`（6-14 新加）漏写 → 改租金/改超时费/清超时费 valid 全不生效，只有 `AddAsync` 插新超时费能存（典型症状：接口返 code=0 成功但 DB 没变）。已在 3 处补 `State=Modified`（[`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs) 5441/5471/5480）。**今后任何「查实体→改→存」的新代码必须显式 `Entry(x).State=Modified` 或查询带 `.AsTracking()`**
@@ -2349,3 +2349,38 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 三处前端改动（弹窗自动清空 + 卡片重构）+ 后端 2 类改动（rental 级超时费 + NoTracking 修复）编译/语法通过
 - 🚧 **未真机/模拟器运行验证**（本环境无微信开发者工具）；`UpdateRentalDayChargesByStaff` 需**重新部署 SnowmeetApi**才生效
 - 🚧 端到端绿灯待用户用新 sessionKey 跑、或部署后小程序实测
+
+### 2026-06-15（续2） — 超时费改回「按天」+ 「免除」当日费用（brainstorm→spec→plan→实现）
+
+承接早些时候的 `rent_order_detail` 工作。用户要把超时费**从今早拍板的 rental 级单条存改回按天**（每天可各一笔），并在「编辑租金明细」弹窗加「免除」复选框（抹除当天租金/超时费/减免、列表横线划掉、取消勾选可恢复）。本场走 superpowers 全流程：brainstorming → 写 spec → writing-plans → 执行。归档见 [`sessions/2026-06-15_perday_overtime_and_waive_day_charges.md`](sessions/2026-06-15_perday_overtime_and_waive_day_charges.md)；spec/plan 见 [`docs/superpowers/specs/2026-06-15-rental-day-charges-waive-and-per-day-overtime-design.md`](docs/superpowers/specs/2026-06-15-rental-day-charges-waive-and-per-day-overtime-design.md) + [`docs/superpowers/plans/2026-06-15-rental-day-charges-waive-and-per-day-overtime.md`](docs/superpowers/plans/2026-06-15-rental-day-charges-waive-and-per-day-overtime.md)。
+
+#### 一、设计要点（方案 A：复用 valid=0 标记免除）
+- 「免除」= 当天租金明细 + 当天超时费 + 当天非票券「日租金」减免三条 `valid→0`、**金额保留**；恢复 = 置回 1（金额原样回来）。零库表改动。
+- 副作用（用户已接受）：租期起止 `realStartDate/EndDate` 取 valid=1 明细，免除首/末/唯一天会让显示租期缩。
+- 超时费查找键加回 `rental_date` 当天窗口（撤销早上的 rental 级单条）。
+
+#### 二、后端 [`UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs#L5410)（提交 SnowmeetApi `9d504ea`，本地未 push）
+- 新增 `[FromQuery] bool waived=false`，拆两条路径：
+  - **路径 A（waived=true）**：当天租金/超时费 `valid→0`（带 `Entry().State=Modified`）；减免仅在有 valid=1 行时才 `UpdateSingleDiscount(0)`（避免 amount=0 无行 NRE）。
+  - **路径 B（waived=false，正常/恢复）**：租金「金额变」与「复活 valid」**相互独立**判定；减免沿用 curDiscount 守卫；超时费按天 upsert（`rental_id + 当天 + 超时费`，**不限 valid** 以支持恢复，overtime>0 复活/改额、=0 作废、无则插入）。
+- 每处 valid/amount 改写显式 `Entry().State=Modified`（防全局 NoTracking 静默不存——本接口 6-14 翻车点）。
+
+#### 三、前端（提交 snowmeet_wechat_mini `63fdbcf`，本地未 push，含昨天未提交前端）
+- [`data.js`](../snowmeet_wechat_mini/utils/data.js#L666) `updateRentalDayChargesPromise` 加第 8 参 `waived` → URL `&waived=`。
+- [`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 聚合：纳入被免除天（该天只有 valid=0 租金明细 → `row.waived=true`，仍取原值）；超时费免除天取全部（含 valid=0）、正常天只取 valid=1；**减免改从 `detail.discounts` 原始数组取**（非票券、不论 valid），免除后仍能取到原值供恢复/划线。弹窗加 `_dayChargeWaived` 状态 + `onDayChargeWaivedToggle` + confirm 传参。
+- [`.wxml`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxml)：列表行 `detail-table-row--waived` 条件 class；弹窗减免行与按钮之间加「免除本日全部费用」复选框，勾选时三输入框 `disabled`+置灰。
+- [`.wxss`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxss)：`.detail-table-row--waived` 划线 + `.dc-checkbox*` + `.dc-input--disabled`。
+
+#### 四、验证
+- ✅ `dotnet build` 0 错误；`node --check` data.js + rent_order_detail.js 通过；跨文件标识符一致。
+- 🚧 **未跑**：DB 行为验证（按天两笔互不覆盖、免除三条 valid→0 金额不变、恢复回 1、NoTracking 回归）+ 模拟器/真机（本环境无 devtools + sessionKey 已过期）。
+
+📌 **关键发现 / 教训**
+- **免除恢复必须「金额变」与「复活 valid」解耦**：恢复时传入 rent 常等于被保留的原值（如 ¥0.01 头盔），若复活逻辑嵌在「金额≠原值」分支里则永远恢复不了、一直划线。
+- **减免原值要从 `detail.discounts` 原始数组取**（不论 valid），不能用 `othersDiscountAmount`（只算 valid=1），否则免除后减免读成 0、恢复丢值。
+- **NoTracking 老坑复现**：新写的 valid 翻转若漏 `Entry().State=Modified` 会静默不存（已全程带上）。
+- **superpowers 全流程**（brainstorm→spec→plan→execute）适合「需求看似一句话、实则有数据语义抉择」的改动；方案 A（valid 标记）vs B（新列）在 brainstorm 阶段由用户拍板选 A。
+
+**状态**
+- ✅ 设计+实现完成，两代码仓本地提交（`9d504ea` / `63fdbcf`，未 push）；spec/plan/session 随本次 doc 仓 push。
+- 🚧 **待用户**：部署 SnowmeetApi（重新 publish 才生效）+ 模拟器/真机回归 + DB 行为验证。
