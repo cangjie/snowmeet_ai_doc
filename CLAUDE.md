@@ -298,6 +298,7 @@ dotnet run
 - **全版本域名统一 mini.snowmeet.top**（2026-06-12，已 commit `34bf8438`）：[app.js](../snowmeet_wechat_mini/app.js) + [mine.js](../snowmeet_wechat_mini/pages/mine/mine.js) 删掉按环境 `getDomain()` 读 `domain.txt` 切域名的**两处复制 switch**，所有版本（开发/体验/正式）冷启动都用 globalData 默认 `mini.snowmeet.top`，不再读 domain.txt（旧缓存自动失效、无需清缓存）。顺手修 `case 'trail'` typo → `'trial'`（envVersion 体验版真实值）。`pages/admin/env` 手动切域名调试页保留但只会话内临时生效。**图片/上传等写死的 `snowmeet.wanlonghuaxue.com`（含 [data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片前缀 + uploadDomain CDN）一律保留不动**（用户拍板，只改 `requestPrefix`/`domainName`）
 - **「顾客已扫码」状态唯一依赖 `order_payment.customer_open_date`**（2026-06-12 排查）：`GetPaymentLiveStatus` 的 `scanned` 阶段只看这一个字段，由 `GetOrderFromPaymentByCustomer` 顾客打开 payment_entry 时落戳（[OrderController.cs:2444](../SnowmeetApi/Controllers/OrderController.cs#L2444)，无条件、status=待支付 即落）。**支付宝靠 `submit_time` 走「支付中」分支绕过它**（生成支付时就写 submit_time）→ 支付宝能显示状态、微信不显示=该戳没落。**排查"代码对但线上行为不对"的顺序：先 DB 直查 `customer_open_date` 全表是否有任何非空（0 条 = 从没工作过，不是偶发），再确认服务 `ExecStart` 实际加载的 dll 是不是最近 `dotnet publish` 的**（`git log=f455a87` ≠ 在跑的 dll 被替换；`publish -o` 必须 = `ExecStart` 目录，否则编到没在跑的地方、restart 永远旧 dll）。另：模拟器做不了「扫普通链接二维码打开小程序」（真机专属），测落戳要么真机扫、要么自定义编译直接开 `payment_entry?paymentId=X`
 - **`rent_order_detail` 顶部 showcase 五格金额字段名拼写错位（既存 bug，待修）**：WXML 用 `item.totalOverTimeAmount`(大写 T)/`item.totalSummaryAmount`/`item.totalRentSummaryAmount`，后端 `Rental` 计算属性是 `totalOvertimeAmount`/`totalSummary`/`totalRentalAmount`，对不上 → 这三格恒显 ¥0（`totalDiscountAmount`/`totalRepairationAmount` 拼写对、正常）。所以在「租金明细」里改了超时费，行的小计会变、但**顶部那三格不跟着变**。修时注意后端返回是裸 `double`，要用 `util.showAmount` 转 2 位避免浮点尾数，别 `¥{{裸值}}`
+- **`Rental.isPackage` 修复已落代码、需重新部署后端**（2026-06-15 续4）：原逻辑 `package_id!=null || rentItems.Count>1`，后者导致单品含多件 rentItem（如 rental 54369：`package_id=null, category_id=76, name='头盔', 2 件同品类`）被误判为套餐，前端 chip 显示「套餐」。已改为 `package_id != null`（[`Models/Rent/Rental.cs`](../SnowmeetApi/Models/Rent/Rental.cs)）。**套餐和单品都可能含 N 件租赁物**（单品含附件项如雪板+雪杖是正常业务场景），件数不是判断套餐的依据。重新部署 SnowmeetApi 后生效
 - **⚠️ 此条已作废（2026-06-15 续2 又改回「按天」）**：见开发日志「2026-06-15（续2）」。超时费现按天 upsert（命中键带 `rental_date` 当天窗口，每天可各一笔），并支持「免除」当日费用。以下为被撤销的旧描述，保留备查 → ~~**超时费改为 rental 级单条存**（2026-06-15 拍板，原 6-14「按天」改）：`rent_order_detail` 走 [`Rent/UpdateRentalDayChargesByStaff`](../SnowmeetApi/Controllers/RentController.cs#L5410) upsert，命中键 = `rental_id + charge_type=超时费 + valid=1`（**不带 rental_date 窗口**，全 rental 唯一一条）~~：超时费=0 命中则 `valid=0`、不命中不处理；≠0 命中改 amount、不命中插入。`totalOvertimeAmount` getter 仍按 type 求和。**前端显示连带影响**：`renderOrder` 的 `feeRows` 仍按 `rental_date` 聚合，这条超时费只挂在它 `rental_date`（首建那天）对应的行，其它天显示 ¥0；从别天改金额会更新但 rental_date 不动（视觉反直觉、数据正确）。租金/减免仍按天（`rentDetailId` 定位）。旧 `UpdateRental`（`_filledOverTimeCharge` 整单单值）若再走会把多条合并成一条
 - **`rent_order_detail` 租金明细已从「逐 detail 行」改为「按天聚合行」**：`renderOrder` 把 `rental.details` 按 `formatDate(rental_date)` 聚合成 `rental.feeRows`（仅 `charge_type∈{租金,超时费}` 且 `valid==1`；赔偿金不进此表，仍走租赁物每件「赔偿」按钮）。WXML 改 iterate `item.feeRows`、行可点 `onEditDayCharge`。每行真理之源是当天的「租金」detail id（`row.rentDetailId`）；理论上「某天只有超时费没有租金」会无法编辑（已 toast 拦截，罕见）
 - **新接口减免守卫复用既有归属键**：`biz_type=租赁 / sub_biz_type=日租金 / sub_biz_id=租金detail.id / ticket_code=null`，与旧 `UpdateRentalDetails` 一致；只在「现有日租金减免 != 新减免」时才调 `UpdateSingleDiscount`，规避其 `amount==0 且无现有行` 的 NRE
@@ -2442,3 +2443,31 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 代码完成：`dotnet build` 0 错误、`node --check` 全过、wxml 标签平衡、plan 已批准。
 - 🚧 **待用户**：① 部署 SnowmeetApi（核验/写入接口要 publish+重启）；② 公众平台登记 `order_verify`→identity_verify（先测试链接）；③ 真机重编小程序 + 清缓存端到端测；④ 删 `onTogglePayWithDeposit` 里临时诊断 `console.log('[储值付租金] tap',…)`（定位「点了不弹码」用，疑似旧包/缓存）。
 - 代码仓（SnowmeetApi / snowmeet_wechat_mini）本次改动**本地未提交**，由用户按部署节奏自行 commit/deploy；本次 end-work 仅提交 doc 仓。
+
+### 2026-06-15（续4） — 退款区横排 + isPackage 修复 + rentItem 备注统一 + 已更换隐藏发放记录
+
+改动集中在 `rent_order_detail`（前端）+ `Rental.cs`（后端模型），均为 UI 打磨和既存逻辑 bug 修复。
+
+#### 一、退款区四格改单行横排
+- 退款卡的「总计押金/租金/超时/赔偿」4 个摘要块从 2×2 换行改为单行等宽排列（`flex-wrap:nowrap; flex:1`），节约纵向空间。标签 22→20rpx，值 28→26rpx，内边距 10/14→8/8rpx，gap 12→8rpx。
+
+#### 二、`isPackage` bug 修复（后端，待重新部署）
+- **现象**：rental 54369（`package_id=null, name='头盔', 2 件 rentItem`）在订单详情显示「套餐」chip。
+- **根因**：`Rental.isPackage` 旧逻辑 `package_id!=null || rentItems.Count>1`，后半段把多件单品误判为套餐。
+- **修复**：`Rental.isPackage` 改为 `package_id != null`。业务约定：套餐/单品都可含 N 件租赁物（单品附件项如雪板附带雪杖属正常场景），件数不是套餐判定依据。
+
+#### 三、rentItem 备注与 rental 备注统一
+- **旧**：rental 备注用 `wx.showModal` 圆角盒子；rentItem 备注用内联 input + 取消/确认按钮，样式不一致。
+- **新**：rentItem 备注改为相同的 `rental-showcase-memo-box` 圆角盒子，空时显示「添加备注」灰色占位，tap 触发 `onItemMemoTap`（`wx.showModal` 弹窗），保存走 `updateRentItemPromise`。
+- 删除旧的 4 个 handler：`onItemMemoEdit / onItemMemoInput / onItemMemoCancel / onItemMemoConfirm`。
+
+#### 四、已更换租赁物隐藏发放记录
+- 被换下的租赁物（`rentItem._replaced=true`）卡片底部发放记录区域用 `<block wx:if="{{!rentItem._replaced}}">` 包裹，不再渲染。
+
+#### 关键改动文件
+| 文件 | 改动 |
+|---|---|
+| [`rent_order_detail.wxss`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxss) | 退款区 4 格改单行横排 |
+| [`rent_order_detail.wxml`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxml) | rentItem 备注改盒子样式；已更换物隐藏发放记录 |
+| [`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) | 删旧 4 个内联备注 handler，新增 `onItemMemoTap` |
+| [`Models/Rent/Rental.cs`](../SnowmeetApi/Models/Rent/Rental.cs) | `isPackage` 只看 `package_id != null` |
