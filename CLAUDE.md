@@ -2471,3 +2471,27 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 | [`rent_order_detail.wxml`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxml) | rentItem 备注改盒子样式；已更换物隐藏发放记录 |
 | [`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) | 删旧 4 个内联备注 handler，新增 `onItemMemoTap` |
 | [`Models/Rent/Rental.cs`](../SnowmeetApi/Models/Rent/Rental.cs) | `isPackage` 只看 `package_id != null` |
+
+### 2026-06-19 — start-work/end-work 跨机一致固化（关键动作搬进 SKILL.md）+ 6-17 工作考古补记
+
+本场是工作流维护 + 考古，无业务代码改动（仅 doc 仓 skill）。详见 [sessions/2026-06-19_skill_cross_machine_consistency.md](sessions/2026-06-19_skill_cross_machine_consistency.md)。
+
+#### 一、start-work/end-work 改为「自包含、随 git 跨机」（已 commit `89c730f`）
+- 用户诉求：两个 skill 在所有电脑执行效果一致
+- **根因**：end-work 的「自动 git push」「不需确认」历史上靠 **Mac 那台 Stop hook + 本机 auto-memory**，而 `settings.local.json`（hook）和 memory 都不入 git、不跨机 → 换机行为就变。关键动作没写进唯一跨机的 SKILL.md
+- 修复：[end-work/SKILL.md](.claude/skills/end-work/SKILL.md) 加「跨机一致原则」+ Process 补 git pull(第1步)/add+commit+push(第6步固定收尾) + 删「draft→等确认」改直接落盘 + 加「memory 对账」；[start-work/SKILL.md](.claude/skills/start-work/SKILL.md) 加「跨机一致 & memory」小节
+- [`.claude/settings.local.json`](.claude/settings.local.json) 转本机不跟踪：`git rm --cached` + 写进 `.gitignore`（原本被跟踪、内容是旧 Mac permission，属跨机互相覆盖源）。⚠️ 副作用：其它电脑 pull 后会删本地该文件，各机自行重建
+- **发现机制（需人保证）**：Claude Code 靠递归扫子目录发现 `snowmeet_ai_doc/.claude/skills`；每台新机首次确认 snowmeet_ai_doc clone 在工作目录下 + skill 在列表里，否则直接在 `snowmeet_ai_doc` 里启动
+
+#### 二、6-17 工作考古补记（无 git diff，文件 mtime + 代码现状推断）
+开发日志此前缺 6-16/6-17。6-17 单独编辑文件（排除两批批量同步）集中在下午 15:59 后：
+- **租赁物「更换」功能（前后端完整）**：后端 [RentController.cs](../SnowmeetApi/Controllers/RentController.cs) 新增 `GetChangeCompatibleCategory`/`QueryChangeCompatibleCategory`/`ChangeRentItem`/`ChangeRentItemByStaff`/`GetRentItemChanges`；前端 [data.js](../snowmeet_wechat_mini/utils/data.js) `queryRentItemChangeCompatibleCategory`；[rent_order_detail.*](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 的 `_chg*` 更换弹窗（选兼容品类/无编码/扫码/备注+二次确认）+「更换记录」展开 + 已更换物置灰/不计件/隐藏发放记录；设计稿 [order_detail_change_rent_item.html](templates/rent/order_detail_change_rent_item.html)
+- **支付身份确认即落库扫码方 openid**：[PaymentIdentityController.cs](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 新增 `_persistPayerOpenId`，`_applyChoice`/`_applyConfirmDirect` 身份确认即写 order_payment（微信 `open_id` / 支付宝 `ali_buyer_id`），修「只写 member_id、openid 漏写表」
+- 下午 order-payment / rent_recept_form / rent_details 也被动过，无 diff 基线未精确还原；`config.sqlServer` 仅本机配置
+- **待办**：更换功能 + openid 落库在后端需重新部署 SnowmeetApi；[rent_order_detail.js](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 第 956 行临时诊断 `console.log('[储值付租金] tap',…)` 仍在，上线前删
+
+📌 关键发现 / 教训：
+- **Skill 工具加载会话启动时缓存的 SKILL.md**：本场改完 SKILL.md 后会话内触发 `/end-work` 仍是旧版；改动**下次会话**才生效
+- **「每台机不一样」= 关键行为依赖了不跨机载体**（hook/memory）；逻辑必须写进随 git 走的 SKILL.md
+- **memory vs doc 分工**：doc 是项目知识真源；memory 只放个人偏好 + 指向 doc 的书签
+- **非 git 工作目录无法考古 diff**：6-17 改动只能靠 mtime + 读码推断，反证 end-work 实时归档的价值
