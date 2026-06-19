@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-15）
+## 当前状态（截至 2026-06-20）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -292,6 +292,11 @@ dotnet run
 - **⚠️ 全局 `QueryTrackingBehavior.NoTracking` 是大坑（2026-06-15 踩，耗 1 整轮排查）**：[`Startup.cs:48`](../SnowmeetApi/Startup.cs#L48) 配了 `.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)` → **所有 EF 查询默认返回不被跟踪的实体**，`load 实体 → 改字段 → SaveChanges()` 会**静默不持久化**（SaveChanges 只写 `AddAsync` 的实体，返回行数也只算那些，不报错）。本控制器 30+ 处更新都显式 `_db.X.Entry(x).State = EntityState.Modified` 正是为此。`UpdateRentalDayChargesByStaff`（6-14 新加）漏写 → 改租金/改超时费/清超时费 valid 全不生效，只有 `AddAsync` 插新超时费能存（典型症状：接口返 code=0 成功但 DB 没变）。已在 3 处补 `State=Modified`（[`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs) 5441/5471/5480）。**今后任何「查实体→改→存」的新代码必须显式 `Entry(x).State=Modified` 或查询带 `.AsTracking()`**
 - **两个同名 `RentalDetail` 类易读错文件**：`SnowmeetApi.Models.Rent.RentalDetail`（[`Models/Rent/RentalDetail.cs`](../SnowmeetApi/Models/Rent/RentalDetail.cs)，旧 view model，只有 name/cell/shop/staff 无 id/valid/charge_type）vs `SnowmeetApi.Models.RentalDetail`（EF 实体，`[Table("rental_detail")]` 在 [`Models/Rent/Rental.cs:287`](../SnowmeetApi/Models/Rent/Rental.cs#L287)，有 id/valid/charge_type/amount/rental_id/rental_date）。`_db.rentalDetail` 用的是后者，排查实体映射别开错文件
 - **`rental_detail.charge_type` 是 `varchar(50) Chinese_PRC_CI_AS`（GBK 存储）**：`SELECT CONVERT(varbinary,charge_type)` 看到 `超时费` = `B3ACCAB1B7D1`（GBK 6 字节，非 UTF-16LE）。但 EF 默认把 string 属性映射成 nvarchar，发 `N'超时费'` 参数与 varchar 列在 Chinese 排序规则下隐式转换仍能命中，所以**编码不是「EF 查不到超时费」的根因**（2026-06-15 曾误判一轮）
+- **支付宝 OpenID 模式 notify 字段是 `buyer_open_id`、无 `buyer_id`（2026-06-20）**：`AlipayPayByOrderPayment` 用 `model.BuyerOpenId` 创建交易（OpenID 模式商户），异步 notify (`trade_status_sync`) 回的付款方标识是 `buyer_open_id`、`buyer_id` 为空。真实样本 `buyer_open_id=040P5LaEkN0J...` / `merchant_app_id=2021006157624571`。[`AliController.ParseCallBack`](../SnowmeetApi/Controllers/Order/AliController.cs) 现已加 `case "buyer_open_id"`；成功回调写 `payment.open_id`=payerOpenId(buyerOpenId 优先,回退 buyer_id 兼容老商户) + `open_id_type="alipay_openid"` + `ali_buyer_id`，物化会员也用 payerOpenId（MSA `alipay_payerid` 存的就是 open_id）。修前 open_id 恒空、空 buyer_id 还反覆盖 ali_buyer_id、游客会员物化被跳过
+- **`order_payment.cell` 列早已存在（varchar 16 nullable），DTO 此前漏映射（2026-06-20 补）**：用于代付落库代付人手机号。`is_proxy_pay=1` 全局唯一写入点 `PaymentIdentityController._applyChoice(choice=="proxy")` 处用 `_resolveProxyPayerCell`（微信取 `Member.cell`、支付宝取 `mini_session.cell`）写 `op.cell`，拿不到留空、软提示可跳过不阻断。DB schema 比 C# 模型新的又一例（同 punch_card / customer_open_date），改前先连库 `INFORMATION_SCHEMA.COLUMNS` 确认列真存在 + 类型
+- **`_applyChoice` 容忍状态翻成 direct（2026-06-20）**：扫码人授权的手机号若属订单本人，`submit_phone` 把 openid 绑到该会员 → scanner==owner → `_resolveStatus` 返 `direct`。[`_applyChoice`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 现接受 `direct`/`direct_to_scanner`（强制 `choice="self"` 按直付落库），不再报 `unexpected_state: direct` 把人卡死。真实顾客第一次用支付宝付自己的单也会撞上（曾报 paymentId=42618）
+- **租赁生命周期（起租/退租/状态）原本绑在 rental_detail 计费明细、与领还事件脱钩（2026-06-20 治本）**：`Rental.realStartDate`/`realEndDate` 原只取 valid=1 的 `rental_detail` 首/末日 → 在「修改租金明细」里**免除/清零唯一一条明细**(valid→0)后双 null → 状态机 `realStartDate==null` 退回「未开始」、无退租日期（即便装备已发放又已归还、settled=1）。已改为无有效明细时**回退到 `RentItemLog` 领还事件**（起租=最早 pickDate「已发放」、退租=最晚 returnDate「已归还」，settled=1 时）。⚠️ 配套：列表 `OrderController.GetOrdersByStaff` 两 branch 给 `rentals.rentItems` 补 `.ThenInclude(i => i.logs)`，否则列表上下文取不到领还事件、回退失效（详情页 GetRental 本就 include logs）。曾报 order 71762
+- **`Order.cs:1102` endDate 拷 `rental.end_date` 列（恒 null，`SetRentItemStatus` 从不写它）而非 `realEndDate`（既存 oddity，未改）**：`rentProperties.endDate` 可能为 null，但 rentStatus 最终由 `settledCount` 决定（settled 单仍正确判「全部归还」）、详情页退租日期用 `rental.realEndDate`（已修），故不影响 2026-06-20 修的问题。是否把 1102 对齐成 `realEndDate` 留待业务定
 
 ---
 
@@ -2482,3 +2487,70 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - **「每台机不一样」= 关键行为依赖了不跨机载体**（hook/memory）；逻辑必须写进随 git 走的 SKILL.md
 - **memory vs doc 分工**：doc 是项目知识真源；memory 只放个人偏好 + 指向 doc 的书签
 - **非 git 工作目录无法考古 diff**：6-17 改动只能靠 mtime + 读码推断，反证 end-work 实时归档的价值
+
+### 2026-06-19（续2） — 支付宝回调日志路径修复 + 租赁订单列表改版 + date-range-picker 组件
+
+本会话接续上次因 context 满截断的工作。主改 `new_rent_list`（4 轮迭代）+ 新建 `components/date-range-picker/` 自定义控件 + 修 `AliController.CallBack()` 日志路径。详见 [`sessions/2026-06-19_rent_list_redesign_date_picker.md`](sessions/2026-06-19_rent_list_redesign_date_picker.md)。
+
+#### 一、AliController.CallBack() 日志路径修复
+
+- **问题**：`certPath` 在 `ParseCallBack(postStr)` 之前构建，始终用类字段 `appId`（商户号 `2021004143665722`），导致两个 AppID 的回调日志都写到同一目录
+- **修复**（[`AliController.cs`](../SnowmeetApi/Controllers/Order/AliController.cs)）：把 `ParseCallBack` 提到日志写入之前，取 `callback.appId`（非空时）决定 `certPath`，空则 fallback 商户 `appId`；`certPath` 仅用于日志，验签走 `client`（构造函数初始化），无副作用
+
+#### 二、new_rent_list 改版（接续上一会话）
+
+上一会话已完成：删 fui-* 组件、新建 `GetOrdersByStaffPaged` 后端接口 + `PagedOrderResult` 类、`getRentOrdersByStaffPagedPromise` 数据接口、服务端分页、WXML/JS/WXSS 全量重写、WXSS 编译错误修复（中文 class 名改 ASCII）。
+
+本会话在此基础上的迭代：
+
+- ✅ **删「查看详细」按钮**：点卡片区域（`order-rows`）已绑 `gotoDetail`，底部按钮冗余 → 删 `.order-footer` wxml + wxss
+- ✅ **标签从横排改竖排左列**：`<view class="tag-row">` → `<view class="order-body">` 两列布局（左 `tag-col` 竖排标签 + 右 `order-rows` 详情）；`bindtap="gotoDetail"` 移到 `order-card` 整张卡片
+- ✅ **标签等宽**：`.tag-col` 改 `align-items: stretch`，`.tag` 加 `padding: 2rpx 0; text-align: center`，所有标签撑满列宽（48rpx）
+
+#### 三、新建 `components/date-range-picker/` 自定义控件
+
+替代 new_rent_list 里的双 `<picker mode="date">` 组合，提供「日期显示行（点击弹 van-calendar 范围）+ 快捷按钮行（今天/昨天/本周/上周）」一体化控件。
+
+- **index.json**：注册 `van-calendar`（已在 miniprogram_npm 下）
+- **index.wxml**：日期显示行 `.dpr-display`（bindtap 开日历）+ 快捷按钮行 `.dpr-shortcuts`（4 个 `.dpr-btn`，data-key 传给 `onShortcut`）；页面末尾挂 `<van-calendar type="range" allow-same-day bind:confirm="onCalendarConfirm">`
+- **index.wxss**：Alpine Operational Minimalist 风格；激活按钮 `.dpr-btn--active` 蓝色（`#006495`）
+- **index.js**：`_getMonday(d)` 算本周/上周；4 个快捷键分别算 start/end 后 `triggerEvent('change', {startDate, endDate})`；van-calendar confirm 回调取 `e.detail[0]/[1]`（Date 对象）格式化后触发同名事件；`activeShortcut` 追踪高亮态
+- **接入 new_rent_list**：`new_rent_list.json` 注册 `/components/date-range-picker/index`；WXML 日期行换 `<date-range-picker>`；JS `setDate` 改 `onDateRangeChange(e)` 直接 setData；WXSS 加 `.filter-row--date`（`align-items:flex-start` + 上下 padding）
+
+#### 关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`SnowmeetApi/Controllers/Order/AliController.cs`](../SnowmeetApi/Controllers/Order/AliController.cs) | CallBack：ParseCallBack 提前，用 callback.appId 决定日志路径 |
+| [`components/date-range-picker/index.{js,wxml,wxss,json}`](../snowmeet_wechat_mini/components/date-range-picker/) | 新建：日期范围选择器组件（van-calendar + 4 快捷按钮） |
+| [`pages/admin/rent/new_rent_list.{js,wxml,wxss,json}`](../snowmeet_wechat_mini/pages/admin/rent/) | 删查看详细按钮、标签竖排左列、标签等宽、接入 date-range-picker |
+| [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) | getRentOrdersByStaffPagedPromise（上一会话） |
+| [`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | GetOrdersByStaffPaged + PagedOrderResult（上一会话） |
+
+📌 **关键发现 / 教训**
+- **WXSS 编译器不支持中文字符类名**：`.status-chip--租赁中` 会报 `unexpected '@' at pos X`，原因是编译器把非 ASCII 字符编码为 `@XX` 导致语法错误。解决方案：JS 用 map 将中文状态字符串转 ASCII class 名（`renting/returned/closed/...`）再写入 data
+- **`performWebRequest` 解析 `res.data.data`**：分页 total 必须内嵌在 `ApiResult.data` 对象里（用 `PagedOrderResult { items, total }` 包装），不能独立放 ApiResult 顶层字段
+- **van-calendar `type="range"` confirm 事件**：detail 是 `[startDate, endDate]`（JS Date 对象数组），不是对象
+- **`date-range-picker` 的 util 路径**：从 `components/date-range-picker/index.js` 到 utils 是 `../../utils/util.js`
+
+### 2026-06-20 — 支付身份/订单详情/列表 多 bug 修复：alipay open_id 落库 + 代付 cell + choose_identity:direct + 去支付按钮 + 未支付/未开始区分 + 退租日期回退
+
+会话起始 start-work（doc 仓 `ad9ec49`）。一连串用户报的具体 bug/需求，全围绕支付身份验证 + 租赁订单详情/列表。改动跨 `SnowmeetApi`（5 文件）+ `snowmeet_wechat_mini`（2 页），**代码仓本地未提交、用户按部署节奏处理**，后端改动均需 `dotnet publish` 重新部署才生效。本次 end-work 仅提交 doc 仓。全部 `dotnet build` 0 error / `node --check` 通过；多处用 `config.sqlServer` 直连生产只读 + 真实数据复现/验证。详见 [`sessions/2026-06-20_alipay_openid_cell_rent_status_fixes.md`](sessions/2026-06-20_alipay_openid_cell_rent_status_fixes.md)。
+
+1. **支付宝 open_id 落 order_payment.open_id**（[`AliController.cs`](../SnowmeetApi/Controllers/Order/AliController.cs)）：OpenID 模式 notify 回 `buyer_open_id`（buyer_id 空），`ParseCallBack` 原只解析 buyer_id → open_id 恒空。加 `buyerOpenId` 字段 + `case "buyer_open_id"` + 成功回调写 open_id/open_id_type/ali_buyer_id + 物化会员用 payerOpenId。用户贴的真实 notify 一锤定音。详见已知遗留新增条。
+2. **代付落库代付人手机号到 order_payment.cell**（plan 流程，纯后端）：`OrderPayment` DTO 补 `cell` 属性（DB 列早存在）；`PaymentIdentityController._resolveProxyPayerCell` + `_applyChoice(proxy)` 写 `op.cell`（微信会员档案 / 支付宝 mini_session.cell）。手机号验证保持软提示可跳过、前端不改。详见已知遗留新增条。
+3. **修「当前状态非 choose_identity: direct」**（paymentId 42618）：扫码人==订单本人(15506) → submit_phone 绑 openid 后状态合法翻 direct → `_applyChoice` 旧代码报 unexpected_state。改为接受 direct/direct_to_scanner 按 self 直付。详见已知遗留新增条。
+4. **订单详情页加「去支付」按钮**（仅租赁，brainstorming 流程，纯前端 [`rent_order_detail`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/)）：未付清(`orderStatus∈{待生成,待支付,部分支付}`且应付>0)时支付信息卡显示整宽主色按钮「去支付 ¥应付」→ navigateTo 通用结算页 `pages/payment/settle/index?orderId=`。付完 settle.onPaid 已 redirectTo 回详情页、按钮自动消失。
+5. **列表区分「未支付」与「未开始」**（前端 `new_rent_list` + 后端 `OrderController.GetOrdersByStaff`）：用户定义 未支付=没付 / 未开始=已付但起租未到。chip = `未付 ? 未支付 : rentStatus`（橙色 unpaid 样式）；筛选加「未支付」项（后端 `未支付`→未付清单 / 其它 rentStatus 加「已付清」前置）。口径与去支付按钮统一。
+6. **修租赁物全部归还后无退租日期、状态错**（order 71762，systematic debugging）：根因=`Rental.realStartDate`/`realEndDate` 只取 valid=1 rental_detail，免除唯一明细后双 null → 退回「未开始」。治本改为回退 `RentItemLog` 领还事件（[`Rental.cs`](../SnowmeetApi/Models/Rent/Rental.cs)）+ 列表查询补 include logs（[`OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) 两 branch）。模拟验证 71762 → 起租=退租=2026-06-19、状态=全部归还。详见已知遗留新增条。
+
+📌 关键发现 / 教训：
+- **真实样本/DB 直查定根因最快**：open_id（让用户贴真 notify 见 `buyer_open_id`）、direct（DB 查 order/session member_id 都=15506）、退租日期（core_data_mod_log 时间线 + python 模拟计算属性）三处都一击命中，不靠猜
+- **改计算属性要同步补查询 include**：`realStartDate/realEndDate` 回退到 `RentItemLog`，列表 `GetOrdersByStaff` 原没 include logs → 必须补，否则列表上下文回退失效
+- **DB schema 常比 C# 模型新**：`order_payment.cell` 又一例；连库 `INFORMATION_SCHEMA.COLUMNS` 确认列存在再补 DTO（列已存在则 EF SELECT 安全，不像加新列要先 ALTER）
+- **end-work 只 push doc 仓**：本会话所有代码改动在 SnowmeetApi / snowmeet_wechat_mini，未提交，用户部署；6 项后端改动（除去支付按钮纯前端）都要重新 publish 才生效
+
+**状态**
+- ✅ 6 项改动全部编译/语法通过；71762 退租日期修复经真实数据模拟验证
+- 🚧 **待用户**：① 部署 SnowmeetApi（`dotnet publish` 到服务 ExecStart 目录 + 重启，6 项里 1/2/3/5/6 是后端）；② 重编小程序（去支付按钮、未支付 chip/筛选）+ 清缓存；③ 真机/DB 回归：支付宝付成功后 `order_payment.open_id` 落 buyer_open_id、代付单 `cell` 落代付人手机号、支付宝付自己单不再报 direct 错、详情页未付单显示去支付、列表未支付橙标 + 筛选、71762 状态变全部归还
+- ⏸️ 待定：`Order.cs:1102` endDate 是否对齐成 realEndDate（既存 oddity，不影响本次问题）
