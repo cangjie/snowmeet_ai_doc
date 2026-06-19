@@ -25,6 +25,13 @@ Beginning a work session on a complex project requires full context. This skill 
 
 4. **Format** as a scannable overview — use the exact structure from CLAUDE.md, include emojis (✅🚧⏳) to show status at a glance, and callout any blockers in bold
 
+## 跨机一致 & memory
+
+本 skill 与 [end-work](../end-work/SKILL.md) 一样，靠 git 跨机同步、**自包含**：所有步骤都写在 SKILL.md 里，不依赖本机 hook 或 auto-memory。
+
+- **真源是 `snowmeet_ai_doc/CLAUDE.md`**（git 跨机）。auto-memory 只是本机辅助提醒，换电脑会是空的——别把项目知识只放 memory。
+- **新电脑首次使用**：先确认 `snowmeet_ai_doc/` 已 clone 到工作目录下、且 `/start-work` `/end-work` 出现在 skill 列表里（这俩 skill 来自 `snowmeet_ai_doc/.claude/skills/`，随仓库一起来）。没出现就说明该机没扫到子目录 skill，需要在该机做一次性补救。
+
 ## Why this matters
 
 Context switching is expensive. A project with 200+ models, 39 controllers, and 110 pages is impossible to keep in your head. By loading the documented state at the session start, you avoid the "where was I?" friction and stay in flow.

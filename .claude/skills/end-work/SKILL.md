@@ -11,33 +11,48 @@ Closing a work session on an evolving project requires documenting what changed.
 
 **聊天记录归档位置**：`snowmeet_ai_doc/sessions/YYYY-MM-DD_{topic}.md`。当前 working dir 下一定能找到 `snowmeet_ai_doc/sessions/` 目录（首次触发时若不存在则 `mkdir -p` 创建）。
 
+## ⚠️ 跨机一致原则（先读这条）
+
+本 skill 要求在**任何一台电脑**上执行都得到**相同结果**。能保证这点的唯一载体是 **SKILL.md 自身**——它在 `snowmeet_ai_doc/.claude/skills/` 内，随 git 跨机同步。所以：
+
+- **所有关键动作（改文档、git pull / commit / push）都写进下面的 Process，靠执行 SKILL.md 完成**，绝不依赖 `.claude/settings.local.json` 里的 hook（gitignored、机器本地、不跨机）或 auto-memory（本机、不跨机）。
+- 历史上 git push 曾靠某台机的 Stop hook 自动完成 → 换到没配 hook 的电脑就不 push、表现不一致。**"靠本机 hook" 的做法已废弃**：push 是下面第 6 步的固定动作。
+- 本会话若产生任何影响 start-work / end-work *行为* 的规则，必须固化进本 SKILL.md 或 CLAUDE.md（git 跨机），不能只存 memory。
+
 ## Process
 
-1. **Summarize** what was accomplished:
+1. **先同步**（避免 push 被拒 / 分叉）：`git -C snowmeet_ai_doc pull --ff-only`
+   - 失败（网络 / 分叉 / 本地有未提交改动）不要静默：告诉用户「⚠️ 同步失败」+ 原因，仍继续整理，到第 6 步 push 前再处理分叉
+
+2. **Summarize** what was accomplished:
    - What files were created/modified?
    - What new functionality is working?
    - What blockers or learnings emerged?
    - What's ready for the next session?
 
-2. **Identify** what needs updating in CLAUDE.md:
-   - If you completed a step in the current iteration, note which tasks moved from 🚧 to ✅
-   - If you discovered new gotchas, add them to "Known issues"
-   - If the "Next steps" list changed, highlight what's new
-   - If you added new key files, they should be listed
-   - Add a new dated entry to the dev log with today's work
-   - Update the "当前状态" date stamp if it shifted (e.g. 2026-05-12 下午 → 2026-05-14 凌晨)
+3. **Update CLAUDE.md**（直接改，**不需要**先 draft 给用户确认——见文末「不需确认」）:
+   - 完成的步骤把任务从 🚧 标到 ✅
+   - 新踩的坑加进「已知遗留」
+   - 「下一步」列表有变就更新
+   - 新增关键文件补进「关键文件」
+   - 开发日志末尾加一条当天 dated entry
+   - 「当前状态」日期戳前移
 
-3. **Prepare** the changes:
-   - Draft the exact updates to CLAUDE.md (formatted as markdown)
-   - Draft the transcript archive markdown (see template below)
-   - Show the user what will be added
-   - Ask for confirmation before updating
+4. **Memory 对账（固化进 doc）**:
+   - 本会话写进 memory 的内容里，凡属*项目知识*（gotcha / 架构决策 / 状态）→ 确认 CLAUDE.md 有更完整版本，没有就补（memory 不跨机，doc 才是真源）
+   - 属*个人偏好 / 本机环境*（回复语言、本机编译路径等）→ 留在 memory 即可，不塞进项目仓库
+   - 凡影响本 skill *行为* 的规则 → 写进本 SKILL.md
 
-4. **Finalize** (after user approval):
-   - Update CLAUDE.md with the new entries
-   - Write the transcript archive to `snowmeet_ai_doc/sessions/YYYY-MM-DD_{topic}.md`
-   - Create a brief handoff note summarizing what's ready vs. what's blocked
-   - Confirm all changes are saved
+5. **Write transcript** 到 `snowmeet_ai_doc/sessions/YYYY-MM-DD_{topic}.md`（格式见下）
+
+6. **Commit + push（固定收尾，不需确认）**:
+   - `git -C snowmeet_ai_doc add -A`
+   - `git -C snowmeet_ai_doc commit -m "auto: end-work 归档 + 上下文更新（{topic}）"`
+   - `git -C snowmeet_ai_doc push`
+   - 每次 end-work 的强制动作，**不依赖任何本机 hook**；第 1 步 pull 若失败 / 有分叉，这里先 merge 再 push
+   - 业务代码仓（SnowmeetApi / snowmeet_wechat_mini 等）**不**在此自动提交，由用户按部署节奏自行处理
+
+7. **Handoff**: 一句话交代「已就绪 vs 仍阻塞」
 
 ## Transcript archive format
 
@@ -93,12 +108,17 @@ Filename: `snowmeet_ai_doc/sessions/{YYYY-MM-DD}_{short-topic-slug}.md`
 
 CLAUDE.md 是项目状态的单一来源；sessions/ 是工作过程的详细备查。前者让下一次会话能立即接上，后者让"那天为什么这条数据找不出来 / 减免怎么定义的"这种细节问题翻一份 markdown 即可，不用爬聊天记录。
 
-## Output format
+## 不需确认（用户拍板）
 
-Present three sections:
-- **What changed** — 2–3 bullet points on accomplishments and blockers
-- **Suggested updates to CLAUDE.md** — The exact text to add/modify, ready to copy in
-- **Transcript archive path** — `snowmeet_ai_doc/sessions/YYYY-MM-DD_{topic}.md`（draft 内容随后展示或直接写）
+触发 end-work 后**直接**落盘 CLAUDE.md + 写 sessions/ + git commit + push，**永远不要**用 AskUserQuestion 征求确认。之前"draft → 确认 → 写盘"的流程已作废。
+
+## Output format（落盘 + push 完成后的简报）
+
+end-work 跑完后给用户一段简报（此时文件已写、已 commit+push，不是征求确认）：
+- **What changed** — 2–3 句：完成了什么、遗留什么
+- **已归档** — `snowmeet_ai_doc/sessions/YYYY-MM-DD_{topic}.md` + CLAUDE.md 更新点
+- **已推送** — push 成功的 commit（如 `已推送 a1b2c3d`）；若 pull/push 遇阻，说明如何处理的
+- **Handoff** — 下次开工的第一件事
 
 ## Example trigger phrases
 
