@@ -193,6 +193,7 @@ dotnet run
 **下一步要做的**
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端）
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -2554,3 +2555,32 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 6 项改动全部编译/语法通过；71762 退租日期修复经真实数据模拟验证
 - 🚧 **待用户**：① 部署 SnowmeetApi（`dotnet publish` 到服务 ExecStart 目录 + 重启，6 项里 1/2/3/5/6 是后端）；② 重编小程序（去支付按钮、未支付 chip/筛选）+ 清缓存；③ 真机/DB 回归：支付宝付成功后 `order_payment.open_id` 落 buyer_open_id、代付单 `cell` 落代付人手机号、支付宝付自己单不再报 direct 错、详情页未付单显示去支付、列表未支付橙标 + 筛选、71762 状态变全部归还
 - ⏸️ 待定：`Order.cs:1102` endDate 是否对齐成 realEndDate（既存 oddity，不影响本次问题）
+
+### 2026-06-20（续2） — 租赁状态机 8 态 + payment_entry 日租金/总计修复 + CloseOrder 保护 + 找回中断订单
+
+会话归档见 [`sessions/2026-06-20_rent_status_8state_payment_entry_recover.md`](sessions/2026-06-20_rent_status_8state_payment_entry_recover.md)。接续前次 context 满截断（8 态状态机已在上次会话落地）。本次主要处理 payment_entry 显示问题、CloseOrder 逻辑加固，以及实现"找回中断的订单"功能。所有改动均需 dotnet publish + 小程序重编后生效。
+
+1. **租赁状态机 8 态（承上次）**：`Order.cs` `RentStatus` 枚举加 `未支付`；`rentProperties` getter 完整重写（了结关闭 → 未支付 → 未开始 → 租赁中 → 部分归还 → 全部归还 → 部分退押金 → 全额退押金，fallback=未开始）；`OrderController.GetCommonOrders` rentStatus 过滤改为直接匹配 `rentProperties.rentStatus`；`new_rent_list.js renderOrders` 移除前端 unpaid 覆盖，直接用后端 rentStatus
+
+2. **`payment_entry` 日租金/总计修复**：
+   - `OrderController.GetOrder`（[`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs)）租赁查询补 `.Include(r => r.pricePresets)`——付款前 `rental_detail` 尚无记录，`totalRentalAmount=0`，需用配置价格
+   - `payment_entry.js renderData`（[`pages/order/payment_entry.js`](../snowmeet_wechat_mini/pages/order/payment_entry.js)）：日租金改用 `pricePresets[i].price - pricePresets[i].discount` 累加（pricePresets 空时退回 totalRentalAmount）；总计改用 `order.paying_amount`（PlaceRentOrder 设置的押金，不用 `total_amount`，后者租赁订单恒为 0）
+
+3. **`CloseOrder` 逻辑加固**（[`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs)）：
+   - 废单分支（无有效支付）加 `paying_amount > 0` 守卫，¥0 订单不在此分支立即关闭（保护已发装备的免押订单）
+   - 主流程新增 `paymentFulfilled`（`paidAmount == paying_amount`）校验，应付 ≠ 实付时不关单（与"有未退租商品"/"应退押金>0"并列为3个保护条件）
+
+4. **找回中断的订单**（[`reception/recept_entry.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_entry.js)、[`.wxml`](../snowmeet_wechat_mini/pages/admin/reception/recept_entry.wxml)、[`.wxss`](../snowmeet_wechat_mini/pages/admin/reception/recept_entry.wxss)）：
+   - 实现 `onRecoverOrder()`：调 `data.getRentReceptingOrdersPromise(shop, sessionKey)` 查当天 `valid=0, recepting=1` 订单，补 member 兜底，格式化 `calledName`（姓名+性别）+ `timeStr`
+   - 添加 van-popup 底部弹窗（70% 高度），列表项含称呼/手机/时间；点击跳 `reception/recept_new?orderId=XXX&bizType=rent`
+   - 旧版 `recept/recept_new.js saveReceptOrder` 新建订单时补 `contact_name/contact_num/contact_gender`（之前缺失，中断订单无顾客信息可显示）
+   - 后端 `Rent/GetReceptingOrders` 和 `Rent/GetReceptingOrder/{id}` 及 data.js 封装均已存在，无需新增
+
+📌 关键发现：
+- **`closed=1` 唯一入口是 `RentController.CloseOrder`**（GET 接口，手动/定期触发），旧表逻辑在 rent_list 无关新流程
+- **新版 `reception/recept_new.js saveRentReceptOrder` 已包含 contact 字段**，旧版 `recept/recept_new.js` 遗漏，找回功能正常需两版都补齐
+- **`GetReceptingOrders` 用 `options.orderId`**（非 `options.id`），recover 跳转必须用 `orderId=` 参数名（新版 recept_new.js onLoad 读取方式）
+
+**状态**
+- ✅ `dotnet build` 0 error（SnowmeetApi）；小程序 JS 无语法错误
+- 🚧 **待用户**：① 部署 SnowmeetApi（pricePresets include + CloseOrder 改动）；② 重编小程序（payment_entry 修复 + 找回功能）；③ 真机验证：payment_entry 日租金/总计显示、CloseOrder 不再误关 ¥0 有装备订单、找回弹窗显示顾客信息并可跳转继续开单
