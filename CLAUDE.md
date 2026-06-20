@@ -298,6 +298,9 @@ dotnet run
 - **`_applyChoice` 容忍状态翻成 direct（2026-06-20）**：扫码人授权的手机号若属订单本人，`submit_phone` 把 openid 绑到该会员 → scanner==owner → `_resolveStatus` 返 `direct`。[`_applyChoice`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) 现接受 `direct`/`direct_to_scanner`（强制 `choice="self"` 按直付落库），不再报 `unexpected_state: direct` 把人卡死。真实顾客第一次用支付宝付自己的单也会撞上（曾报 paymentId=42618）
 - **租赁生命周期（起租/退租/状态）原本绑在 rental_detail 计费明细、与领还事件脱钩（2026-06-20 治本）**：`Rental.realStartDate`/`realEndDate` 原只取 valid=1 的 `rental_detail` 首/末日 → 在「修改租金明细」里**免除/清零唯一一条明细**(valid→0)后双 null → 状态机 `realStartDate==null` 退回「未开始」、无退租日期（即便装备已发放又已归还、settled=1）。已改为无有效明细时**回退到 `RentItemLog` 领还事件**（起租=最早 pickDate「已发放」、退租=最晚 returnDate「已归还」，settled=1 时）。⚠️ 配套：列表 `OrderController.GetOrdersByStaff` 两 branch 给 `rentals.rentItems` 补 `.ThenInclude(i => i.logs)`，否则列表上下文取不到领还事件、回退失效（详情页 GetRental 本就 include logs）。曾报 order 71762
 - **`Order.cs:1102` endDate 拷 `rental.end_date` 列（恒 null，`SetRentItemStatus` 从不写它）而非 `realEndDate`（既存 oddity，未改）**：`rentProperties.endDate` 可能为 null，但 rentStatus 最终由 `settledCount` 决定（settled 单仍正确判「全部归还」）、详情页退租日期用 `rental.realEndDate`（已修），故不影响 2026-06-20 修的问题。是否把 1102 对齐成 `realEndDate` 留待业务定
+- **`rent_order_detail` 退租卡（前端）按归还事件派生，不绑 `rental.end_date`（2026-06-20续3）**：`rental.end_date` 列新租赁流程从不写（仅旧 RentOrder 写）→ 直接绑会恒显「未退租」。`renderOrder` 改为：相关租赁物（排除 `noNeed`/已更换）全部 `_returned` 时取最晚 `returnDate` 作退租时间，否则「未退租」；与 settled 无关（归还即视退租）。这是前端展示派生，独立于后端 `Rental.realEndDate`（settled 门控的计费口径）
+- **展示「总计押金/应退押金」用 `order.totalGuarantyAmount`，不用 `rentProperties.totalPaidGuarantyAmount`（2026-06-20续3）**：后者按 `guaranty.payStatus=='支付完成'` 过滤，而 `GetCommonOrders`(OrderController.cs:195) 的订单级 `o.guarantys` Include **注释掉了 `.ThenInclude(g=>g.payment)`** → `Guaranty.payStatus` 无 payment 可判 → 已收押金被算成 0（典型 order 71766：总计押金 0.01 但应退押金算 0）。`order.totalGuarantyAmount` = `rental.guaranties` 中 `guaranty_type=='在线支付'` 合计、无 payStatus 依赖，与展示的「总计押金」同源。应退押金 = totalGuarantyAmount − totalRentSummaryAmount + depositPaidAmount
+- **退押金状态判定以实际退款 `refundAmount` 为准，`guaranty.relieve` ≠ 已退款（2026-06-20续3，`Order.cs:1180` 已改）**：归还全部租赁物时 `RentController.cs:5210` 把 `guaranty.relieve=1`（仅"押金占用解除/可退"，非已退款）。旧状态机把 `relieveGuarantyAmount` 当已退 → 归还即跳「全额退押金」。改为 `refundAmount`(payment_refund 汇总)：≈0→全部归还 / <needRefund→部分退押金 / ≥needRefund→全额退押金。**行为波及所有订单**：归还未退款单从「全额退押金」回正「全部归还」。「全额退押金」字符串全工程仅 `Order.cs:1180` 一处产生
 
 ---
 
@@ -2584,3 +2587,51 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ `dotnet build` 0 error（SnowmeetApi）；小程序 JS 无语法错误
 - 🚧 **待用户**：① 部署 SnowmeetApi（pricePresets include + CloseOrder 改动）；② 重编小程序（payment_entry 修复 + 找回功能）；③ 真机验证：payment_entry 日租金/总计显示、CloseOrder 不再误关 ¥0 有装备订单、找回弹窗显示顾客信息并可跳转继续开单
+
+### 2026-06-20（续3） — rent_order_detail：支付明细代付标红+脱敏手机号列 + 退租/应退押金/退押金状态三 bug + 按商品/按物品视图重构
+
+会话归档见 [`sessions/2026-06-20_rent_order_detail_proxy_col_refund_status_byitem.md`](sessions/2026-06-20_rent_order_detail_proxy_col_refund_status_byitem.md)。全部围绕 `rent_order_detail`，frontend 为主 + 1 处后端（`Order.cs` 退押金状态）。改动均在工作区**未提交**，需小程序重编 / 后端 publish 后生效。本环境无 devtools，仅过 `node --check` + wxml 标签/模板平衡 + 真实数据/DB 只读验证（order 71766）。
+
+#### 一、支付明细：他人代付标红 + 脱敏手机号列
+- 需求迭代 4 轮：① 代付条目标红 + 显示脱敏手机号 → ② 改成「支付方式」后正式加一列「手机号」（自己付款空、代付显示脱敏号）→ ③ 列窄一点 + 不挤日期时间 + 全行不换行 → ④ 手机号字号同其他列 + 列内居中
+- 数据：后端 `OrderPayment.is_proxy_pay`(bool, prod 早有) + `cell`(代付人手机号, 模型有/DTO 6-20 已补)
+- `rent_order_detail.js`：加模块级 `maskCell(cell)`（前 3 后 4 打码、空返 `—`）；支付明细循环设 `_isProxy`(来自 is_proxy_pay) + `_proxyCellMasked`(`_isProxy ? maskCell(cell) : ''`，自己付款空串)
+- wxml/wxss：表头/支付行/退款行各加 `.pay-col-cell` 列（手机号），代付行 `.pay-table-row--proxy` 整条标红；列宽 date118/time100/method94/cell124(居中,22rpx)，全列 `white-space:nowrap`（修日期换行 bug）
+
+#### 二、退租状态 bug（order 71766）：全部归还却显示「未退租」
+- 根因：退租卡绑 `rental.end_date`（新租赁流程**从不写**该列，仅旧 RentOrder 模型写）→ 恒 null → 恒「未退租」
+- 修复（frontend）：`renderOrder` 改为按归还事件派生——相关租赁物（排除 noNeed/已更换）全部 `_returned` 时取最晚 returnDate 作退租时间，否则「未退租」。与是否结算 settled 无关（归还即视退租，匹配用户预期）
+
+#### 三、应退押金 bug（order 71766）：押金 0.01 / 租金 0，应退押金却显 0.00
+- 根因：`renderOrder` 用 `rentProperties.totalPaidGuarantyAmount` 作押金基数——它按 `guaranty.payStatus=='支付完成'` 过滤，而**订单级 guarantys 的 `.ThenInclude(g=>g.payment)` 在 GetCommonOrders 被注释**（OrderController.cs:195）→ payStatus 不可靠 → 已收押金算成 0
+- 修复（frontend）：押金基数改用 `order.totalGuarantyAmount`（即展示的「总计押金」，在线支付押金合计、无 payStatus 过滤），保留 sumSummary 实时重算 → 应退押金 = 总计押金 − 应收 + 储值付租金
+
+#### 四、订单状态 bug（order 71766）：未退款却显示「全额退押金」
+- 根因：归还全部租赁物时 `RentController.cs:5210` 把 `guaranty.relieve=1`（仅表示押金占用解除/可退）；但 `Order.cs:1180` 状态机把 `relieveGuarantyAmount` 当「已退」→ 归还即跳「全额退押金」
+- 修复（**后端 Order.cs**，需 publish）：退押金状态改以**实际退款** `refundAmount`（payment_refund 汇总）为准——`refundAmount≈0`→全部归还 / `<needRefund`→部分退押金 / `≥needRefund`→全额退押金；`needRefund = totalGuarantyAmount − totalRentSummaryAmount + depositPaidAmount`。**行为变化波及所有订单**：归还未退款的单从「全额退押金」回正「全部归还」，退押金态仅真退款后出现。「全额退押金」字符串仅此一处产生（其它 `s` 变量块只产「全部归还」），改动点唯一
+
+#### 五、按租赁商品/按租赁物 视图重构
+- 用户拍板（AskUserQuestion 确认）：操作集中到「按租赁物」，「按租赁商品」只做只读概览
+- 抽 ~130 行租赁物卡为 `<template name="rentItemCard">`（`readonly` flag 控操作按钮显隐 + 备注只读），两 tab 共用：按商品 `readonly:true`（无 归还/暂存/更换/赔偿/备注/全部归还）、按物品 `readonly:false`（全操作 + 底部订单级「全部归还」`onReturnAllOrder`，跨 rental 顺序调 `Rent/ReturnAllRentItems`）
+- tab 切换从挤在标题右上角的窄 pill 改为**整宽分段控件** `.rental-tab-pill`，标签补全「按租赁商品 / 按租赁物」
+- 旧 `onReturnAllRental`(按商品的全部归还)/`_allRentItems`(旧扁平列表)/`.tab-pill`·`.all-item-*` wxss 现为无引用死代码，本次留存未清
+
+#### 关键改动文件
+| 文件 | 改动 |
+|---|---|
+| [`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) | maskCell + 代付列派生；退租按归还事件派生；应退押金基数改 totalGuarantyAmount；onReturnAllOrder |
+| [`rent_order_detail.wxml`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxml) | 手机号列；rentItemCard 模板；两 tab 重构；整宽 tab pill |
+| [`rent_order_detail.wxss`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxss) | pay-col-cell + 代付红；rental-tab-pill + return-all-bar |
+| [`Order.cs`](../SnowmeetApi/Models/Order/Order.cs#L1180) | 退押金状态改 refundAmount 口径（**需 publish**） |
+
+📌 关键发现 / 教训：
+- **新租赁流程不写 `Rental.end_date`**（仅旧 RentOrder 写）→ 退租展示必须按 RentItemLog 领还事件派生，不能信 end_date 列
+- **`rentProperties.totalPaidGuarantyAmount` 在 GetOrderByStaff 上下文不可靠**：订单级 guarantys 的 payment 未 Include（OrderController.cs:195 注释掉 `.ThenInclude(g=>g.payment)`），payStatus 退化。展示「总计押金/应退押金」一律用 `order.totalGuarantyAmount`（rental.guaranties 在线支付合计、无 payStatus 依赖）
+- **`guaranty.relieve=1` ≠ 已退款**：归还时 `RentController.cs:5210` 置位仅表示押金可退；退押金状态判定必须看实际 `refundAmount`（payment_refund），不能用 relieve 标记
+- **WXML `<template name>` + `readonly` flag** 是同一卡片在「只读视图/操作视图」复用的干净手法，避免 ~130 行重复（自闭合 `<template is=... wx:for data="{{...readonly}}"/>` 传 ridx/iidx/展开态 map/refundAmount）
+- **UI 数字本身就是最快的诊断证据**：截图里「总计押金 0.01 / 总计租金 0.00 / 应退押金 0.00」直接反推出派生用错了字段，无需连库
+
+**状态**
+- ✅ 全部 `node --check` 通过 + wxml view/block/template 平衡 + Order.cs `dotnet build`（口径改动，沿用既有字段）
+- 🚧 **待用户**：① 重编小程序（rent_order_detail 全部改动）；② 部署 SnowmeetApi（仅退押金状态 Order.cs，需 publish）；③ 真机验证：代付行红 + 脱敏号列、71766 退租日期/应退押金 0.01/状态全部归还、按物品操作 + 全部归还、按商品只读
+- 代码仓改动**本地未提交**，用户按部署节奏处理；本次 end-work 仅 doc 仓
