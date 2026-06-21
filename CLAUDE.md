@@ -303,6 +303,12 @@ dotnet run
 - **退押金状态判定以实际退款 `refundAmount` 为准，`guaranty.relieve` ≠ 已退款（2026-06-20续3，`Order.cs:1180` 已改）**：归还全部租赁物时 `RentController.cs:5210` 把 `guaranty.relieve=1`（仅"押金占用解除/可退"，非已退款）。旧状态机把 `relieveGuarantyAmount` 当已退 → 归还即跳「全额退押金」。改为 `refundAmount`(payment_refund 汇总)：≈0→全部归还 / <needRefund→部分退押金 / ≥needRefund→全额退押金。**行为波及所有订单**：归还未退款单从「全额退押金」回正「全部归还」。「全额退押金」字符串全工程仅 `Order.cs:1180` 一处产生
 - **接待中 rental 是 `valid=0` 草稿态，`PlaceRentOrder` 去结算才置 `valid=1`（2026-06-21）**：`recept_package.js` 建套餐 rental 即 `valid:0`、`Rental` 模型默认 0。任何"重载/找回中断单"必须用 `Rent/GetReceptingOrder`（不过滤 rental.valid，带 rentItems+pricePresets），**不能**用 `GetOrderByStaff`/`GetOrder`（按 `r.valid==1` 过滤会把草稿 rental 全滤掉 → 找回成空单）。`recept_new.js onLoad` 找回时要 `getRentReceptingOrderPromise` 拉单 + **整单还原** `this.data.order`(id+rentals)，只取顾客信息会丢购物车。实证：71770 库里有 2 rental/8 item 但 valid=0
 - **`PayWithDeposit` 返回的 order 经 `GetOrder`、不带订单级 `order.guarantys`（2026-06-21）** → `rentProperties.totalPaidGuarantyAmount` / `totalRentUnRefund` 恒 0。前端"储值付租金+退款"(`_refundWithDeposit`) 别读 `paidOrder.totalRentUnRefund` 判退款额，用页面已算好的 `refundAmount`（基于 `order.totalGuarantyAmount`），否则 `rAmount<=0` 提前 return、押金永不退（曾报 order 71769，代付微信单不退）。另：`PayWithDeposit` 已改 `payingAmount>0` 才插储值支付（租金免除时不再攒 ¥0 记录）
+- **`SaveRentRecept` 对找回中断单的 `order.member` 子图会让 `_db.Update(order)` 抛 `Value cannot be null (key)`（2026-06-21续2，已修，需 publish）**：找回单（`GetReceptingOrder` include 了 member+memberSocialAccounts）回传整 order，经 wx JSON 往返后 member 子图在 EF `TrackGraph` 阶段抛异常（**`_db.Update` 抛、不是 SaveChanges**；DB 直接加载的 member 不触发，只有 JSON 往返后的有毒）。异常被 else 分支 try/catch 静默吞 → 改租金/加套餐都不落库，但接口仍返回 code=0+内存对象→前端 resolve、UI 假成功。修复：[`SaveRentRecept`](../SnowmeetApi/Controllers/RentController.cs#L4150) 开头置空 `order.member`/`order.staff`（同既有 `details=null`/`category=null` 防级联；标量 member_id/staff_id 保留）。**今后任何新接口收 `[FromBody]` 整 order/含导航子图再 `_db.Update`，先置空不需级联的导航。**
+- **`_applyPkgRate` 在 rental 无 pricePreset 时改租金无效（2026-06-21续2，已修，重编）**：雪杖等类目在本店无价格配置→`createRentalDetail`（priceList 空）不生成 preset（DB `rental_price_preset` count=0）。原 `_applyPkgRate` 仅 `presets.length>0` 才写→空时白改。已改为空时新建一条手动 preset。
+- **购物车排序「真理之源」在前端 `_refreshRentals`（2026-06-21续2）**：`byAddedTime`（已存按 id 升序=创建先后、未存按 timeStamp 排同组最下）/ `byCategoryThenTime`（套餐前单品后、组内按时间）；按 `this.data.sort`(`time`/`category`) 选键，覆盖任何后端返回顺序。后端 `GetReceptingOrder` 也已从 `OrderByDescending(id)` 改 `OrderBy(id)` 正序（需 publish，前端已兜底）。`onSortChange` 仅本地重排不 `_emitSync`。
+- **结算按钮 disable = 有 rental 未录入（`every(_rentalEntered)`），无码单品主项 `category_id=NULL` 判「分类未选」最高优先级缺项（2026-06-21续2 答疑）**：曾被误认为「设招待导致」。招待不影响 evalRental。排查结算点不了先看每个 rental 的录入 chip（折叠态未录入 rental 标题变红）。改进点（未做）：点灰结算时 toast 提示具体缺项。
+- **`Member.wechatMiniOpenId`/`wechatUnionId`/`alipayPayerId` getter 原取 `msaList[0]` 遇空占位返空串（2026-06-21续2，已修 `FirstNonEmptyNum` 取第一个非空，需 publish）**：同一会员可能有 num='' 的脏 MSA（建会员先占位、后补真实，排在前）→ getter 返空 → 代付微信 op.open_id 写空、prepay 无 openid 弹不出窗（曾报 op 42639 / member 41125）。getter 跳过空串后，`WechatPayByOrderPayment` 补写分支 `'' != 真实openid` 触发、自动修正 op.open_id。全库此类空 MSA 极少（当时 wechat 1 例 / alipay 1 例）。
+- **支付宝支付成功物化「以手机号为锚」绑 openid/建会员（2026-06-21续2 按用户规则重写，需 publish）**：`AliController._materializeAlipayMemberOnPaid` —— 取该支付宝顾客手机号（mini_session.cell，**buyer_open_id 存在 `alipay_openid` 列、不是 `alipay_payerid` 列**，反查兼容两列）→ `payment.member_id` 已知用它不改归属、否则按手机号反查会员（命中即用/有号未命中建新会员(手机号)/无号兜底）→ 目标会员若无「valid=1 且非空」alipay_payerid 则绑本次 openid 并停用空占位（已有有效则不动，幂等）。**调用点去掉 `member_id==null` 限制**：本人/代付单也补绑 openid（原来跳过→openid 永绑不上、下次仍靠 session 兜底）。op 42641 本人直付时手机号其实已在 session.cell 获取（aes 解密正常、aes_key.txt 已落地），judged `direct` 不重复弹手机号属预期。
 
 ---
 
@@ -2671,3 +2677,21 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 三处改动 `node --check` / `dotnet build` 通过；71769/71770 经生产库只读核查定根因
 - 🚧 **待用户**：① 重编小程序（rent_order_detail + recept_new）；② publish SnowmeetApi（PayWithDeposit）；③ 真机复测：71769 储值付租金后退微信 0.01 + 不再增 ¥0 记录、71770 找回能看到 2 件商品
 - 库里 71769 的 4 条 ¥0 储值支付 + 71770 的 valid=0 草稿都**无害不用清**；代码仓改动本地未提交，用户部署；本次 end-work 仅 doc 仓
+
+### 2026-06-21（续2） — 开单保存/排序 + 支付宝会员绑定：六问题，诊断接口事务回滚实证
+
+接 6-21 三修继续测开单/扫码支付。前后端混合，连**生产库**实证（用户本会话授权 DB 访问，含一次临时诊断接口事务回滚验证、绝不改库）。代码仓改动**未提交**，需重编小程序 / publish SnowmeetApi。归档 [`sessions/2026-06-21_recept_save_sort_and_alipay_member_bind.md`](sessions/2026-06-21_recept_save_sort_and_alipay_member_bind.md)。
+
+1. **订单列表「储」标签 + 支付方式过滤**（[`new_rent_list`](../snowmeet_wechat_mini/pages/admin/rent/new_rent_list.js)，重编）：支付方式行剔除「储值支付/次卡支付」、其余 `/` 拼接；含储值在左侧标签列加橙色「储」。
+2. **找回中断单：改租金/加套餐不落库（71775/54404）**——双根因：
+   - 后端：JSON 往返后的 `order.member`(+5 MSA) 子图让 `_db.Update(order)` 在 TrackGraph 抛 `Value cannot be null (key)`，被 SaveRentRecept else 分支 try/catch 静默吞 → 不落库但返回 code=0+内存对象（UI 假成功）。修复：[`SaveRentRecept`](../SnowmeetApi/Controllers/RentController.cs#L4150) 开头置空 `order.member`/`order.staff`（**publish**）。临时诊断接口 JSON 往返+事务回滚证实（往返+置空→OK / 往返+不置空→FAILED）。
+   - 前端：雪杖类目无价格→`createRentalDetail` 不生成 preset（DB count=0）→`_applyPkgRate` 仅 `presets.length>0` 才写。修复：空时新建手动 preset（重编）。
+3. **购物车排序**（[`rent_recept_form`](../snowmeet_wechat_mini/components/reception/rent_recept_form/rent_recept_form.js)，重编为主）：`byAddedTime`（已存按 id、新建按 timeStamp 排同组最下）+ `byCategoryThenTime`（套餐前/单品后，组内按时间）；`_refreshRentals` 按 `sort` 选键、`onSortChange` 本地重排不保存。后端治本 [`GetReceptingOrder`](../SnowmeetApi/Controllers/RentController.cs#L4580) 改 `OrderBy(id)` 正序（**publish**，前端已兜底）。
+4. **结算 disable 答疑（非 bug，71776）**：非招待所致，是另一 rental（无码单品 category_id=NULL「分类未选」）未录入卡住 `every(_rentalEntered)`。
+5. **代付微信支付弹不出窗（op 42639，member 41125）**：`Member.wechatMiniOpenId` getter 取 `msaList[0]` = 空占位串 → op.open_id 写空 → prepay 无 openid。修复：三 getter（mini openid/unionid/alipay payerid）取第一个非空 `FirstNonEmptyNum`（**publish**）。全库仅 1 例空 MSA。
+6. **支付宝没获取手机号 答疑 + 物化重写（op 42641）**：op 42641 本人直付、手机号其实已获取（session.cell，aes 解密正常）、judged direct 不重复弹——预期。真实遗漏：`_materializeAlipayMemberOnPaid` 只在 member_id==null 跑、且 session 反查用错列。按用户规则重写「以手机号为锚」绑 openid/建会员（详见已知遗留），调用点放开 member_id 限制（**publish**）。
+
+**状态**
+- ✅ 全部 `dotnet build` / 逻辑通过；6 问题均连生产库实证；§2/§6 用临时诊断接口事务回滚验证（已删接口）
+- 🚧 **待用户**：① 重编小程序（new_rent_list + rent_recept_form）；② **publish SnowmeetApi**（SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化）；③ 真机复测：找回单改租金/加套餐落库 + 排序 + 代付微信支付弹窗 + 支付宝支付绑 openid
+- ⏳ **可选（写生产库，需用户确认）**：手动补 member 15506 的 alipay_payerid（停用空串 169169 + 加 `040P5...`）、清 member 41125 空 wechat_mini_openid（169181）让 op 42639 不等 publish 即可支付
