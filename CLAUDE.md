@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-20）
+## 当前状态（截至 2026-06-21）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -301,6 +301,8 @@ dotnet run
 - **`rent_order_detail` 退租卡（前端）按归还事件派生，不绑 `rental.end_date`（2026-06-20续3）**：`rental.end_date` 列新租赁流程从不写（仅旧 RentOrder 写）→ 直接绑会恒显「未退租」。`renderOrder` 改为：相关租赁物（排除 `noNeed`/已更换）全部 `_returned` 时取最晚 `returnDate` 作退租时间，否则「未退租」；与 settled 无关（归还即视退租）。这是前端展示派生，独立于后端 `Rental.realEndDate`（settled 门控的计费口径）
 - **展示「总计押金/应退押金」用 `order.totalGuarantyAmount`，不用 `rentProperties.totalPaidGuarantyAmount`（2026-06-20续3）**：后者按 `guaranty.payStatus=='支付完成'` 过滤，而 `GetCommonOrders`(OrderController.cs:195) 的订单级 `o.guarantys` Include **注释掉了 `.ThenInclude(g=>g.payment)`** → `Guaranty.payStatus` 无 payment 可判 → 已收押金被算成 0（典型 order 71766：总计押金 0.01 但应退押金算 0）。`order.totalGuarantyAmount` = `rental.guaranties` 中 `guaranty_type=='在线支付'` 合计、无 payStatus 依赖，与展示的「总计押金」同源。应退押金 = totalGuarantyAmount − totalRentSummaryAmount + depositPaidAmount
 - **退押金状态判定以实际退款 `refundAmount` 为准，`guaranty.relieve` ≠ 已退款（2026-06-20续3，`Order.cs:1180` 已改）**：归还全部租赁物时 `RentController.cs:5210` 把 `guaranty.relieve=1`（仅"押金占用解除/可退"，非已退款）。旧状态机把 `relieveGuarantyAmount` 当已退 → 归还即跳「全额退押金」。改为 `refundAmount`(payment_refund 汇总)：≈0→全部归还 / <needRefund→部分退押金 / ≥needRefund→全额退押金。**行为波及所有订单**：归还未退款单从「全额退押金」回正「全部归还」。「全额退押金」字符串全工程仅 `Order.cs:1180` 一处产生
+- **接待中 rental 是 `valid=0` 草稿态，`PlaceRentOrder` 去结算才置 `valid=1`（2026-06-21）**：`recept_package.js` 建套餐 rental 即 `valid:0`、`Rental` 模型默认 0。任何"重载/找回中断单"必须用 `Rent/GetReceptingOrder`（不过滤 rental.valid，带 rentItems+pricePresets），**不能**用 `GetOrderByStaff`/`GetOrder`（按 `r.valid==1` 过滤会把草稿 rental 全滤掉 → 找回成空单）。`recept_new.js onLoad` 找回时要 `getRentReceptingOrderPromise` 拉单 + **整单还原** `this.data.order`(id+rentals)，只取顾客信息会丢购物车。实证：71770 库里有 2 rental/8 item 但 valid=0
+- **`PayWithDeposit` 返回的 order 经 `GetOrder`、不带订单级 `order.guarantys`（2026-06-21）** → `rentProperties.totalPaidGuarantyAmount` / `totalRentUnRefund` 恒 0。前端"储值付租金+退款"(`_refundWithDeposit`) 别读 `paidOrder.totalRentUnRefund` 判退款额，用页面已算好的 `refundAmount`（基于 `order.totalGuarantyAmount`），否则 `rAmount<=0` 提前 return、押金永不退（曾报 order 71769，代付微信单不退）。另：`PayWithDeposit` 已改 `payingAmount>0` 才插储值支付（租金免除时不再攒 ¥0 记录）
 
 ---
 
@@ -2635,3 +2637,37 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 全部 `node --check` 通过 + wxml view/block/template 平衡 + Order.cs `dotnet build`（口径改动，沿用既有字段）
 - 🚧 **待用户**：① 重编小程序（rent_order_detail 全部改动）；② 部署 SnowmeetApi（仅退押金状态 Order.cs，需 publish）；③ 真机验证：代付行红 + 脱敏号列、71766 退租日期/应退押金 0.01/状态全部归还、按物品操作 + 全部归还、按商品只读
 - 代码仓改动**本地未提交**，用户按部署节奏处理；本次 end-work 仅 doc 仓
+
+### 2026-06-21 — 储值付租金退押金不退 + ¥0 储值支付垃圾记录 + 找回中断订单变空单（三修）
+
+接 6-20续3，继续测租赁订单/接待流程。两组 bug，frontend 为主 + 各一处后端；全程连生产库**只读**核查（用户授权）。改动在 snowmeet_wechat_mini + SnowmeetApi 工作区**未提交**，需小程序重编 / 后端 publish。归档见 [`sessions/2026-06-21_deposit_refund_and_recover_order_fixes.md`](sessions/2026-06-21_deposit_refund_and_recover_order_fixes.md)。
+
+#### 一、储值付租金 + 申请退款：押金不退（order 71769，他人微信代付）
+**现象**：勾「储值付租金」+「申请退款」→ order_payment 插 ¥0 储值支付（用户以为该 0.01）、payment_refund 无微信退款。
+**DB 实查 71769**：Burton 租金 0.01 的 `rental_detail` 113352 被**有意免除**（mod log `valid 1→0, scene=租赁订单详细页修改租金明细`）→ 应收租金=0；押金 0.01（guaranty 15913）经代付微信单 42625 正常已付（`guaranty_payment` 关联在）；4 条 ¥0 储值支付=点 4 次的产物。
+**根因**：① 储值支付=0：`PayWithDeposit` 用 `order.totalRentSummaryAmount`(valid=1 租金合计)=0（租金免除，0 正确，但不该硬插 ¥0 记录）。② 押金不退：前端 `_refundWithDeposit` 读 `paidOrder.totalRentUnRefund` 判退不退；`PayWithDeposit` 末尾 `GetOrder` 返回的 order **不加载订单级 `order.guarantys`** → `rentProperties.totalPaidGuarantyAmount=0` → `totalRentUnRefund=0` → 命中 `rAmount<=0` 提前 return，**没调 refundPromise**。代付不是原因（后端 Refund 对代付无过滤）。
+**修复**：`_refundWithDeposit` 的 `rAmount` 改用页面已可靠算好的 `refundAmount`（基于 `order.totalGuarantyAmount`）；`PayWithDeposit` 改 `payingAmount > 0` 才插储值支付（需 publish）。
+
+#### 二、找回中断的订单 = 空单（order 71770）
+**现象**：开单加租赁商品后，「找回中断的订单」打开是空单（用户以为没存库）。
+**DB 实查 71770**：库里**有 2 rental / 8 rentItem**，只是 rental `valid=0`。
+**根因**：接待中 rental 本就是 `valid=0` 草稿态（`recept_package.js` 建套餐 rental 即 `valid:0`、模型默认 0），**`PlaceRentOrder` 去结算才置 1**（实证 71769 placed=valid1 / 71770 interrupted=valid0）。而 `recept_new.js onLoad`（5-30，早于 6-20续2 找回功能）找回时用 `getOrderByStaffPromise`（**按 valid=1 过滤**→草稿 rental 全滤掉）+ **只取顾客信息、没还原 rentals 和 order.id** → 空单。6-20续2 接了跳转 + 后端 `GetReceptingOrder`，但没改 recept_new 消费 orderId 还原整单（功能没接完）。
+**修复** `recept_new.js onLoad`：带 orderId 时改用 `getRentReceptingOrderPromise`(→`GetReceptingOrder`,不过滤 valid,带 rentItems+pricePresets) + **整单还原** `this.data.order`(id+rentals) → 购物车显示原商品、后续保存/去结算更新同一张中断单。非找回(无 orderId)走原逻辑无回归。
+
+#### 关键改动文件
+| 文件 | 改动 |
+|---|---|
+| [`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) | `_refundWithDeposit` rAmount 用页面 refundAmount |
+| [`OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs#L3023) | `PayWithDeposit` payingAmount>0 才插储值支付（**需 publish**） |
+| [`recept_new.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) | onLoad 找回用 GetReceptingOrder + 整单还原 rentals/id |
+
+📌 关键发现 / 教训：
+- **接待中 rental 是 `valid=0` 草稿，`PlaceRentOrder` 才置 1**：任何"重载中断单"必须用 `GetReceptingOrder`(不过滤 valid)，不能用 `GetOrderByStaff`/`GetOrder`(valid=1 过滤)。
+- **`PayWithDeposit` 返回的 order 经 `GetOrder`、不带订单级 `order.guarantys`** → `rentProperties.totalPaidGuarantyAmount`/`totalRentUnRefund` 恒 0；前端储值付租金退款别信它，用页面 `order.totalGuarantyAmount` 口径。
+- **找回/恢复类功能要"接完整链"**：跳转 + 后端取数接口 + 前端消费还原，缺一环即空单（6-20续2 漏了 recept_new 消费）。
+- **DB 实查戳穿"没保存"误判**：71770 库里有 2 rental/8 item 只是 valid=0；"没存库"是表象，真因在重载过滤 + 没还原。
+
+**状态**
+- ✅ 三处改动 `node --check` / `dotnet build` 通过；71769/71770 经生产库只读核查定根因
+- 🚧 **待用户**：① 重编小程序（rent_order_detail + recept_new）；② publish SnowmeetApi（PayWithDeposit）；③ 真机复测：71769 储值付租金后退微信 0.01 + 不再增 ¥0 记录、71770 找回能看到 2 件商品
+- 库里 71769 的 4 条 ¥0 储值支付 + 71770 的 valid=0 草稿都**无害不用清**；代码仓改动本地未提交，用户部署；本次 end-work 仅 doc 仓
