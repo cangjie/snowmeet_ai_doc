@@ -2710,3 +2710,21 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ 小程序 4 文件 `node --check` 通过；SnowmeetApi `dotnet build` 0 error
 - 🚧 **待用户**：① 重编小程序（unreturned 页 + rent_order_detail + data.js）；② **publish SnowmeetApi**（新增 SetRentalEntertainByStaff，无库表变更）；③ 真机/模拟器验证：未归还列表分组/搜索/拨打 + 点击深链只展开目标 + 招待设/撤后小计归0/订单应收减少
+
+### 2026-06-22（续） — 未归还租赁物列表：按分类/按订单/按顾客 三态切换
+
+接当天 unreturned 重做，给 [`unreturned.{js,wxml,wxss}`](../snowmeet_wechat_mini/pages/admin/rent/unreturned.js) 顶部加三态归类切换。纯前端，无后端。归档 [`sessions/2026-06-22_unreturned_group_by_mode.md`](sessions/2026-06-22_unreturned_group_by_mode.md)。
+
+- 后端按品类返回 → `flatten(list)` 拍平成单层 `allItems`（每件挂派生：品类名/id、订单 id/顾客名/称谓/手机号/订单号、发放时间/已租天数、可排序 `_pickTs`）→ `buildSections(items, mode)` 按模式重组，**后端零改动**。
+- 三模式共用一套 `section→group→卡片` WXML（`_ghead` flag 控二级分组头）：
+  - 按分类：品类 section → 顾客/订单分组头 → 卡片
+  - 按订单：订单 section（顾客+订单号在头）→ 直接列卡片（卡片补品类标签）
+  - 按顾客：顾客 section（姓名+电话在头）→ 订单分组头 → 卡片（补品类标签）
+- 顶部分段控件 `.ur-modebar`；汇总左侧计数随模式（未归还分类/订单/顾客 N）；切模式默认展开第一 section；搜索扩展到 编码/名称/分类/顾客名/手机号。
+- **按顾客仅以手机号汇总**：键 `cell:{cell}` / 无号统一 `_nocell` 一桶（删原姓名/订单回退）；**称呼取最早含未归还物订单**：`_pickTs`（无发放时间设极大值不竞争），buildByCustomer 取每组最小 `_pickTs` 的姓名/称谓。
+
+📌 教训：后端按 A 分组、前端要按 B/C 重组时，先 `flatten` 一次性挂全派生字段再各自分桶 + `_ghead` flag 统一模板，避免三份重复 WXML；「按手机号汇总 + 最早订单称呼」需可排序时间戳（字符串发放时间不能直接比）。
+
+**状态**
+- ✅ `node --check` 通过；wxml `<view>` 25/25 平衡
+- 🚧 **待用户**：重编小程序实测三模式切换/搜索/折叠/深链；按顾客仅手机号汇总 + 最早订单称呼。纯前端、本地未提交
