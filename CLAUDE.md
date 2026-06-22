@@ -171,13 +171,14 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-21）
+## 当前状态（截至 2026-06-22）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
-- 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`）
+- 页面（未归还租赁物列表，2026-06-22 重做）：`pages/admin/rent/unreturned`（品类 section→顾客分组→租赁物卡片 + 模糊搜索 + 汇总；点卡片带 `rentItemId` 深链跳订单明细并展开目标 rental/折叠其余）
+- 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`；showcase「招待」格可点设/撤招待，走 `Rent/SetRentalEntertainByStaff`；深链 `rentItemId` 进入只展开目标 rental）
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
@@ -193,7 +194,7 @@ dotnet run
 **下一步要做的**
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
-- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端）
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`）
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -2695,3 +2696,17 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ 全部 `dotnet build` / 逻辑通过；6 问题均连生产库实证；§2/§6 用临时诊断接口事务回滚验证（已删接口）
 - 🚧 **待用户**：① 重编小程序（new_rent_list + rent_recept_form）；② **publish SnowmeetApi**（SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化）；③ 真机复测：找回单改租金/加套餐落库 + 排序 + 代付微信支付弹窗 + 支付宝支付绑 openid
 - ⏳ **可选（写生产库，需用户确认）**：手动补 member 15506 的 alipay_payerid（停用空串 169169 + 加 `040P5...`）、清 member 41125 空 wechat_mini_openid（169181）让 op 42639 不等 publish 即可支付
+
+### 2026-06-22 — 未归还租赁物列表重做（深链展开）+ rental 招待开关
+
+两块独立改动，纯前端 + 一处后端新增接口。归档 [`sessions/2026-06-22_unreturned_list_and_rental_entertain.md`](sessions/2026-06-22_unreturned_list_and_rental_entertain.md)。
+
+1. **未归还租赁物列表按模版重做**（[`unreturned.{js,wxml,wxss,json}`](../snowmeet_wechat_mini/pages/admin/rent/unreturned.js)，重编）：参考 [`templates/rent/unreturned_item.html`](templates/rent/unreturned_item.html) 完整还原 —— 品类可折叠 section → section 内按 `order.id` 顾客二级分组（姓名/称谓/电话拨打/订单号）→ 租赁物卡片（图标+名称+条码+发放时间+「发放」标签+已租N天）+ 顶部模糊搜索框（前端过滤编码/名称/分类）+ 汇总「分类N / 租赁物N件」。数据无需后端改：`order.name/gender/cell/code` 直接在返回里；称谓由 gender 派生、已租天数由 `pickDate` 派生。
+2. **未归还列表点击 → 深链展开订单明细**：列表卡片 `wx.navigateTo` 带 `&rentItemId=`（**仅此入口带**），[`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) `onLoad` 存 `_targetRentItemId` + `_deepLinkApplied` 守卫；`getData` 渲染后 `applyDeepLinkExpand`：id→ridx 解析，折叠订单信息/支付/退款三顶部区块 + 仅展开目标 rental 及其租赁物列表，best-effort `pageScrollTo` 定位（wxml 给卡片模板加 `id="rid-item-{{rentItem.id}}"`）。**无 rentItemId（普通进入）首行 return，行为不变**。
+3. **订单明细：rental 设/撤「招待」**（按现有招待计费规则）：招待是**派生豁免** —— `Rental.entertain=true` 时 `totalRentalAmount→0`、`totalSummary` 不计租金、`Order` 应收（[`Order.cs:912`](../SnowmeetApi/Models/Order/Order.cs)）只累加 `entertain==false` 的 rental，招待项单列进 `entrtainAmount`。规则早已全链路存在，本次只暴露开关 + 持久化标志，**不动 rental_detail**（租金明细仍显毛额、小计自动归 0）。
+   - 后端新增 [`SetRentalEntertainByStaff`](../SnowmeetApi/Controllers/RentController.cs)（[HttpPost("{rentalId}")]，权限校验→变更时写 core_data_mod_log 差异日志+置 entertain/update_date→返回 GetRental，镜像 UpdateRentalGuarantyByStaff），**需 publish**。
+   - 前端 [`data.js setRentalEntertainPromise`](../snowmeet_wechat_mini/utils/data.js) + [`onToggleEntertain`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js)（showcase「招待」格可点 → wx.showModal 二次确认 → 调接口 → 替换 rental+renderOrder+toast，沿用 day-charge 刷新模式），「是」时金额橙色高亮。
+
+**状态**
+- ✅ 小程序 4 文件 `node --check` 通过；SnowmeetApi `dotnet build` 0 error
+- 🚧 **待用户**：① 重编小程序（unreturned 页 + rent_order_detail + data.js）；② **publish SnowmeetApi**（新增 SetRentalEntertainByStaff，无库表变更）；③ 真机/模拟器验证：未归还列表分组/搜索/拨打 + 点击深链只展开目标 + 招待设/撤后小计归0/订单应收减少
