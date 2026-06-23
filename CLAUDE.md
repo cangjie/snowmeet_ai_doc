@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-22）
+## 当前状态（截至 2026-06-24）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -2728,3 +2728,23 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ `node --check` 通过；wxml `<view>` 25/25 平衡
 - 🚧 **待用户**：重编小程序实测三模式切换/搜索/折叠/深链；按顾客仅手机号汇总 + 最早订单称呼。纯前端、本地未提交
+
+### 2026-06-24 — 租赁列表翻页组件化 + onShow 保参重查 + 退押金前提 + 日期可选全程：五项前端打磨
+
+全部 `snowmeet_wechat_mini` 前端改动（含一个新建可复用组件），无后端/无库改。本环境无 devtools，仅过 `node --check` + wxml 标签平衡。代码仓本地未提交，用户按部署节奏处理；本次 end-work 仅 doc 仓。归档 [`sessions/2026-06-24_rent_list_pager_component_and_onshow_requery.md`](sessions/2026-06-24_rent_list_pager_component_and_onshow_requery.md)。
+
+1. **租赁订单查询日期可选全程**（[`components/date-range-picker/index.{js,wxml}`](../snowmeet_wechat_mini/components/date-range-picker/index.js)）：原只能选今天以后——`van-calendar` 默认 `min-date=今天 / max-date=+6 月`。`attached()` 算 `minDate`(往回 3 年)/`maxDate`(今天，历史查询无需选未来) + wxml 绑 `min-date`/`max-date`。
+2. **退押金按钮加「所有 rental 均已退租」前提**（[`rent_order_detail`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js)）：`renderOrder` 累加 `allRentalsReturned`(每条 rental 相关租赁物排除 noNeed/已更换全 `_returned`，依据 RentItemLog，与 settled 无关) → `order._allRentalsReturned`；按钮 disabled 加 `|| !order._allRentalsReturned` + 红色提示「所有租赁物退租后才能退押金」。
+3. **新建可复用翻页组件 [`components/list-pager/`](../snowmeet_wechat_mini/components/list-pager/index.js)**（4 文件，与业务零耦合）：首页/上一页/下一页/末页 + 页码跳转 + 自定义 pageSize（默认 50）；props `page/totalPages/pageSize/disabled/maxPageSize`，统一 `change{page,pageSize}` 事件（改 pageSize 回第 1 页）；输入框内部状态自管理；`disabled`(查询中) 时全部按钮/输入框禁用。接入 [`new_rent_list`](../snowmeet_wechat_mini/pages/admin/rent/new_rent_list.js) 首尾两端（统计行下 + 列表底部），删页面内联翻页 + 8 旧 handler + pageInput/pageSizeInput data + 对应 wxss；`getData(page,pageSize)`/`renderOrders` 带 pageSize；`onPagerChange` 统一回调。
+4. **列表页 onShow 保参重查（约定：以后新列表都遵循）**：`navigateTo` 进明细期间列表实例不销毁，page/pageSize/筛选 tag/groupMode/keyword 全在 `this.data`。返回 onShow 读取重查、不重置回初始值。`new_rent_list.onShow` 由 `getData(1)` 改 `getData(this.data.page, this.data.pageSize)`；`unreturned` 数据加载从 onLoad 移 onShow（沿用 groupMode/keyword/shop）。初始查询统一放 onShow（onLoad 不查）→ 首次进入也走同一路、无双查。
+5. **按租赁商品视图恢复展开明细的操作按钮**（[`rent_order_detail.wxml`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.wxml)）：两视图共用 `rentItemCard` 模板，「按租赁商品」展开明细传 `readonly:true` 隐藏归还/暂存/更换/赔偿/备注按钮（6-20续3 设计）→ 用户要求加回，改 `readonly:false`，与「按租赁物」一致，事件绑定两边都对得上、无 JS 改动。
+
+📌 关键发现 / 教训：
+- **`van-calendar` 默认只能选今天起 6 个月**，历史查询要显式绑 `min-date`(过去)/`max-date`(今天)。
+- **`navigateTo` 列表页实例不销毁**：`this.data` 即「记录下的页面参数」；返回 onShow 重查只需读 `this.data` 的分页/筛选，不要重置回初始值。把初始查询放 onShow（onLoad 不查）即首次也走同一路、无双查 → 这是「列表保参重查」的通用约定。
+- **翻页栏抽组件边界**：组件只吃 `page/totalPages/pageSize/disabled`、只吐 `change{page,pageSize}`；输入框内部状态自管理 + `observers` 同步 prop；父级加载后回填 page/pageSize/totalPages。复用只需注册组件 + 一个 `onPagerChange`。
+- **同模板 + `readonly` flag 控操作显隐**：要恢复/隐藏操作按钮改传值即可，无 JS 改动。
+
+**状态**
+- ✅ 全部 `node --check` 通过 + wxml/组件标签平衡
+- 🚧 **待用户**：重编小程序验证：① 日期可选回溯 3 年 ② 退押金按钮在未全退租时灰 + 提示 ③ 翻页组件首尾两端、首页/末页/跳转/改 pageSize、查询中全禁 ④ 从明细返回列表保留页码/筛选并刷新 ⑤ 按租赁商品展开明细带操作按钮。纯前端、本地未提交
