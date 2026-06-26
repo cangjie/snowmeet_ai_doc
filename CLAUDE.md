@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-24）
+## 当前状态（截至 2026-06-26）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -258,7 +258,11 @@ dotnet run
 - **rental_detail.charge_type 三种值**：`租金` / `超时费` / `赔偿金`（中文，注意"赔偿金"非"赔偿"）。按 rental 分组求和
 - **未结算订单虚账**：`rental.settled=0` 的 rental 会持续按天累积 `rental_detail` 应收记录（如雪季初一直没关单的，累积到 189 天 ¥9 万）。做收入报表必须过滤已结算/已关闭，否则虚增
 - **`api/Rent/GetConfirmedRentOrder` (RentController.cs:5544) 的"确认订单"5 条规则**：paidAmount > 0 AND closed=1 AND close_date != null AND !hide AND 不含非微信非支付宝支付（现金/储值/转账等会被排除）；做对账报表时这是参考过滤口径
-- **`punch_card` / `punch_card_used` 表存在但 EF 未接**：DB 有 `punch_card`(36 行, 字段 id/biz_type/card_name/member_id/mi7_code/total/punches) + `punch_card_used`(**0 行**, 字段 id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/valid)。`SnowmeetApi/Models/` 下**无** `PunchCard` / `PunchCardUsed` 模型（grep 0 命中）。当前业务核销「次卡支付」仍走 `order_online.pay_memo='次卡支付'`（6 单）/ `[order].pay_option='次卡支付'` 字符串标记的老路径，新结构化的 punch_card_used 明细表尚无写入代码
+- **`punch_card` / `punch_card_used` 表存在但 EF 未接**：DB 有 `punch_card`(36 行, 字段 id/biz_type/card_name/member_id/mi7_code/total/punches，24 养护卡 + 12 租赁卡，2026-03 建) + `punch_card_used`(字段 id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/valid，`id` 均 IDENTITY)。`SnowmeetApi/Models/` 下**无** `PunchCard` / `PunchCardUsed` 模型（grep 0 命中）。当前业务核销「次卡支付」仍走 `order_online.pay_memo='次卡支付'`（6 单）/ `[order].pay_option='次卡支付'` 字符串标记的老路径，新结构化的 punch_card_used 明细表无写入代码。**2026-06-26 已从 rental 反推回补 17 条租赁次卡使用记录**（见开发日志 6-26 + 脚本 `backfill_punch_card_used.py`）：`punch_card_used` 现 17 行、8 张租赁卡 punches 已写回；尚有 13 条（10 无卡 + 3 多卡）留 `punch_card_used_manual_review.csv` 待人工核
+- **退押金「应退」基数必须封顶到实收**（2026-06-26 修）：[`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 应退押金基数原直接用 `order.totalGuarantyAmount`（订单**配置**应收押金），导致**未支付订单**（paidAmount=0）也算出应退押金（order 71796：押金未付却显应退 ¥0.01）。这是 2026-06-20续3 为修已付订单 71766（应退算成 0）改用配置押金的反向副作用。已改 `Math.min(order.totalGuarantyAmount||0, order.paidAmount||0)`：未付→应退 0、已付不变
+- **`van-button` 的 `disabled` 只拦 `bind:click`、拦不住 `bindtap`**（2026-06-26 踩）：`bindtap` 抓组件根节点原始 tap，绕过 vant 内部 disabled 判断 → 按钮显示禁用样式却仍能点（rent_order_detail 退款按钮原 `bindtap="onRefund"`，未全退租时灰显仍可点发起退款）。要靠 disabled 屏蔽点击必须用 `bind:click`，并在 handler 入口加防御性守卫双保险
+- **支付宝小程序 `alipay_snowmeet` 是独立代码库**：微信端修过的同类 bug 要单独同步。2026-06-26 修 [`alipay_snowmeet/pages/payment_entry/index.js`](../alipay_snowmeet/pages/payment_entry/index.js) 总计显示——原绑 `order.total_amount`（租赁订单恒 0），改 `order.paying_amount`（与微信端 2026-06-20续2 同一修复），日租金同样优先用 `pricePresets`
+- **扫码「支付记录不存在」多是过期二维码**（2026-06-26 答疑）：`PaymentIdentity/CheckPayerIdentity` 的 `_resolveStatus` 只认 `order_payment.valid=1`；店员切换支付方式时 `InvalidatePendingOrderPayments` 把旧 OP 置 valid=0 新建一条，顾客扫旧二维码（带旧 paymentId）就报此错（order 71796：42662 微信 valid=0 / 42664 支付宝 valid=1）。符合设计非 bug。排查先 DB 查该 paymentId 的 valid + 同订单当前有效待支付单
 - **同步全靠 SKILL.md（2026-06-19 固化）**：start-work/end-work 的 git pull / commit / push 全写进 `snowmeet_ai_doc/.claude/skills/` 的 SKILL.md（随 git 跨机），不再依赖 `.claude/settings.local.json` 的 hook（gitignored、机器本地、不跨机）；`settings.local.json` 已 `git rm --cached` 转本机不跟踪。详见开发日志 2026-06-19
 - **`all_销售单列表.xls` 是七色米全店全量导出**（崇礼/万龙/南山/总部/离职等所有门店，910 单据/1268 明细行）。`万龙_销售单列表.xls` 也是多店全量（含 592 南山店行），行级 100% ⊆ all；`南山_销售单列表.xls` 与 all 同单据同店但 **595 行全不相等，唯一差异列 `成本额`**（南山那份是 `'-'` 占位，all 是真实成本），其余 33 列 + 合并用全部 10 个明细字段（商品编号/名称/分类/规格/属性/数量/单价/折扣/折后单价/总额）完全一致 → **三个 `add_*_retail_detail_merged` 脚本可统一用 `all_销售单列表.xls` 作单一明细源，合并结果不变**（成本额不在合并 10 字段内）。原 `销售单列表_c393a061-...xls` 已改名 `南山_销售单列表.xls`
 - **本机(Intel Mac) python3 默认无 `xlrd`**（读 `.xls` 必需）：已 `pip3 install xlrd`(2.0.2)。新机器跑 `add_*_retail_detail_merged_xlsx.py` / `export_all_orphan_records.py` 前先装 xlrd + openpyxl
@@ -2748,3 +2752,24 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ 全部 `node --check` 通过 + wxml/组件标签平衡
 - 🚧 **待用户**：重编小程序验证：① 日期可选回溯 3 年 ② 退押金按钮在未全退租时灰 + 提示 ③ 翻页组件首尾两端、首页/末页/跳转/改 pageSize、查询中全禁 ④ 从明细返回列表保留页码/筛选并刷新 ⑤ 按租赁商品展开明细带操作按钮。纯前端、本地未提交
+
+### 2026-06-26 — 旧接待加新版入口 + 删孤立组件 + 退款/支付页 bug + 次卡使用记录回补
+
+杂项偏多的一场，详见 [`sessions/2026-06-26_recept_entry_button_orphan_cleanup_refund_bugs_punch_card_backfill.md`](sessions/2026-06-26_recept_entry_button_orphan_cleanup_refund_bugs_punch_card_backfill.md)。前 5 项前端改动散落 `snowmeet_wechat_mini`/`alipay_snowmeet`，**本地未提交**；最后一项数据回补落 `snowmeet_ai_doc` 并已写生产库。
+
+1. **旧版接待页加「进入新版」按钮**（[`recept/recept_entry.{wxml,js}`](../snowmeet_wechat_mini/pages/admin/recept/recept_entry.wxml)）：散客下方加蓝色按钮 → `goNewVersion()` → `wx.navigateTo` `/pages/admin/reception/recept_entry`。
+2. **删自定义孤立组件 47 文件**：微信上传报"241 未打包/无依赖"，**核实后只删确凿无引用的自定义 component**（drag/mi7_order/order_type/recept 整目录 + date_selector_double + rent/{order_summary,rental_list} + drag.wxss/vtab.wxss），**保留** package.json/miniprogram_npm/project 配置（详见已知遗留新增条）。
+3. **「支付记录不存在」答疑**（paymentId=42662，order 71796）：过期二维码（切支付方式后旧 OP valid=0），符合设计非 bug。详见已知遗留。
+4. **支付宝总计显示 ¥0 修复**（[`alipay_snowmeet/.../payment_entry/index.js`](../alipay_snowmeet/pages/payment_entry/index.js)）：总计改 `paying_amount`、日租金优先 pricePresets，照搬微信端。详见已知遗留。
+5. **rent_order_detail 退款两 bug**：① 未付订单显应退押金 → 基数封顶 `min(配置押金, paidAmount)`；② `van-button` disabled 样式却可点 → `bindtap`→`bind:click` + onRefund 守卫。详见已知遗留。
+6. **次卡使用记录回补 punch_card_used**（plan 流程 + 落库）：`memo` 含次卡的有效 rental 31 条，按"天数=end−start+1（空算1天）"口径分桶——**自动回补 17 条**（会员恰好 1 张租赁卡 & settled=1）/ 无卡人工核 10 / 多卡(会员30870)人工核 3 / 跳过 1（17766 settled=0 211天虚账）。新建 [`backfill_punch_card_used.py`](backfill_punch_card_used.py)（pyodbc，默认 dry-run、`--apply` 落库、幂等）。**已 apply：punch_card_used 插 17 行 + 8 张卡 punches 重算**（逐卡与 used 合计一致、均 ≤ total）。13 条待人工核留 [`punch_card_used_manual_review.csv`](punch_card_used_manual_review.csv)。
+
+📌 关键发现 / 教训：
+- **微信"未打包/无依赖"≠ 可删**：package.json/miniprogram_npm/project 配置都在列表但删不得；只有自定义 component 确凿无 usingComponents 引用才安全删。
+- **`van-button` disabled 只拦 `bind:click` 不拦 `bindtap`**（详见已知遗留）。
+- **应退押金基数封顶到实收**、**支付宝独立代码库需同步微信端修复**、**扫码"支付记录不存在"=过期二维码**（均见已知遗留）。
+- **Driver 13 连接串不认 `Encrypt=True`**（要 `yes/no`）：Intel Mac 跑库脚本时 config.sqlServer（Driver 18 写法）要归一化 `Encrypt=yes`。
+
+**状态**
+- ✅ 次卡回补已落库 + 独立复查通过（17 行，punches 一致无溢出）；前端 5 项 `node --check` 通过、本地未提交
+- 🚧 **待用户**：① 重编 `snowmeet_wechat_mini`（新版入口、删组件、退款两修）+ 清缓存验证；② 重编 `alipay_snowmeet`（总计显示）；③ 次卡 13 条人工核（无卡补卡/多卡选 22 还是 23）后可再补一批 INSERT
