@@ -194,7 +194,7 @@ dotnet run
 **下一步要做的**
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
-- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`）
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积））
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -2773,3 +2773,24 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态**
 - ✅ 次卡回补已落库 + 独立复查通过（17 行，punches 一致无溢出）；前端 5 项 `node --check` 通过、本地未提交
 - 🚧 **待用户**：① 重编 `snowmeet_wechat_mini`（新版入口、删组件、退款两修）+ 清缓存验证；② 重编 `alipay_snowmeet`（总计显示）；③ 次卡 13 条人工核（无卡补卡/多卡选 22 还是 23）后可再补一批 INSERT
+
+### 2026-06-27 — 回头客分析 + CloseOrder/计费/展示 四处修复（systematic-debugging）
+
+会话起始 start-work。先做租赁回头客只读分析,再由真机截图暴露 4 个 bug 并修。代码改动在 `SnowmeetApi`(后端 2 处)+ `snowmeet_wechat_mini`(前端 2 处)**本地未提交,用户按部署节奏处理**;end-work 仅 push doc 仓。全程连生产库只读核查。详见 [`sessions/2026-06-27_returning_customers_and_close_billing_fixes.md`](sessions/2026-06-27_returning_customers_and_close_billing_fixes.md)。
+
+1. **回头客分析(只读)**：① 按订单笔数(merged 合并表 2252 笔,剔测试+临时)≥3 次回头客 **83 人**(手机号/openid 两键一致)。② 按「套天」(含雪板 rental,品类前缀 01双板/02单板,`DISTINCT(rental_id,rental_date)` 计) **≥5 次 164 人**(去重客户 1265;>5 为 124)。高值多由长租/整季未归还按天累积撑起。
+2. **CloseOrder 自 2026-06-21 起停止关单(修)**：新版 CloseOrder(`b186e49f`,06-21 17:19)新增 `paymentFulfilled = Round(paidAmount−(paying_amount??0),2)==0`,而 `DealSuccessPaidOrder`([OrderController.cs:2200](../SnowmeetApi/Controllers/OrderController.cs#L2200))支付成功即把 `paying_amount=null` → 退化成 `paidAmount==0` 对任何已付款单恒 false → 一单关不了。DB 实证 06-21 后关单数=0;96 单滞留(含 65621 押金¥3000 全退后仍滞留半年)。修 [RentController.cs CloseOrder](../SnowmeetApi/Controllers/RentController.cs):`paymentFulfilled = order.paying_amount == null || Round(paying_amount,2) <= 0`(尚欠应收 null/<=0 才算收齐),保留「未足额不关单」。`dotnet build` 0 error,**未提交需 publish**。决策:只改代码不动历史。
+3. **未发放也计租金(修)**：「系统续租」按天计费 [RentController.cs:5667](../SnowmeetApi/Controllers/RentController.cs) 门槛 `i.status != "已归还"` 把「未发放/已更换」也计费 → 本季 **187 条从没发放却计 ¥168 万虚账**(186 条 settled=0 仍每天累积)。改成 `i.status == "已发放" || i.status == "暂存"`(至少一件当前在外才计)。验证本季 339 条在计费 rental → 57 继续/282 停止。**未提交需 publish**。
+4. **小数位浮点尾数(修)**：`rent_order_detail` showcase 区 6 处 `¥{{裸浮点值}}` 显示 `0.06000000000000005`。js 补 4 个 `*Str`(走 `util.showAmount`)、wxml 改绑 `{{xxxStr}}`(去字面 ¥)。**未提交需重编**。
+5. **招待单不显示租金(修)**：`new_rent_list` 列表「总计租金」对招待单显「--」(① 只在 `了结关闭` 累加 ② 招待 rental 后端 `totalRentalAmount` 返 0)。改 [new_rent_list.js](../snowmeet_wechat_mini/pages/admin/rent/new_rent_list.js) `renderOrders`:招待 rental 从 `rental.details`(列表已 include)累加毛租金显示,不受了结关闭限制;页级收入合计不计招待豁免额。**未提交需重编**。
+
+📌 关键发现 / 教训：
+- **CloseOrder 关单闸门别用 `paidAmount − paying_amount`**：支付成功后 `paying_amount` 恒 null,这式子退化成「paidAmount==0」会把所有已付款单卡死。判「已收齐」要看 `paying_amount` 本身(null/<=0)。
+- **租金「生效」= 装备真在外(已发放/暂存)**：`RentItem.status` 派生自 RentItemLog(无事件=未发放);计费/生效判断看 status,别看 `pick_time` 列(新流程可能空)。
+- **招待 rental 后端 `totalRentalAmount`/`totalSummary` 租金部分恒 0**(`experience||entertain` 豁免);要显示招待掉的毛租金从 `rental.details` 累加(列表 `GetCommonOrders` 已 include details、`RendOrder` 不剥字段)。
+- **金额展示一律 `util.showAmount`**(`Math.round(×100)/100`+2位+带¥),wxml 别 `¥{{裸值}}`。
+- **本机 Intel Mac 连库**:`ODBCSYSINI=/usr/local/Cellar/unixodbc/2.3.4/etc` + Driver 13 + 连接串 `Encrypt=yes`;`rental_detail`(11万行)全历史 `NOT EXISTS` 会超时,先按 `create_date>'2025-10-01'` 缩小再 python 分批。
+
+**状态(6-27)**
+- ✅ 4 处修复编译/语法通过 + 只读数据验证;回头客分析完成
+- 🚧 **待用户**：① **publish SnowmeetApi**(CloseOrder `paymentFulfilled` + ContinueRental 生效计费,务必随积压一起上,否则 CloseOrder 部署后彻底停关单)；② 重编 `snowmeet_wechat_mini`(小数位 + 招待显示租金)；③ 独立 bug 留待:65621 类「押金全退致 `totalRentUnRefund` 为负、`==0` 关不上」、187 条/¥168 万历史虚账(已决定不动)
