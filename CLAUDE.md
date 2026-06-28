@@ -274,7 +274,7 @@ dotnet run
 - **`performWebRequest` 非 200 不 reject 的隐蔽 bug 已修**（2026-05-28）：[`util.js:115`](snowmeet_wechat_mini/utils/util.js#L115) 原代码 toast 后 `return`（不 reject），Promise 永远 pending，调用方既不会 then 也不会 catch。任何接口偶发 500/401 时页面就停在加载中。已加 `reject(res.statusCode)`，影响所有 `wx.request` 全局
 - **WeChat `getPhoneNumber` 只能由 button 直接触发**：JS 不能程序触发 `wx.getPhoneNumber()`。意味着「单一支付按钮 + 中途引导手机号」UX 行不通，必须把授权按钮独立出来（或弹窗里）让用户直接 tap `<button open-type="getPhoneNumber">`
 - **`social_account_for_job` 表有指向已删 member 的脏数据**（2026-05-29（续）发现）：id=55 (cell=18501097897, openid=oHdTn5e..., member_id=40649) 历史员工绑定记录，member_id=40649 在 member 表 0 行 / MSA 表 0 行，是孤儿记录。曾让 MemberLogin 强制覆盖 unionid 反查结果到 40649 → 触发孤儿清理把 PaymentIdentity 刚建的真实会员失效。已 5-29（续）改为 `memberId==null` 时才用 jobAccount 兜底；脏数据本身未删，存量不影响新流程
-- **`payment_entry.wxml:51` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（待修）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付。前端按钮屏蔽条件应改为 `payment && payment.status=='支付成功'`（当前 payment 为准），不用 order 聚合。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待，新用户看到「支付成功」无支付按钮
+- **`payment_entry` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（2026-06-28 已修：微信 `pages/order/payment_entry` + 支付宝独立库 `alipay_snowmeet/pages/payment_entry` 两端 `renderData` 改为按**当前扫码 paymentId** 选 payment、需付/总计金额用 `payment.amount`、派生 `order.payStatus` 替代 4 处 `orderStatus` 判定）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment，典型=追加场景原押金已付+追加待付）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付 → 顾客扫追加二维码显示「支付成功」+总计¥0、无支付按钮。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待。**支付宝端要单独重编**
 - **`Member.alipayPayerId` 计算属性**（2026-05-30 新加，对标 `wechatMiniOpenId`）：getter 遍历 `memberSocialAccounts` 找 type=`alipay_payerid`。所有 alipay 通道反查会员 id ↔ payerid 都用这个 getter，不必再手 grep MSA
 - **`PaymentIdentityController._applyChoice` 也兜底建无 cell 游客会员**（2026-05-30 新加）：之前只 `_applyConfirmDirect` 在 `scannerMemberId==null` 时调 `_loadSessionContext` + `_createNewMember(phone:null, ...)`；现在 `_applyChoice` 顶部加同样的 10 行代码块，让游客拒绝手机号授权后点「正常支付/替人代付」也能完成支付（不再拒绝"扫码方尚未注册会员"）。**这是 2026-05-29 删 MemberLogin stub 后的责任迁移**：所有 `ConfirmPayIdentity` 子 handler（submit_phone / choose / confirm_direct）都需对 scannerMemberId==null 做相同兜底
 - **`OrderController.AlipayPayByOrderPayment` 新增**（2026-05-30 落 Phase A 后端，未启用）：对标 `WechatPayByOrderPayment` 的 alipay 版，3 分支 op 字段补写（首次 / 换人 / `ali_buyer_id` 不匹配）→ 调小程序 appId 的 `alipay.trade.create` → 落库 `ali_trade_no` 返前端给 `my.tradePay({tradeNO})`。代码已落工作区编译通过、未 commit，**等支付宝注册授权下来再继续**
@@ -2794,3 +2794,27 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态(6-27)**
 - ✅ 4 处修复编译/语法通过 + 只读数据验证;回头客分析完成
 - 🚧 **待用户**：① **publish SnowmeetApi**(CloseOrder `paymentFulfilled` + ContinueRental 生效计费,务必随积压一起上,否则 CloseOrder 部署后彻底停关单)；② 重编 `snowmeet_wechat_mini`(小数位 + 招待显示租金)；③ 独立 bug 留待:65621 类「押金全退致 `totalRentUnRefund` 为负、`==0` 关不上」、187 条/¥168 万历史虚账(已决定不动)
+
+### 2026-06-28 — 订单追加商品界面重组（独立追加页）+ 多笔退款逐笔输入 + payment_entry 多笔 payment 修复
+
+brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链；真机反复反馈连带修了 payment_entry 多笔 payment 误判(微信+支付宝两端)、库存 status、退款多笔逐笔输入等。代码散落 `snowmeet_wechat_mini`/`SnowmeetApi`/`alipay_snowmeet` **本地未提交**,用户按部署节奏处理；end-work 仅 doc 仓。详见 [`sessions/2026-06-28_rent_append_redesign_and_multi_refund.md`](sessions/2026-06-28_rent_append_redesign_and_multi_refund.md) + spec [`docs/superpowers/specs/2026-06-28-rent-append-redesign-design.md`](docs/superpowers/specs/2026-06-28-rent-append-redesign-design.md)。
+
+1. **追加界面重组**：`rent_order_detail` 移除底部常驻栏 → 新增「追加租赁商品」独立卡片区(草稿/待支付/入口/删除/去支付/放弃全部)；新建独立追加页 `pages/admin/rent/rent_append`(内嵌 `rent_recept_form` + 加载草稿 + 套餐/单品/无码 + 实时保存 + 确认追加分流)。旧底部栏「添加套餐」绑 `selectPackage`≠`recept_package` emit 的 `rentalsSelected`,**其实从没跑通**。
+2. **后端追加链**([`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs))：`AppendRental` 放开"分类/套餐都不传"→`AppendBlank`(无分类空白草稿=无码物品) + 加 `rentProductId`(搜索单品带编码,`AppendCategory` 查 `rent_product` 填 barcode/name+noCode=false)；`AppendPackage`/`AppendCategory` 补 `class_name` + 默认立即租赁(pick_type+atOnce+start_date=Now)；`SaveAppendings`/`SaveAppendingRental` 加 `commit` 参数(commit=false 实时保存草稿、保持 appending=true、不提交不生效不建 Guaranty)；`RemoveAppendingRental` 清 Guaranty(valid=0)+重算 `paying_amount`；`EffectAppendingRentals` 索引 bug(`guaranties[i]→[j]`)；`EffectRental` atOnce 立即发放补 `rent_product.status="租赁中"`。
+3. **生效分流**：确认追加 → 应付>0 跳结算页支付后生效 / 应付=0 二次确认后生效；草稿(`appending=true`)可删=放弃、待支付(`appending=false` 未生效)可去支付或删；[`OrderController.Refund`](../SnowmeetApi/Controllers/OrderController.cs) 全退款(`refundAmount>0 && totalRentUnRefund==0`)清未确认草稿(valid=0)。
+4. **payment_entry 多笔 payment 误判修(既知 bug,彻底修)**：订单多笔 OP(原押金已付+追加待付)时,前端用聚合 `orderStatus`/`paying_amount` 误判当前这笔为「支付成功」+总计¥0、无支付按钮。改为按**当前扫码 paymentId** 选这笔、金额用 `payment.amount`、派生 `payStatus` 替代 4 处 `orderStatus` 判定。微信端 [`payment_entry`](../snowmeet_wechat_mini/pages/order/payment_entry.js) + **支付宝端独立库 [`alipay_snowmeet/pages/payment_entry`](../alipay_snowmeet/pages/payment_entry/index.js)** 同步(单独重编)。详情页 `showGoPay` 放宽(有 pendingRentals 也显示去支付)。
+5. **退款多笔逐笔输入**(`onRefund` 重构,纯前端,后端 `Refund` 本就收 refunds 数组)：**排除储值支付**(储值付租金不退押金);单笔直接退/多笔可退之和==应退逐笔全退/多笔可退之和>应退弹**三列表格逐笔输入 modal**(支付方式/可退/实际退款),各笔之和严格==应退才可确认(`remainToAlloc===0`,不用 `abs<0.01` 容差以避 `0.02-0.03=0.00999<0.01` 误判)。
+6. **列表支付方式不折行**(`new_rent_list`)：方式拆独占一行 + 整行宽度 + nowrap。
+
+📌 关键发现/教训：
+- **`SaveAppendings` commit 参数顺序依赖**：旧后端不认 `commit` 会当默认提交(commit=true)→每次编辑提前"确认+生效"。**实时保存必须先部署后端、再重编微信端**。
+- **追加用模式 P(后端 AppendRental 建草稿入库,非前端构造)**：草稿缺开单前端临时字段(class_name/categoryName/chooseCategories),追加页加载时从 `it.category` 兜底补(GetOrder 已 Include rentItems.category)。
+- **草稿阶段不建 Guaranty**(`SyncRentalGuaranty` 用 `if(commit)` 包裹),删草稿只 valid=0;删待支付项才清 Guaranty+重算 paying_amount。
+- **`EffectRental` 是开单+追加三生效点共同出口**(RentController.cs 4914/4816/6606),atOnce 立即发放补库存即三处都覆盖;库存 status 更新原只在手动发放 `SetRentItemStatus`(已发放→租赁中/已归还→正常)。
+- **金额配平判定用 round 到 2 位 `===0`**,别用 `abs(a-b)<0.01` 容差(浮点 `0.02-0.03=0.00999…<0.01` 误判已配平)。
+- **支付宝端 `alipay_snowmeet` 独立代码库**:微信端 payment_entry 同类 bug 必单独同步 + 在支付宝开发者工具单独重编。
+
+**状态(6-28)**
+- ✅ 全部 `node --check`/`dotnet build` 通过;追加链 + 多笔退款 + payment_entry 两端修复 + 不折行完成
+- 🚧 **待用户**：① **publish SnowmeetApi**(追加链全部后端 + 库存 status + Refund 清草稿;⚠️**实时保存 commit 参数必须先部署后端再重编微信端**,否则编辑即提前生效) ② 重编 `snowmeet_wechat_mini`(追加页/详情页/payment_entry/退款 modal/不折行) ③ 重编 `alipay_snowmeet`(payment_entry 支付宝端) ④ 真机验证:追加套餐/单品(带编码)/无码→编辑实时保存→确认分流(支付/二次确认)→生效;待支付去支付/删除;微信+支付宝多笔扫码以当前这笔为准;退款逐笔输入
+- ⏳ 仍开放:含双板套餐 `AppendPackage` noCode 写死 true(应按品类 code 前缀判定)、多品类槽位退化为单品类;扫码条码追加(toast 占位);储值付租金退款 `_refundWithDeposit` 仍单笔(未套多笔分流)
