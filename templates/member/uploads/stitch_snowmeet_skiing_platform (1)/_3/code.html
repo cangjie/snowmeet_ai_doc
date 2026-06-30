@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>选择套餐 Modal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed": "#d8e3fb",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#d5e0f8",
+                      "surface-tint": "#006495",
+                      "tertiary-fixed": "#c9e6ff",
+                      "surface-dim": "#cbdbf5",
+                      "secondary": "#545f73",
+                      "tertiary": "#006591",
+                      "secondary-fixed-dim": "#bcc7de",
+                      "on-tertiary-fixed": "#001e2f",
+                      "on-secondary-fixed-variant": "#3c475a",
+                      "on-primary-container": "#003b5b",
+                      "on-surface": "#0b1c30",
+                      "tertiary-container": "#21abef",
+                      "primary-container": "#4aa9e9",
+                      "inverse-primary": "#8fcdff",
+                      "surface-container-high": "#dce9ff",
+                      "on-error-container": "#93000a",
+                      "on-background": "#0b1c30",
+                      "surface-bright": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#004c6e",
+                      "on-primary-fixed-variant": "#004b71",
+                      "surface-container-highest": "#d3e4fe",
+                      "outline-variant": "#bfc7d1",
+                      "inverse-surface": "#213145",
+                      "error": "#ba1a1a",
+                      "surface-variant": "#d3e4fe",
+                      "primary": "#006495",
+                      "on-secondary-container": "#586377",
+                      "background": "#f8f9ff",
+                      "on-primary-fixed": "#001e30",
+                      "primary-fixed": "#cbe6ff",
+                      "on-tertiary-container": "#003c58",
+                      "surface": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed": "#111c2d",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface-variant": "#3f4850",
+                      "surface-container": "#e5eeff",
+                      "on-primary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed-dim": "#8fcdff",
+                      "outline": "#6f7881",
+                      "tertiary-fixed-dim": "#89ceff",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#eaf1ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "margin": "32px",
+                      "lg": "40px",
+                      "md": "24px",
+                      "gutter": "24px",
+                      "xl": "64px",
+                      "sm": "12px",
+                      "xs": "4px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Lexend"],
+                      "headline-md": ["Lexend"],
+                      "label-md": ["Lexend"],
+                      "label-lg": ["Lexend"],
+                      "body-sm": ["Lexend"],
+                      "headline-sm": ["Lexend"],
+                      "body-lg": ["Lexend"],
+                      "body-md": ["Lexend"],
+                      "headline-lg": ["Lexend"]
+              },
+              "fontSize": {
+                      "label-sm": ["10px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "1", "fontWeight": "600"}],
+                      "label-lg": ["14px", {"lineHeight": "1", "fontWeight": "600"}],
+                      "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background antialiased font-body-md h-screen overflow-hidden flex flex-col relative">
+<!-- Mock Background Content (SCREEN_59 placeholder) -->
+<div class="flex-1 p-margin opacity-30 pointer-events-none filter blur-sm">
+<h1 class="font-headline-lg text-headline-lg text-primary mb-md">订单详情</h1>
+<div class="bg-surface-container rounded-lg p-md mb-md border border-outline-variant">
+<h2 class="font-headline-sm text-headline-sm mb-base">张三 - 季卡会员</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">订单号: 20231120-A001</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="bg-white rounded-lg p-md border border-outline-variant h-40"></div>
+<div class="bg-white rounded-lg p-md border border-outline-variant h-40"></div>
+</div>
+</div>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black/40 z-40 flex items-end sm:items-center justify-center p-0 sm:p-margin">
+<!-- Modal Container -->
+<div class="bg-white w-full sm:w-[600px] sm:max-h-[751px] h-[751px] sm:h-auto rounded-t-xl sm:rounded-xl shadow-2xl flex flex-col z-50 transform transition-transform border border-outline-variant/30" style="height: auto; max-height: 90vh;">
+<!-- Modal Header (TopAppBar) -->
+<div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 h-14 w-full shrink-0 rounded-t-xl">
+<button class="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full">
+<span class="material-symbols-outlined text-sky-500 dark:text-sky-400">close</span>
+</button>
+<div class="flex-1 flex justify-center">
+<h2 class="text-sky-600 font-bold font-lexend font-semibold text-lg">选择套餐</h2>
+</div>
+<div class="w-10"></div> <!-- Balancer for centering -->
+</div>
+<!-- Modal Body -->
+<div class="flex-1 overflow-y-auto flex flex-col">
+<!-- Categories / Tabs -->
+<div class="flex overflow-x-auto gap-sm px-md py-sm border-b border-outline-variant shrink-0 scrollbar-hide bg-surface-container-lowest sticky top-0 z-10">
+<button class="bg-primary-container text-on-primary-container px-sm py-xs rounded-full font-label-md text-label-md whitespace-nowrap border border-primary-container">全部</button>
+<button class="bg-surface-container-low text-on-surface-variant px-sm py-xs rounded-full font-label-md text-label-md whitespace-nowrap border border-outline-variant hover:bg-surface-container">双板</button>
+<button class="bg-surface-container-low text-on-surface-variant px-sm py-xs rounded-full font-label-md text-label-md whitespace-nowrap border border-outline-variant hover:bg-surface-container">单板</button>
+<button class="bg-surface-container-low text-on-surface-variant px-sm py-xs rounded-full font-label-md text-label-md whitespace-nowrap border border-outline-variant hover:bg-surface-container">护具</button>
+</div>
+<!-- Package List -->
+<div class="p-md flex flex-col gap-sm">
+<!-- Selected Item -->
+<label class="block relative bg-surface-container-lowest rounded-lg border-2 border-primary p-sm cursor-pointer hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-md">
+<div class="pt-xs">
+<input checked="" class="h-5 w-5 text-primary border-outline focus:ring-primary focus:ring-2 focus:ring-offset-1 form-checkbox rounded" name="package_selection" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">中级单板9件套</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-sm">包含中级单板、雪鞋、头盔、雪镜、护具套装（护臀、护膝、护腕）、雪服套装</p>
+<div class="grid grid-cols-3 gap-2 bg-surface-container-low p-2 rounded-md">
+<div class="flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">平日价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥299</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-on-surface-variant">周末价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥359</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-primary">会员价</span>
+<span class="font-headline-sm text-headline-sm text-primary">¥259</span>
+</div>
+</div><div class="flex justify-end mt-4"><div class="flex items-center gap-4 bg-surface-container-low rounded-full px-2 py-1 border border-outline-variant"><button class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-primary border border-outline-variant hover:bg-primary/10 transition-colors"><span class="material-symbols-outlined text-[20px]">remove</span></button><span class="font-label-lg text-label-lg min-w-[20px] text-center">1</span><button class="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary hover:bg-surface-tint transition-colors"><span class="material-symbols-outlined text-[20px]">add</span></button></div></div>
+</div>
+</div>
+</label>
+<!-- Unselected Item 1 -->
+<label class="block relative bg-surface-container-lowest rounded-lg border border-outline-variant p-sm cursor-pointer hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-md">
+<div class="pt-xs">
+<input class="h-5 w-5 text-primary border-outline focus:ring-primary focus:ring-2 focus:ring-offset-1 form-checkbox rounded" name="package_selection" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">初级双板5件套</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-sm">包含初级双板、雪鞋、雪杖、头盔、雪镜</p>
+<div class="grid grid-cols-3 gap-2 bg-surface-container-low p-2 rounded-md">
+<div class="flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">平日价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥199</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-on-surface-variant">周末价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥249</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-primary">会员价</span>
+<span class="font-headline-sm text-headline-sm text-primary">¥169</span>
+</div>
+</div><div class="flex justify-end mt-4"><div class="flex items-center gap-4 bg-surface-container-low rounded-full px-2 py-1 border border-outline-variant"><button class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-primary border border-outline-variant hover:bg-primary/10 transition-colors"><span class="material-symbols-outlined text-[20px]">remove</span></button><span class="font-label-lg text-label-lg min-w-[20px] text-center">0</span><button class="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary hover:bg-surface-tint transition-colors"><span class="material-symbols-outlined text-[20px]">add</span></button></div></div>
+</div>
+</div>
+</label>
+<!-- Unselected Item 2 -->
+<label class="block relative bg-surface-container-lowest rounded-lg border border-outline-variant p-sm cursor-pointer hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-md">
+<div class="pt-xs">
+<input class="h-5 w-5 text-primary border-outline focus:ring-primary focus:ring-2 focus:ring-offset-1 form-checkbox rounded" name="package_selection" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">专业高山速降套装</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-sm">包含高级竞技双板、专业雪鞋、碳纤维雪杖、竞技头盔、全天候雪镜</p>
+<div class="grid grid-cols-3 gap-2 bg-surface-container-low p-2 rounded-md">
+<div class="flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">平日价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥499</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-on-surface-variant">周末价</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">¥599</span>
+</div>
+<div class="flex flex-col items-center border-l border-outline-variant">
+<span class="font-label-sm text-label-sm text-primary">会员价</span>
+<span class="font-headline-sm text-headline-sm text-primary">¥459</span>
+</div>
+</div><div class="flex justify-end mt-4"><div class="flex items-center gap-4 bg-surface-container-low rounded-full px-2 py-1 border border-outline-variant"><button class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-primary border border-outline-variant hover:bg-primary/10 transition-colors"><span class="material-symbols-outlined text-[20px]">remove</span></button><span class="font-label-lg text-label-lg min-w-[20px] text-center">0</span><button class="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary hover:bg-surface-tint transition-colors"><span class="material-symbols-outlined text-[20px]">add</span></button></div></div>
+</div>
+</div>
+</label>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="bg-surface-container-lowest border-t border-outline-variant p-md flex items-center justify-between shrink-0">
+<div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface-variant">已选择2项 (共3件)</span><div class="flex items-baseline gap-xs"><span class="font-body-sm text-body-sm text-on-surface">合计</span><span class="font-headline-lg text-headline-lg text-primary">¥687</span></div></div>
+<button class="bg-primary text-on-primary h-12 px-xl rounded-lg font-label-lg text-label-lg hover:bg-surface-tint focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors">
+                    确认添加
+                </button>
+</div><div class="flex items-center justify-around bg-white border-t border-slate-100 py-1.5 rounded-b-xl shrink-0 py-1">
+<button class="flex flex-col items-center group">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-primary transition-colors">dashboard</span>
+<span class="text-[10px] scale-90 text-slate-500 group-hover:text-primary">工作台</span>
+</button>
+<button class="flex flex-col items-center relative py-0.5">
+<div class="absolute inset-y-0 px-4 bg-sky-50 rounded-lg -z-0"></div>
+<span class="material-symbols-outlined text-[20px] text-primary z-10">receipt_long</span>
+<span class="text-[10px] scale-90 text-primary font-medium z-10">开单</span>
+</button>
+<button class="flex flex-col items-center group">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-primary transition-colors">search</span>
+<span class="text-[10px] scale-90 text-slate-500 group-hover:text-primary">查询</span>
+</button>
+<button class="flex flex-col items-center group">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-primary transition-colors">person</span>
+<span class="text-[10px] scale-90 text-slate-500 group-hover:text-primary">我的</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

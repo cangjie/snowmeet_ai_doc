@@ -258,7 +258,7 @@ dotnet run
 - **rental_detail.charge_type 三种值**：`租金` / `超时费` / `赔偿金`（中文，注意"赔偿金"非"赔偿"）。按 rental 分组求和
 - **未结算订单虚账**：`rental.settled=0` 的 rental 会持续按天累积 `rental_detail` 应收记录（如雪季初一直没关单的，累积到 189 天 ¥9 万）。做收入报表必须过滤已结算/已关闭，否则虚增
 - **`api/Rent/GetConfirmedRentOrder` (RentController.cs:5544) 的"确认订单"5 条规则**：paidAmount > 0 AND closed=1 AND close_date != null AND !hide AND 不含非微信非支付宝支付（现金/储值/转账等会被排除）；做对账报表时这是参考过滤口径
-- **`punch_card` / `punch_card_used` 表存在但 EF 未接**：DB 有 `punch_card`(36 行, 字段 id/biz_type/card_name/member_id/mi7_code/total/punches，24 养护卡 + 12 租赁卡，2026-03 建) + `punch_card_used`(字段 id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/valid，`id` 均 IDENTITY)。`SnowmeetApi/Models/` 下**无** `PunchCard` / `PunchCardUsed` 模型（grep 0 命中）。当前业务核销「次卡支付」仍走 `order_online.pay_memo='次卡支付'`（6 单）/ `[order].pay_option='次卡支付'` 字符串标记的老路径，新结构化的 punch_card_used 明细表无写入代码。**2026-06-26 已从 rental 反推回补 17 条租赁次卡使用记录**（见开发日志 6-26 + 脚本 `backfill_punch_card_used.py`）：`punch_card_used` 现 17 行、8 张租赁卡 punches 已写回；尚有 13 条（10 无卡 + 3 多卡）留 `punch_card_used_manual_review.csv` 待人工核
+- **`punch_card` / `punch_card_used` —— 2026-06-29/30 已接入 EF**（原裸建无模型）：DB `punch_card`(字段 id/biz_type/card_name/member_id/mi7_code/total/punches) + `punch_card_used`(id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/**valid 是 bit→bool**)。现有 `Models/Rent/PunchCard.cs`(`remaining=total-punches`)/`PunchCardUsed.cs` + DbSet `punchCard`/`punchCardUsed`。写入路径：`RentController.UseRentalPunchCard`(租赁次卡核销→免雪板租金 detail valid=0 + 写 punch_card_used + 扣 punches)、`MemberAdminController.GrantPunchCard`(店员发卡→插 punch_card)。`GetRentalPunchCardInfo` 返 `usedPunches`(该订单已核销次数)。老 `[order].pay_option='次卡支付'` 字符串路径并存、不强行统一。**2026-06-26 backfill**：从 rental 反推回补 17 条 punch_card_used、8 张租赁卡 punches 已写回（脚本 `backfill_punch_card_used.py`）；尚 13 条（10 无卡+3 多卡）留 `punch_card_used_manual_review.csv` 待人工核。订单列表「次卡=包含」筛选 + 「卡」标签认 `punch_card_used`(EXISTS,与老 use_card union)
 - **退押金「应退」基数必须封顶到实收**（2026-06-26 修）：[`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 应退押金基数原直接用 `order.totalGuarantyAmount`（订单**配置**应收押金），导致**未支付订单**（paidAmount=0）也算出应退押金（order 71796：押金未付却显应退 ¥0.01）。这是 2026-06-20续3 为修已付订单 71766（应退算成 0）改用配置押金的反向副作用。已改 `Math.min(order.totalGuarantyAmount||0, order.paidAmount||0)`：未付→应退 0、已付不变
 - **`van-button` 的 `disabled` 只拦 `bind:click`、拦不住 `bindtap`**（2026-06-26 踩）：`bindtap` 抓组件根节点原始 tap，绕过 vant 内部 disabled 判断 → 按钮显示禁用样式却仍能点（rent_order_detail 退款按钮原 `bindtap="onRefund"`，未全退租时灰显仍可点发起退款）。要靠 disabled 屏蔽点击必须用 `bind:click`，并在 handler 入口加防御性守卫双保险
 - **支付宝小程序 `alipay_snowmeet` 是独立代码库**：微信端修过的同类 bug 要单独同步。2026-06-26 修 [`alipay_snowmeet/pages/payment_entry/index.js`](../alipay_snowmeet/pages/payment_entry/index.js) 总计显示——原绑 `order.total_amount`（租赁订单恒 0），改 `order.paying_amount`（与微信端 2026-06-20续2 同一修复），日租金同样优先用 `pricePresets`
@@ -2818,3 +2818,36 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 全部 `node --check`/`dotnet build` 通过;追加链 + 多笔退款 + payment_entry 两端修复 + 不折行完成
 - 🚧 **待用户**：① **publish SnowmeetApi**(追加链全部后端 + 库存 status + Refund 清草稿;⚠️**实时保存 commit 参数必须先部署后端再重编微信端**,否则编辑即提前生效) ② 重编 `snowmeet_wechat_mini`(追加页/详情页/payment_entry/退款 modal/不折行) ③ 重编 `alipay_snowmeet`(payment_entry 支付宝端) ④ 真机验证:追加套餐/单品(带编码)/无码→编辑实时保存→确认分流(支付/二次确认)→生效;待支付去支付/删除;微信+支付宝多笔扫码以当前这笔为准;退款逐笔输入
 - ⏳ 仍开放:含双板套餐 `AppendPackage` noCode 写死 true(应按品类 code 前缀判定)、多品类槽位退化为单品类;扫码条码追加(toast 占位);储值付租金退款 `_refundWithDeposit` 仍单笔(未套多笔分流)
+
+### 2026-06-29 — 租赁订单详情页:次卡(punch_card)消费功能首版(plan 流程,前后端)
+
+退款区加「次卡消费」:会员有租赁次卡时,次卡抵含雪板雪鞋租赁商品租金(一商品一天一次)。**PunchCard/PunchCardUsed 模型 + DbSet 首次接入 EF**(两表早存在、之前裸建无模型);`RentController` 加 `GetRentalPunchCardInfo`(返会员卡+含雪板 rental+本次需扣)、`UseRentalPunchCard`(按 rental_date 升序免雪板租金 detail valid=0 + 写 punch_card_used + 扣 punches)。详见 [`sessions/2026-06-29_punch_card_consumption.md`](sessions/2026-06-29_punch_card_consumption.md)。**首版是「点按钮立即核销」,6-30 大改(见下)**。
+
+### 2026-06-30 — 次卡消费打磨(复选框/微信核验/申请退款核销/卡标签) + 会员管理 v1(plan 流程)
+
+详见 [`sessions/2026-06-30_punch_card_refinements_and_member_management.md`](sessions/2026-06-30_punch_card_refinements_and_member_management.md)。代码 `SnowmeetApi`+`snowmeet_wechat_mini` **本地未提交**。
+
+**A. 次卡消费打磨**(按用户多轮反馈,rent_order_detail 前后端):
+1. 改**复选框**(可选,同储值付租金) + **微信身份核验门槛**(次卡也核验本人,`_openWechatVerify(purpose)` 分流) + **全归还后才可勾**。
+2. **核销移到「申请退款」时**:次卡改**勾选预览**(记 `punchCardSelection{card_id,punch_count,freedRent}` + renderOrder 加回被免雪板租金),真核销在 `onRefund` 链式 `_runWriteoffAndRefund`:UseRentalPunchCard→PayWithDeposit→refund(`_allocateRefund` 贪心、排除储值支付)。叠加:勾储值→加 sumSummary、仅次卡→加 freedRent。
+3. **无应退→按钮变「确认核销」**(`order._pendingWriteoff`)。
+4. **已核销 N 次显示 + 后端 `usedPunches`**(6-29 那次 edit 被消息打断没落,本次补;前端次卡行 wx:if 不再被 cards.length 卡死)。
+5. **储值支付时间 1970 修**:`DepositController.ConsumeDeposit` 漏写 `paid_date`→epoch;补 paid_date + 前端支付明细 fallback create_date(历史不刷库也对)。
+6. **订单查询 次卡=包含 兼容 punch_card_used**:`GetCommonOrders` 次卡过滤 union `EXISTS punch_card_used`(旧 use_card 规则保留)。
+7. **列表「卡」标签**:`Order` 加 `[NotMapped] usePunchCard`,`GetOrdersByStaffPaged` 分页后批量标记;前端 `useCard = usePunchCard || pay_method=='次卡支付'`。
+
+**B. 会员管理 v1**(全新功能,设计稿 `templates/member/`):
+- 后端:新表 `member_tag`(会员标签) + `member_tag_preset`(标签库字典) + 模型/DbSet;新建 `MemberAdminController`(title_level≥200):搜索分页(姓名/手机/参与业务/标签,派生只对当前页)、详情、标签增删、标签库、手机号注册、充值储值(C,depositType 留 A/B 接口)、发次卡(预置卡种)、发券(直绑 member_id)。
+- 前端:`pages/admin/member/` 三页 + 标签弹层 + 三 grant 弹窗 + data.js 11 promise + app.json + admin 入口;标签库 DB 驱动(member_tag_preset)。
+- 关键决策(勘察拍板):储值现状单一「服务储值」(=C,未来 ABC);龙珠=`user_point_balance`;次卡预置卡种;`TicketTemplate`/`Ticket` 模型只映射子集、`GenerateTickets` 不绑 member→发券自建 Ticket 直绑;member 3.2 万→分页。
+
+📌 关键发现/教训:
+- **被打断的 edit 要回查落没落**(6-29 usedPunches 没生效,靠读源码补);关键改动后 grep 确认。
+- **`ConsumeDeposit` 漏 paid_date** 是「储值支付时间 1970」根因;所有储值消费入口统一修。
+- **安全分类器拦 AI 对生产库 DDL**:`member_tag` 用户手动建;授权只在 plan/问句不够,需 in-message 明确或用户自跑。
+- **DB schema 比 C# 模型新(又一例)**:TicketTemplate/Ticket 只映射子集,发券只能用已映射字段;3.2 万会员列表派生只对当前页算,不全表聚合。
+
+**状态(6-30)**
+- ✅ 前后端完成:`dotnet build` 0 error、前端全 `node --check`+wxml 平衡;`member_tag` 已建、查询经真实数据(member 15506 苍杰)验证。
+- 🚧 **待用户**:① 生产库建 `member_tag_preset`(SQL 已给 [`sql/2026-06-30_member_tag_preset.sql`](sql/2026-06-30_member_tag_preset.sql))② **publish SnowmeetApi**(次卡打磨后端 + 会员管理 MemberAdminController/模型/DbSet)③ 重编小程序(次卡复选框/核验/申请退款核销/卡标签 + 会员管理 4 页 + 入口)④ 真机端到端:次卡消费全链路 + 会员搜索/详情/标签/充值/发卡/发券/注册。
+- ⏳ 仍开放:A/B 储值类型(仅留接口);远程预约/绑定账户编辑/充值龙珠(v1 不做);次卡核销撤销。
