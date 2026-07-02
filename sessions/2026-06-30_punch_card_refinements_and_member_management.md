@@ -69,3 +69,25 @@
 - 🚧 **待用户**：① 生产库建 `member_tag_preset`（SQL 已给）② **publish SnowmeetApi**（次卡打磨的后端：usedPunches/ConsumeDeposit paid_date/次卡筛选/usePunchCard 标签/退押金状态；+ 会员管理 MemberAdminController+模型+DbSet）③ 重编小程序（次卡复选框/核验/申请退款核销/卡标签 + 会员管理 4 页 + 入口）④ 真机端到端：次卡消费全链路 + 会员管理搜索/详情/标签/充值/发卡/发券/注册。
 - ⏳ 仍开放：A/B 储值类型（仅留接口）；远程预约/绑定账户编辑/充值龙珠（v1 不做）；次卡核销撤销。
 - 代码仓改动本地未提交，用户部署；本次 end-work 仅 doc 仓（含 sql/ + templates/member 设计稿）。
+
+---
+
+## 续（同日，第一次 end-work 之后按用户反馈继续打磨会员管理 + 一个开单流程后端）
+
+均在 `SnowmeetApi` + `snowmeet_wechat_mini`（本地未提交，用户部署），全部 `dotnet build` 0 error + `node --check` + wxml 平衡通过。
+
+1. **参与业务筛选改多选**：member_list 的「参与业务」从单选 `bizType` 改多选 `bizTypes`（逗号拼），后端 `SearchMembersByStaff` 逐个 `AND EXISTS order`（需同时参与所选全部业务，与自定义标签一致）。
+2. **⚠️ WXML 不支持 `数组.indexOf()` 表达式（关键教训）**：多选高亮原写 `filter.bizTypes.indexOf(item) >= 0` → WXML 表达式引擎不支持方法调用，恒为假 → chip 点了不高亮、看着"选不了"（单选的 `===` 是支持运算符所以没事）。修复：给每个标签带 `on` 布尔标记（`sysTags`/`presetTags` 改 `[{name,on}]`，纯属性绑定），member_detail 标签弹层的 `tagSel.indexOf` 同 bug 一并修（派生 `presetTagsView=[{name,on}]`，每次 toggle/增/删重算）。
+3. **新增「标签库维护」页** `pages/admin/member/member_tag_admin`：只管 `member_tag_preset`。后端加 `GetTagLibraryWithStats`（库标签+会员用量）/ `MergeTagPreset`（A 的会员标签迁到 B、去重、A 从库移除、确保 B 在库）/ `DeleteTagPreset`（**仅用量=0 才允许删**，>0 返错）/ `AddTagPreset`。前端列表+合并选目标弹层+删除（有人用置灰）+新增；member_list「自定义标签」右上「标签维护 ›」入口。用户拍板：删除仅限无人使用（在用先合并）、维护范围只标签库预设。
+4. **最近订单可点 + 分类 tab**：`GetMemberDetailByStaff` 的 recentOrders 加 `id`、`Take(8)→Take(30)`；member_detail 最近订单每行按 `type` 跳详情（租赁→`rent_order_detail?id=`、养护→`care/order_detail?orderId=`、零售→`retail_order_detail?id=`、其它 toast）；标题下加分类 tab（全部 + 实际出现的类型，前端过滤）。
+5. **支付成功/确认补全会员姓名性别**：`OrderController.SupplementMemberProfileFromOrder(order)` —— 订单有归属会员且会员 real_name/gender 为空时，用订单快照 `contact_name`/`contact_gender` 补（只填空、不覆盖）+ 记 core_data_mod_log；在 `DealSuccessPaidOrder`（`UpdateOrder` 后）调用——「支付成功」(notify) 与「确认收款」(`EffectUnpaidOrder` 末尾调 DealSuccessPaidOrder) 都汇聚此处，一处覆盖两条路径。
+6. **会员详情可改 姓名/性别/手机号（全程 core_data_mod_log）**：`MemberAdminController.UpdateMemberProfile`——姓名/性别复用 `MemberController.UpdateMemberInfo`（内置 real_name/gender 逐字段差异日志）；手机号先查占用（占用则整单不改返错）再复用 `Unbind`+`BindMemberMainCellNum`（各写日志）。顺手修 `UpdateMemberInfo` 里性别日志 `field_name` 写成 `real_name` 的老 typo → `gender`。member_detail 资料卡加「编辑」弹窗（姓名/性别/手机号，11 位校验）。
+
+📌 关键发现/教训（续）：
+- **WXML `{{}}` 不能调方法**（`.indexOf/.includes/.map` 等）：判断"是否选中"用 `===`、或给每项预置布尔标记（`[{name,on}]`）。这条最耗时、最易复发，务必记住。
+- **储值支付时间 1970 = `ConsumeDeposit` 漏 paid_date**（见上半场，本条重申）；**支付成功补资料 / 补 openid 类逻辑都挂 `DealSuccessPaidOrder`**（notify + EffectUnpaidOrder 共同出口）。
+- **改会员资料的日志规则**：core_data_mod_log 每字段一条（real_name/gender/num），prev→current + scene + staff_id + is_manual=1；只有真变了才写。复用既有 `UpdateMemberInfo`/`ChangeCellNumByStaff` 口径。
+
+**状态（续）**
+- ✅ 6 项全部编译/语法通过。
+- 🚧 **待用户**：生产库建 `member_tag_preset`；**publish SnowmeetApi**（新增 `GetTagLibraryWithStats`/`MergeTagPreset`/`DeleteTagPreset`/`AddTagPreset`/`UpdateMemberProfile`/`SupplementMemberProfileFromOrder` + recentOrders 带 id + UpdateMemberInfo gender typo 修）；重编小程序（参与业务多选 + indexOf 修复 + 标签库维护页 + 最近订单可点/分类 tab + 会员资料编辑弹窗）；真机验证。
