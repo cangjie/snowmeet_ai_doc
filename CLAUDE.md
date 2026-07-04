@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-02）
+## 当前状态（截至 2026-07-04）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -183,7 +183,9 @@ dotnet run
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
-- 会员管理：`pages/admin/member/`（member_list / member_detail / member_register / member_tag_admin）+ 后端 `Controllers/MemberAdminController.cs`（title_level≥200：搜索/详情/标签/充值/发卡/发券/注册/资料修改 + 7-2 会员合并 `MergeMemberByStaff` → `MemberController.MergeMember`）
+- 会员管理：`pages/admin/member/`（member_list / member_detail / member_register / member_tag_admin）+ 后端 `Controllers/MemberAdminController.cs`（title_level≥200：搜索/详情/标签/充值/发卡/发券/注册/资料修改 + 7-2 会员合并 `MergeMemberByStaff` → `MemberController.MergeMember`，**7-4 起合并仅系统管理员 title_level≥300**；列表排除 `merge_id` 非空的已合并会员；充值四字段 类型/七色米号/备注/金额 → `deposit_balance.biz_type/biz_id/memo`；注册页开卡礼包 券/租赁次卡/养护次卡 逐项发放）
+- 储值账户管理（7-4 新增）：`pages/admin/deposit/deposit_account_{list,detail}`（手机号搜会员→名下账户 总储值/已消费/可用→流水：充值行带类型/七色米号/备注、消费行带订单号）+ 后端 `MemberAdmin/SearchDepositAccountsByStaff` + `GetDepositAccountDetailByStaff`；admin「储值管理」区块入口「【储值】会员储值账户」
+- 开单页会员条（7-4）：`components/reception/reception_member_bar` 显示会员资产 chip（储值/次卡剩余/龙珠，有则显示），走 `MemberAdmin/GetMemberAssetsByStaff`（**title_level≥100** 店员可读）；「查看详情」已切新版 `member_detail`
 - 雪票财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
   - `add_skipass_columns_to_fy_xlsx.py`（`--xlsx --shop`）— 给「年度雪票」末尾追加 4 列雪票级字段（名称/支付价格/结算价格/取票时间）
   - `add_skipass_detail_merged_sheet.py`（`--xlsx --shop`）— 加「年度雪票明细」合并 sheet（年度雪票 × ski_pass 一对多，多明细整行浅蓝 `EAF2FB`）
@@ -195,7 +197,8 @@ dotnet run
 **下一步要做的**
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
-- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`））
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`）、**7-4 会员管理增强**（合并鉴权 300 + MergeMember contact 改造 + 搜索排除已合并/contact + 养护订单手机号搜索 type 限定 + 充值四字段 + GetMemberAssetsByStaff + 储值账户管理两接口，SnowmeetApi 已 commit+push 至 `cea1f3d4`））
+- 重编小程序（7-4 批次已 commit+push 至 `0bd5df79`：member_detail 合并权限/充值四字段、member_register 开卡礼包/储值 modal、reception_member_bar 资产 chip、deposit_account 两新页 + admin 入口）；真机验证：合并按钮仅 300 级可见、注册配礼包逐项发放、充值四字段落 deposit_balance、开单页会员条资产、储值账户列表/流水
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -315,6 +318,10 @@ dotnet run
 - **购物车排序「真理之源」在前端 `_refreshRentals`（2026-06-21续2）**：`byAddedTime`（已存按 id 升序=创建先后、未存按 timeStamp 排同组最下）/ `byCategoryThenTime`（套餐前单品后、组内按时间）；按 `this.data.sort`(`time`/`category`) 选键，覆盖任何后端返回顺序。后端 `GetReceptingOrder` 也已从 `OrderByDescending(id)` 改 `OrderBy(id)` 正序（需 publish，前端已兜底）。`onSortChange` 仅本地重排不 `_emitSync`。
 - **结算按钮 disable = 有 rental 未录入（`every(_rentalEntered)`），无码单品主项 `category_id=NULL` 判「分类未选」最高优先级缺项（2026-06-21续2 答疑）**：曾被误认为「设招待导致」。招待不影响 evalRental。排查结算点不了先看每个 rental 的录入 chip（折叠态未录入 rental 标题变红）。改进点（未做）：点灰结算时 toast 提示具体缺项。
 - **`Member.wechatMiniOpenId`/`wechatUnionId`/`alipayPayerId` getter 原取 `msaList[0]` 遇空占位返空串（2026-06-21续2，已修 `FirstNonEmptyNum` 取第一个非空，需 publish）**：同一会员可能有 num='' 的脏 MSA（建会员先占位、后补真实，排在前）→ getter 返空 → 代付微信 op.open_id 写空、prepay 无 openid 弹不出窗（曾报 op 42639 / member 41125）。getter 跳过空串后，`WechatPayByOrderPayment` 补写分支 `'' != 真实openid` 触发、自动修正 op.open_id。全库此类空 MSA 极少（当时 wechat 1 例 / alipay 1 例）。
+- **staff.title_level 四档语义（2026-07-04 摸清）**：100=店员 / 200=店长（生产仅 HR 一人）/ **300=系统管理员**（[admin.js](../snowmeet_wechat_mini/pages/admin/admin.js) `>200 → isAdmin` 分界；前端先例 [category_tree.js:770](../snowmeet_wechat_mini/pages/admin/rent/settings/category_tree.js) `>=300`；生产 10 人含苍杰）/ 1000=超管（王奕轩 1 人）。高危操作（会员合并等）用 `ADMIN_LEVEL=300`；开单店员侧只读接口可放 100（如 `GetMemberAssetsByStaff`）
+- **`member_social_account` type=contact 是联系方式快照，不参与手机号匹配（2026-07-04 用户拍板）**：contact 由 开单 `currentContactNum` / 会员合并（源会员 cell 挂目标）写入，仅代表"当时留的联系方式"，不代表会员本人。**所有「手机号 → 会员」的搜索/反查必须限定 `type='cell'`**；已核全系统匹配点（会员搜索/订单搜索/登录反查/Bind/Unbind/支付宝物化等）均已限定，其中 [OrderController.cs:231](../SnowmeetApi/Controllers/OrderController.cs) 养护分支原漏 type 限定已补。旧版合并写的 type=cell 存量（msa 169220）已 UPDATE 成 contact
+- **储值充值三附加字段落位（2026-07-04）**：充值类型（储值送装备/二手回收/零售赠送/预定/**其它赠送**——注意历史数据是「其它」不是「其他」）→ `deposit_balance.biz_type`、七色米订单号 → `biz_id`、备注 → `memo`；`DepositController.DepositCharge` 底层签名本就支持，`ChargeMemberDeposit` 透传即可。消费行 `biz_*` 恒空但 366/368 带 `order_id`+`payment_id`（`CreateDepositBalance` 后赋值），显示"消费于订单"走 `b.order.code` 导航
+- **已合并会员（`member.merge_id` 非空）不出现在会员列表**（2026-07-04）：`SearchMembersByStaff` 基查询加 `m.merge_id == null`；合并时 source 不置 valid=0，靠该过滤隐藏（全库 125 个存量被合并会员一并覆盖）
 - **支付宝支付成功物化「以手机号为锚」绑 openid/建会员（2026-06-21续2 按用户规则重写，需 publish）**：`AliController._materializeAlipayMemberOnPaid` —— 取该支付宝顾客手机号（mini_session.cell，**buyer_open_id 存在 `alipay_openid` 列、不是 `alipay_payerid` 列**，反查兼容两列）→ `payment.member_id` 已知用它不改归属、否则按手机号反查会员（命中即用/有号未命中建新会员(手机号)/无号兜底）→ 目标会员若无「valid=1 且非空」alipay_payerid 则绑本次 openid 并停用空占位（已有有效则不动，幂等）。**调用点去掉 `member_id==null` 限制**：本人/代付单也补绑 openid（原来跳过→openid 永绑不上、下次仍靠 session 兜底）。op 42641 本人直付时手机号其实已在 session.cell 获取（aes 解密正常、aes_key.txt 已落地），judged `direct` 不重复弹手机号属预期。
 
 ---
@@ -2880,3 +2887,23 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 **状态（7-2）**
 - ✅ 前后端完成 + 编译/语法验证通过；plan 全部执行完毕
 - 🚧 **待用户**：① publish SnowmeetApi（MergeMember 扩展 + MergeMemberByStaff，随积压一起上）② 重编小程序 ③ 真机验证合并链路 ④ 首单合并后 DB 只读核对（五类资产 member_id 已迁、source merge_id/is_merge、MSA valid=0、mod log 齐全）
+
+### 2026-07-04 — 会员管理增强日：合并权限 300 + contact 联系手机号原则 + 开卡礼包 + 充值四字段 + 储值账户管理系统
+
+会话起始 start-work。围绕会员管理连续落地 6 组功能/修复，跨 `SnowmeetApi` + `snowmeet_wechat_mini` + 生产库一次数据修复。**本场代码已全部 commit+push 到两仓 origin/ai**（SnowmeetApi 至 `cea1f3d4`、mini 至 `0bd5df79`），待 publish + 重编。归档见 [`sessions/2026-07-04_member_perms_contact_deposit_admin.md`](sessions/2026-07-04_member_perms_contact_deposit_admin.md)。
+
+1. **会员合并限系统管理员**：DB 实查 + 代码语义摸清 title_level 四档（100 店员/200 店长/300 系统管理员/1000 超管，详见已知遗留）；后端 `MergeMemberByStaff` 鉴权 `ADMIN_LEVEL=300`；前端合并按钮 `wx:if isAdmin`（`staff.title_level>=300`，沿 category_tree 写法）+ 入口守卫。途中发现本机 mini 落后 origin 33 commits（member 前端在另一台机做的），stash 工具配置后拉齐
+2. **合并 MSA contact 改造**：源会员社交账号不迁移（现状确认）；源 cell 挂目标改 `type=contact` + memo「批量合并用户时添加的联系手机号」，查重扩 cell/contact（[`MemberController.MergeMember`](../SnowmeetApi/Controllers/MemberController.cs)）
+3. **contact 不参与手机号搜索原则 + 存量修复**：13501177897 搜出 15506 的根因 = 7-3 晚旧版合并写的 type=cell（msa 169220）。回滚搜索扩展（只查 cell）+ 补 [OrderController.cs:231](../SnowmeetApi/Controllers/OrderController.cs) 养护分支 type 限定 + 生产库 UPDATE 169220→contact（已执行验证零命中）。原则/排查详见已知遗留
+4. **注册页开卡礼包**（plan 流程，纯前端）：礼包清单模式（券可设张数、次卡按 `GetPunchCardPresets` distinct 卡种分租赁/养护入口）+ 注册成功后串行逐项发放 + done 页 ✓/✗ 结果与补发提示
+5. **充值四字段单弹窗**（类型/七色米订单号/备注/金额）：后端 `ChargeMemberDeposit` 加 chargeType/mi7Code/memo 透传底层 `DepositCharge`（本就支持）；member_detail 充值弹窗 + member_register 初始储值改 modal；**「其他赠送」→「其它赠送」对齐生产历史数据**
+6. **会员列表排除已合并会员**：`SearchMembersByStaff` 加 `merge_id == null`（全库 125 存量覆盖）
+7. **开单页会员条资产 chip**：新接口 `GetMemberAssetsByStaff`（≥100 店员级，返储值/龙珠/次卡剩余聚合数）；`reception_member_bar` 有则显示三 chip；「查看详情」切新版 member_detail（清 CLAUDE.md 旧 TODO）
+8. **储值账户管理系统**（plan 流程）：后端 `SearchDepositAccountsByStaff`（手机号搜、按会员分组分页）+ `GetDepositAccountDetailByStaff`（流水：充值行 biz_type/biz_id/memo、消费行 order.code）；前端 `pages/admin/deposit/deposit_account_{list,detail}` 两新页 + admin「储值管理」入口。DB 预演全通过（89 会员/485 流水/消费行 366/368 带 order_id）
+
+📌 关键发现/教训：title_level 四档、contact 快照原则、DepositCharge 底层早支持三参数、充值类型枚举以生产 `GROUP BY` 历史值为准（其它≠其他）、旧版代码存量数据要随语义变更一起修、本机 Windows pyodbc 用 Driver 17 + CONVERT nvarchar + stdout utf-8、end-work 前先 `git status` 核实（本场代码被随手分批提交推送，非工作区堆积）
+
+**状态（7-4）**
+- ✅ 全部编译/语法/DB 预演通过；两代码仓已 commit+push（SnowmeetApi `cea1f3d4` / mini `0bd5df79`）；生产库 msa 169220 修复已生效
+- 🚧 **待用户**：① publish SnowmeetApi（随积压一起上）② 重编小程序 ③ 真机验证：合并按钮 300 级、注册礼包、充值四字段、会员条资产、储值账户列表/流水
+- ⏳ 待定：100 级店员点开单页「查看详情」进 member_detail 会提示没权限（详情接口 200 级），是否放宽待业务定
