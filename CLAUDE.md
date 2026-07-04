@@ -194,7 +194,14 @@ dotnet run
 - 养护财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
   - `add_care_detail_merged_sheet.py`（`--xlsx --shop [--start --end]`）— 加「年度养护明细」合并 sheet（年度养护 × care 一对多 + 7 staff 列：安全检查人/修刃人/机打蜡人/热打蜡人/刮蜡人/维修人/发板人，多 care 整行浅蓝 `EAF2FB`，三店跑通零差异）
 
+- **养护开单迁移新流程（2026-07-04 代码完成，待 DevTools/真机验证 + 部署）**：
+  - 前端：`components/reception/care_recept_form/`（镜像 rent_recept_form 接口 syncCare/checkout；业务字段全量对齐旧版 care_recept：装备/品牌(可新增)/照片/票券 12 机打蜡·16 折扣·17/18 非雪季/修刃角度/热蜡刮蜡/立等/维修项+附加费/减免/质保/招待；估价逻辑同旧 getProduct，真理之源是服务端重算）；`recept_new` 养护分支（saveCareReceptOrder→`Care/SaveCareRecept`、checkout→`Order/PlaceCareOrder`、**找回中断单从 order.type 反推 bizType**、save 回填时按下标合并本地 careImages/ticket 展示对象）；settle「查看订单」按 order.type 路由；order-summary-card 加 care 分支
+  - 新版养护详情页 `pages/admin/care/care_order_detail/`（Alpine：订单信息+支付四格+装备卡：服务 chips/照片/任务时间线/安检录入确认/寄存快递/取板码发送+验证+店长确认/打印标签复用 print-care）。**扫码取板 + 拍照凭证两种核销仍在旧页 order_detail，后续迁移**
+  - 后端（已编译 0 错误，随下次部署生效）：`CareController.SaveCareRecept`（草稿 order valid=0 + cares valid=0；删除的 care **物理删行**——EffectCareOrder 不过滤 valid；careImages 按 id diff 增删；导航置空防 TrackGraph 异常）、`GetReceptingOrder` 加 include cares(+careImages.image)、`OrderController.PlaceCareOrder`（服务端权威定价照抄旧 PlaceOrder 养护分支 + care.valid=1 + GenerateOrderCode 先于 EffectCareOrder + Discount 记录（ticket_discount 金额已修对）+ 0 元单立即 EffectCareOrder + **summer 单无会员拦截**——EffectCareOrder 非雪季发券 (int)member_id 强转会炸）
+  - 支付触发链路零改动：DealSuccessPaidOrder / EffectUnpaidOrder / PayWithDeposit 均已对 type=='养护' 调 EffectCareOrder
+
 **下一步要做的**
+- **养护开单端到端验证**（DevTools/真机）：①开单→草稿自动保存（DB care valid=0）②中断找回（列表出现 + cares 还原 + 渲染养护表单）③去结算 PlaceCareOrder（code `*_YH_*`、care.valid=1、双项/单项×立等/次日 定价）④手工收款→care_task 生成序列 ⑤招待/质保 0 元单 place 即生成任务 ⑥非雪季 now/later 任务变体+票券 17/18、散客+summer 被拦截 ⑦新详情页任务开始/结束、安检确认、取板码核销、打印
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
 - **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`）、**7-4 会员管理增强**（合并鉴权 300 + MergeMember contact 改造 + 搜索排除已合并/contact + 养护订单手机号搜索 type 限定 + 充值四字段 + GetMemberAssetsByStaff + 储值账户管理两接口，SnowmeetApi 已 commit+push 至 `cea1f3d4`））
@@ -2907,3 +2914,24 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 全部编译/语法/DB 预演通过；两代码仓已 commit+push（SnowmeetApi `cea1f3d4` / mini `0bd5df79`）；生产库 msa 169220 修复已生效
 - 🚧 **待用户**：① publish SnowmeetApi（随积压一起上）② 重编小程序 ③ 真机验证：合并按钮 300 级、注册礼包、充值四字段、会员条资产、储值账户列表/流水
 - ⏳ 待定：100 级店员点开单页「查看详情」进 member_detail 会提示没权限（详情接口 200 级），是否放宽待业务定
+
+### 2026-07-04（续）— 养护开单迁移新开单流程（前后端全量落地）
+
+用户需求原话：「参考小程序过去的养护开单的代码和现在新重构的租赁开单的流程，迁移养护开单。会员、开单流程都遵循租赁开单的流程（公共流程）；养护自身的业务数据结构参考旧版代码。」Plan 模式三路并行探索（旧养护代码 / 新租赁架构 / 后端 Care 模型）后拍板：**功能全量对齐旧版 + 本期新做养护详情页**。归档见 [`sessions/2026-07-04_care_reception_migration.md`](sessions/2026-07-04_care_reception_migration.md)。
+
+1. **后端三接口**（编译 0 错误，未 commit）：
+   - `CareController.SaveCareRecept`（POST，镜像 SaveRentRecept）：草稿 order valid=0 + cares valid=0；增量保存（新增/Modified/**物理删行**）；careImages 按 id diff；member/staff/care.order/tasks/careImages.image 导航全置空防 TrackGraph 异常
+   - `RentController.GetReceptingOrder` 加 `.Include(o.cares).ThenInclude(careImages).ThenInclude(image)` + cares 正序 —— 一个接口租赁/养护两用
+   - `OrderController.PlaceCareOrder`（GET {tempOrderId}，镜像 PlaceRentOrder 守卫 + 旧 PlaceOrder 养护分支定价）：服务端权威重算 common_charge（GetProduct 名称匹配/ticket fixed_price/summer 330/质保招待 0）→ total → member_pick_date（urgent 今/明）→ care.valid=1 → **先 GenerateOrderCode 再 EffectCareOrder**（task_flow_code 依赖 code.Split('_')）→ Discount 记录（**修对了旧代码 ticket_discount 金额误用 discount 的 copy-paste bug**）→ 0 元单立即 EffectCareOrder；**summer 单无会员拦截**（EffectCareOrder 非雪季发券 17/18 处 `(int)member_id` 强转，散客必炸）
+2. **支付触发链路零改动**：`DealSuccessPaidOrder`（微信/支付宝回调）、`EffectUnpaidOrder`（手工收款，内部调 DealSuccessPaidOrder）、`PayWithDeposit` 三条路径都已对 type=='养护' 调 EffectCareOrder —— 迁移前亲自验证过
+3. **前端新组件 `components/reception/care_recept_form/`**：镜像 rent_recept_form 契约（props shop/memberId/cares；events syncCare/checkout），wxss `@import` 租赁表单复用卡片/chip/金额 modal；字段全量对齐旧 care_recept：装备类型/品牌 picker+新增品牌/长度/照片（uploadFilePromise 即传即得 image_id）/票券（12 机打蜡 fixed_price、16 折扣 30/20、17→summer now、18→summer later）/修刃+角度/热蜡（连带刮蜡）/立等/维修项多选+附加费/减免/质保招待/备注；evalCare 对齐旧 getCareWellFormMessage（类型必选、图片或品牌长度必填其一、至少一个业务项）
+4. **recept_new 接线**：maintain 分支渲染 care 表单（删占位）；`saveCareReceptOrder`（type='养护'，剥 ticket/product 对象；**响应按下标合并回本地 careImages/ticket** —— 后端 CareImage 无 url/thumb 字段 round-trip 会丢显示地址）；`_checkoutCare` → PlaceCareOrder → settle → 本地态脱钩；**找回中断单从 `recoveredOrder.type` 反推 bizType**（原来只看 URL/draft，养护草稿会被租赁表单渲染）
+5. **结算链路**：settle paid modal「查看订单」按 order.type 路由（养护→新详情页）；order-summary-card 加「养护内容」分支
+6. **新版养护详情页 `pages/admin/care/care_order_detail/`**（Alpine，app.json 已注册）：订单信息双列 + 支付四格+折叠明细 + 装备卡（服务 chips/照片预览/任务时间线 current 派生/安检录入+确认安全/寄存快递 dealMethod/取板码发送+验证+店长确认/打印复用 print-care）。**扫码取板 + 拍照凭证两种核销留在旧页 order_detail 后续迁移**（页内有文字提示）
+
+📌 关键发现/教训：EffectCareOrder 加载 cares **不过滤 valid**（草稿删除必须物理删行）；csproj 未开 Nullable → 非空 string 字段不触发隐式 Required 校验（equipment=null 草稿可存）；Care 模型 warranty/entertain/use_card 是 **bool**（旧前端 1/0，新前端须发布尔，同 atOnce 教训）；后端字段是 left_angle/right_angle（旧前端 left_angel 拼写错，以后端为准）；Plan agent 撞会话限额返回空结果 → 主 agent 用探索产物自行完成方案设计
+
+**状态（7-4 续）**
+- ✅ 后端三接口 + 前端组件/接线/详情页全部落地；SnowmeetApi 编译 0 错误
+- 🚧 **待用户**：① DevTools/真机按 7 步清单端到端验证（见「下一步要做的」首条）② 两仓 commit（本场业务代码未提交）③ 随积压一起 publish
+- ⏳ 后续迁移：发板扫码核销 + 拍照凭证、装备基础信息编辑（新详情页当前只读，改走旧页）
