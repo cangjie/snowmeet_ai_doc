@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-09）
+## 当前状态（截至 2026-07-11）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -205,13 +205,16 @@ dotnet run
 **下一步要做的**
 - **养护开单端到端验证**（DevTools/真机）：①开单→草稿自动保存（DB care valid=0）②中断找回（列表出现 + cares 还原 + 渲染养护表单）③去结算 PlaceCareOrder（code `*_YH_*`、care.valid=1、双项/单项×立等/次日 定价）④手工收款→care_task 生成序列 ⑤招待/质保 0 元单 place 即生成任务 ⑥非雪季 now/later 任务变体+票券 17/18、散客+summer 被拦截 ⑦新详情页任务开始/结束、安检确认、取板码核销、打印 ⑧**7-8 批次回归**：默认店铺即时可用、传照片成功、反复编辑保存不 500 且 care_image 每照片一行、卡片全程不折叠、历史装备弹窗三路径（有记录点选/手动填/散客不弹）
 - **上传图片 400（wanlonghuaxue）待收口**：两域名是两台服务器（mini=161.189.64.210 / wanlonghuaxue=60.8.110.78），同 sessionKey 在 mini 鉴权成功、在 wanlonghuaxue 400 → 那台部署落后（缺 6-14 `GetStaffBySessionKey` openid 兜底 `bb210a9`）或 config.sqlServer 指向不同库。**2026-07-09 上传/显示域名 3 处已按用户要求回切 snowmeet.wanlonghuaxue.com**（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST）——⚠️ wanlonghuaxue 那台未重新部署对齐前上传会再次 400；另外 7-8~7-9 期间经 mini 域名上传的照片落在 mini 那台磁盘，回切后旧测试照片会 404（联调测试数据可不管）
-- **养护次卡核销链路未做**：开单选会员卡目前只落 `care.use_card` 标记（不改价、不扣次数）；真正扣 `punches` + 写 `punch_card_used` 需要类似租赁 `UseRentalPunchCard` 的养护版（结算/支付环节），待设计
+- **养护卡券核销链路未做**：选卡已按 0 计价（机打蜡季卡升级另按券12规则加价），但**不扣次数**——真正扣 `punches` + 写 `punch_card_used` 需要类似租赁 `UseRentalPunchCard` 的养护版（结算/支付环节），待设计。同理券 12 支付成功也未置 used
 - 存量 ~80 张 template 12 的 `valid=0` 券（45 张「买雪票增券」+ 30 余张 create_memo=雪票id）是否批量置 1 待业务确认（2026-07-09 只修了 15506 名下 4 张 daidai 测试券）
 - `api/Ticket/GetMyTickets`（顾客券包）对未使用券的过期过滤 `<=` 疑似写反（只显示已过期券）——已交独立后台会话核查中（2026-07-09 spawn）
-- （可选）`care` 表加 `card_id` 列：选卡后具体哪张卡只存在前端标量（无 DB 列），中断找回只知道 `use_card=true`、显示「已选会员卡」不带卡名
+- **23837（尹鼎元，NS_YH_260205_00001）补寄存任务待定**：7-11 给 26 件旧流程非雪季单补插了「寄存或快递」任务，它因无热蜡/刮蜡锚点被跳过（任务链只有安检/维修/发板），要补的话插在维修与发板之间
+- **两笔未支付非雪季单待处理**：71528（刘 18518902288，无支付记录）/ 71553（李 13121201061，仅作废待支付单），各 ¥330、无任务链（未支付 EffectCareOrder 未跑）——联系补支付或作废
+- 养护开单联调产生的成对孤儿草稿（valid=0 无 code 总额 0，7-11 前后十余对）可清理，清理 SQL 需用户过目后执行
+- 支付宝端 `alipay_snowmeet/payment_entry` 养护明细未同步（微信端 7-11 已加「养护内容」段：装备/项目/券卡/金额）
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
-- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`）、**7-4 会员管理增强**（合并鉴权 300 + MergeMember contact 改造 + 搜索排除已合并/contact + 养护订单手机号搜索 type 限定 + 充值四字段 + GetMemberAssetsByStaff + 储值账户管理两接口，SnowmeetApi 已 commit+push 至 `cea1f3d4`）、7-4 养护三接口（`89dfb60` 已 push）、**7-8 批次（已 push `c84a55b7`）**：`Order.cs` rentalStatus NRE + useCard 守卫、`CareController` 删行 Entry-state + 新接口 `GetMemberCaredEquipments`——⚠️不部署 rentalStatus 修复线上养护开单保存持续 500、**7-9 批次（本地未提交）**：`TicketController.GenerateTicketByAction` 补 `valid=1`+`member_id`（发券不可见根因）、新接口 `MemberAdmin/GetMemberCardsByStaff`）
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`）、**7-4 会员管理增强**（合并鉴权 300 + MergeMember contact 改造 + 搜索排除已合并/contact + 养护订单手机号搜索 type 限定 + 充值四字段 + GetMemberAssetsByStaff + 储值账户管理两接口，SnowmeetApi 已 commit+push 至 `cea1f3d4`）、7-4 养护三接口（`89dfb60` 已 push）、**7-8 批次（已 push `c84a55b7`）**：`Order.cs` rentalStatus NRE + useCard 守卫、`CareController` 删行 Entry-state + 新接口 `GetMemberCaredEquipments`——⚠️不部署 rentalStatus 修复线上养护开单保存持续 500、**7-9~7-11 批次（已 push 至 `aabc3527`）**：`TicketController.GenerateTicketByAction` 补 `valid=1`+`member_id`、`MemberAdmin/GetMemberCardsByStaff`（bizType 过滤 + equip 绑定 + isSeason）、`PunchCard` 模型 total/punches 可空化（**⚠️ DB 已改列可空且已有季卡数据，不部署此批线上所有 punch_card 查询持续 500**）、`Care/CalcCareCharge` 全量计费 + `ApplyDefaultServices`/`ApplyServiceLinkage`、`Care.card_id/card_name` 映射（DB 列已加）、`PlaceCareOrder` 共用 CalcCharge（含机打蜡季卡按券12规则加价））
 - 重编小程序（7-4 批次已 commit+push 至 `0bd5df79`：member_detail 合并权限/充值四字段、member_register 开卡礼包/储值 modal、reception_member_bar 资产 chip、deposit_account 两新页 + admin 入口）；真机验证：合并按钮仅 300 级可见、注册配礼包逐项发放、充值四字段落 deposit_balance、开单页会员条资产、储值账户列表/流水
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
@@ -344,7 +347,12 @@ dotnet run
 - **care_recept_form 装备卡片展开态「一旦展开就记住」（2026-07-08 用户拍板）**：`_refreshCares` 无手动记录时未录入完整默认展开**并写入 expandedMap**——录入中任何字段变化（含录完最后一项）都不自动折叠，唯一收起方式是手动点卡片头部。背景坑：卡片 key 规则 `id>0?'c'+id:'t'+timeStamp`，首次落库 id 0→真实 id 时 key 漂移丢状态；组件 UI 状态按 key 记忆时要么稳定 key、要么把默认态落成显式记录
 - **⚠️ `Ticket` 模型 C# 默认 `valid = 0`，发券代码不显式置 1 券就天生不可见（2026-07-09 根因定位）**：选券链路 `GetMemberTicketsByStaff` 基查询过滤 `valid==1 && is_active==1`。[`GenerateTicketByAction`](../SnowmeetApi/Controllers/TicketController.cs)（买雪票增券 / 扫码领取 / 非雪季养护 17/18 三条在用发券路径）原漏设 `valid` 和 `member_id`——已补 `valid=1, member_id=memberId`（随下次 publish；非雪季 17/18 此前靠 CareController 545/549 事后补 valid=1 侥幸能用）。存量 template 12 共 84 张 valid=0：4 张 `channel='daidai'`（15506 测试券，2026-07-09 DB 已 UPDATE 置 1）+ 45 张「买雪票增券」+ 30 余张 create_memo=雪票id（待业务确认是否批量修）。`channel='daidai'` 在代码库和 git 全历史都搜不到，是外部通道直插的数据
 - **券可见性接口口径不一致（排查「看得到选不了」先查这条）**：`GetMemberTicketsByStaff`（开单选券）和新版 `api/Ticket/GetMyTickets`（顾客券包）都过滤 `valid=1`；但旧 `/core/Ticket/GetTicketsByUser`（admin `ticket_unuse_list`、旧 `ticket_selector` 组件用）只按 `open_id`+`used` 过滤、**不看 valid/is_active** → 同一张券 admin 券列表能看到、开单选券选不出。排查顺序：DB 直查该券 `valid / is_active / used / expire_date / member_id`
-- **养护开单选会员卡语义（2026-07-09 落地）**：`ticket_card_selector` 选卡 → `care.use_card=true`（后端既有 bool 随 SaveCareRecept 持久化，订单列表【卡】筛选/标签认它）+ `card_id`/`card_name` 仅前端标量（Care 无对应列，POST 后端静默忽略，`recept_new` 保存回填从本地带回，同 ticket 对象模式）。券/卡全局互斥：选卡清券侧（ticket/ticket_code/free_wax/discount）、选券清卡侧、「不使用」双清。**选卡不改价、不扣次数**（核销链路待做，见下一步）。季卡识别按 `card_name` 含「季卡」（现库中全是次卡，季卡数据尚无）
+- **养护开单选会员卡语义（2026-07-09 落地，7-10~11 演进）**：`ticket_card_selector` 选卡 → `care.use_card=true` + **`care.card_id/card_name`（7-11 起是 care 表实体列，随草稿持久化、中断找回可还原）**。券/卡全局互斥：选卡清券侧、选券清卡侧、「不使用」双清。选卡计价 0（例外见机打蜡季卡条），核销链路待做
+- **`punch_card` 表语义（2026-07-10 用户改 schema）**：`total/punches` 可空，**`total=NULL 即季卡（不限次数）`**；`equip_type/equip_brand/equip_scale/equip_serial` 四列 = 季卡绑定装备（三个展示字段全非空即「限装备」，serial 暂不参与限制）。C# `PunchCard` 已可空化 + `remaining` 季卡为 null；所有消费方（GetMemberAssetsByStaff 聚合排除季卡 / GetPunchCardPresets 排除季卡 / 租赁核销排除季卡 + punches 空当 0 / member_detail 显示「季卡·不限次数」）已适配。**限装备季卡**：开单选中后装备类型/品牌/长度自动带入并锁定（`card_equip_lock` 前端标量，中断找回锁会松、值保留）
+- **养护计费/服务项全部服务端化（2026-07-10~11 架构定稿）**：`Care/CalcCareCharge` 每次界面操作 POST 全量状态 `{shop, memberId, deriveServices, changedField, care}`（卡信息只在 care 内，跟单件装备走），响应 `{commonCharge, ticketDiscount, care}` **返回整个 care 作为真理之源回填**。三个服务端 helper：`CalcCharge`（定价，PlaceCareOrder 共用；选卡 0、质保招待 0、summer 330、GetProduct+券 fixed_price、券16 减免 30/20；**机打蜡季卡例外：卡名含「机打蜡」的卡升级热蜡/加修刃按券12模板 fixed_price 加价**）、`ApplyDefaultServices`（换券/卡默认项：双项卡→三项、机打蜡卡→机打蜡、券12→机打蜡、券17/18→非雪季；单项/季卡不默认）、`ApplyServiceLinkage`（changedField 事件联动：热蜡↔刮蜡跟随、机打蜡互斥、修刃默认89、summer later/now 联动）。**前端不再有任何定价/默认/联动逻辑**，新规则只改后端
+- **养护草稿保存串行化 + 响应合并原则（2026-07-11 修「订单尚未生成」）**：`recept_new.saveCareReceptOrder` 是串行化入口（在飞时排队合并一笔）——并发保存在 order.id=0 时都走 create 分支**重复建单**（生产实录孤儿草稿成对出现间隔 ~90ms）；响应合并以「响应时刻最新本地状态」为基底只吸收服务端主键（care.id/order_id/careImage.id），**绝不整体覆盖**（晚到旧响应会冲掉新选择）。`_checkoutCare` 不再前置要求 order.id（等串行保存建单后取 id）
+- **旧流程非雪季单没有「寄存或快递」步骤（2026-07-11 数据修复）**：2026-03-07 前的非雪季 care 任务链是普通养护链（无寄存步骤）、`summer` 字段空/乱码。已给 26 件未发板的补插「寄存或快递·未开始」任务（腾位法：care 内 sort≥刮蜡 的行 +1，插热蜡刮蜡之间，memo=非雪季养护）；23837 无锚点跳过。care_task 的 sort 是全局递增分配、但只在 care 内比较次序，腾位不跨 care 冲突
+- **非雪季养护数据速查（2026-07-11 核查）**：券「非雪季赠双项」used=0 圈非雪季在管装备；寄存方式落 `care_task.deal_method`（寄存/快递/万龙寄存柜）+ `store_memo`（快递单号）在 task_name='寄存或快递' 行上；热蜡完成自动把寄存任务置「已开始」（CareController:1043）；发板完成自动发券16（养护完成赠送）。财年 177 件非雪季 care：4 已发板、173 在途（130 已寄存完成）
 
 ---
 
@@ -2983,3 +2991,22 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 后端 `dotnet build` 0 错误 ×2；前端 `node --check` + wxml 平衡全过；生产库 4 张测试券 valid 已置 1（立即可选）
 - 🚧 **待用户**：① 两代码仓 commit（7-9 批次全部本地未提交）② publish SnowmeetApi（追加 7-9：GenerateTicketByAction 修复 + GetMemberCardsByStaff——不部署则会员卡 tab 空、新发券继续不可见）③ 重编小程序 ④ DevTools 验证：券 tab create_memo 显示、卡 tab 列表/互斥单选、选卡后 use_card 落库、保存往返卡名不丢
 - ⏳ 待定/后续：养护次卡核销链路（选卡目前不改价不扣次数）、~80 张存量 valid=0 券批量修复、GetMyTickets 过期过滤核查（后台会话跑着）、care 表加 card_id 列（可选）
+
+### 2026-07-10~11 — punch_card 季卡化 + 养护计费/服务项全面服务端化 + 保存串行化 + 非雪季数据核查修复
+
+跨两天联调迭代（用户边测边提需求，多为服务端小步快改）。改动跨 `SnowmeetApi`（4 文件）+ `snowmeet_wechat_mini`（6 文件）+ 生产库两次结构变更（用户自改）+ 一次数据写入。**两代码仓已全部 commit+push**（SnowmeetApi `aabc3527` / mini `41c0744f`），⚠️ 待 publish——**不部署则线上 punch_card 查询持续 500**（DB 列已可空、老模型不可空）。归档见 [`sessions/2026-07-10_summer_card_serverside_pricing.md`](sessions/2026-07-10_summer_card_serverside_pricing.md)。
+
+1. **punch_card 可空化 + 季卡语义**（用户改列后线上 `GetMemberAssetsByStaff` 抛 SqlNullValueException）：`total/punches` → int?，`total=NULL 即季卡不限次数`；`remaining` 季卡 null；全部消费方适配（资产聚合/发卡预设/租赁核销排除季卡，punches 空当 0；member_detail 显示「季卡·不限次数」）
+2. **季卡绑定装备**（equip_type/brand/scale/serial 四列，serial 暂不限制）：`GetMemberCardsByStaff` 返回绑定信息 + `equipBound`；选中限装备季卡 → 开单界面装备信息自动带入并锁定（按钮灰死+toast、picker/input disabled、橙色提示行）；选卡弹层显示「绑定装备」行；`GetMemberCardsByStaff` 加 `bizType` 过滤（养护开单不显示租赁卡）
+3. **计费/服务项全面服务端化**（plan 流程 + 多轮演进，架构见已知遗留）：`CalcCareCharge` 全量 payload（含 changedField）→ 响应返回整个 care；`CalcCharge`/`ApplyDefaultServices`/`ApplyServiceLinkage` 三 helper，`PlaceCareOrder` 共用定价；选卡 0 元（用户拍板）、机打蜡季卡升级按券12模板加价、券16 减免服务端化、双项卡默认三项、换券/卡先清空再套默认；前端 `_fetchPrice` 只做整包提交+回填，`onSvcToggle`/`onSummerTap` 只翻开关；`care.card_id/card_name` 加 DB 列入模型（卡跟 care 走、找回可还原）
+4. **「订单尚未生成」根因修复**：并发保存 id=0 重复建单（孤儿草稿成对 ~90ms）+ 下单后脱钩期点结算被前置守卫拦截。修：保存串行化（在飞排队合并）+ checkout 等保存建单后取 id + 响应合并改「本地为基底只吸收主键」（此前晚到旧响应整体覆盖，曾冲掉刚选的季卡）
+5. **选卡后装备卡片不折叠**：key 漂移迁移（id 0→真实 id 时把 't'+timeStamp 的展开记录搬到 'c'+id）+ 选券/卡时显式记展开
+6. **顾客支付页养护明细**（payment_entry 新增「养护内容」段）：每件装备一段列 装备/项目/所用券卡/金额，文案对齐开单页 _svcChips；机打蜡按钮显示条件放宽（券12 或 机打蜡季卡选中 或 free_wax=1）
+7. **非雪季养护数据核查（只读）+ 修复（写）**：券「非雪季赠双项」未用 143 件中 13 件未寄存未刮蜡（10 位真实顾客名单已出）；财年 177 件中 4 件已发板；173 件在途清单（含手机号）已出。**29 件无寄存步骤**分两类：27 件旧流程（任务链无此步骤）+ 2 件未支付单（71528/71553）。已给 26 件补插「寄存或快递·未开始」任务（事务+校验+抽查，热蜡刮蜡间腾位插入），23837 无锚点跳过待定
+
+📌 关键发现/教训：DB schema 由用户直改、模型必须跟上否则 EF 读 NULL 即 500（部署顺序敏感）；「服务联动是事件语义」——光看状态区分不了"刚开热蜡"和"手动关刮蜡"，前端须传 changedField；保存响应整体覆盖本地状态是状态丢失总根源（正确姿势=本地为基底吸收主键）；care_task.sort 全局分配但仅 care 内有序，腾位插行安全；PowerShell `>` 重定向会把 UTF-8 stdout 转成乱码（拿数据直接从 stdout 取）
+
+**状态（7-11）**
+- ✅ 两代码仓已 commit+push（SnowmeetApi `aabc3527` / mini `41c0744f`）；build 0 错误、node --check/wxml 全过；26 条寄存任务已入生产库
+- 🚧 **待用户**：① **publish SnowmeetApi（紧迫：punch_card 查询线上 500 中）** ② 重编小程序 ③ 回归：季卡选卡计价 0/升级加价、限装备锁定、服务联动（开热蜡带刮蜡）、连续操作不丢卡、结算一次走通、支付页养护明细
+- ⏳ 待定/后续：卡券核销链路（扣次数/置 used）、23837 补任务、71528/71553 未支付单、孤儿草稿清理、支付宝端 payment_entry 同步
