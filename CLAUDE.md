@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-11）
+## 当前状态（截至 2026-07-12）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -197,12 +197,13 @@ dotnet run
 
 - **养护开单迁移新流程（2026-07-04 代码完成，待 DevTools/真机验证 + 部署）**：
   - 前端：`components/reception/care_recept_form/`（镜像 rent_recept_form 接口 syncCare/checkout；业务字段全量对齐旧版 care_recept：装备/品牌(可新增)/照片/票券 12 机打蜡·16 折扣·17/18 非雪季/修刃角度/热蜡刮蜡/立等/维修项+附加费/减免/质保/招待；估价逻辑同旧 getProduct，真理之源是服务端重算）；`recept_new` 养护分支（saveCareReceptOrder→`Care/SaveCareRecept`、checkout→`Order/PlaceCareOrder`、**找回中断单从 order.type 反推 bizType**、save 回填时按下标合并本地 careImages/ticket 展示对象）；settle「查看订单」按 order.type 路由；order-summary-card 加 care 分支
-  - 新版养护详情页 `pages/admin/care/care_order_detail/`（Alpine：订单信息+支付四格+装备卡：服务 chips/照片/任务时间线/安检录入确认/寄存快递/取板码发送+验证+店长确认/打印标签复用 print-care）。**扫码取板 + 拍照凭证两种核销仍在旧页 order_detail，后续迁移**
+  - 新版养护详情页 `pages/admin/care/care_order_detail/`（Alpine：非雪季琥珀横幅+订单信息+支付四格+装备卡：服务 chips/照片/任务时间线/安检录入确认/寄存快递/发板核销四方式/装备编辑/打印标签复用 print-care）。**7-12 已全量迁移旧页能力并切入口**（扫码取板 WebSocket + 拍照凭证 + 装备基础信息编辑 + 品牌新增；care_order_list/member_detail/标签二维码三入口切新页；任务执行引导：当前任务高亮大按钮 + 进行中 30s 计时 + 结束显示实际耗时 + 耗时<60s 二次确认）。旧页 order_detail 保留作历史标签二维码兼容入口
   - 后端（已编译 0 错误，随下次部署生效）：`CareController.SaveCareRecept`（草稿 order valid=0 + cares valid=0；删除的 care **物理删行**——EffectCareOrder 不过滤 valid；careImages 按 id diff 增删；导航置空防 TrackGraph 异常）、`GetReceptingOrder` 加 include cares(+careImages.image)、`OrderController.PlaceCareOrder`（服务端权威定价照抄旧 PlaceOrder 养护分支 + care.valid=1 + GenerateOrderCode 先于 EffectCareOrder + Discount 记录（ticket_discount 金额已修对）+ 0 元单立即 EffectCareOrder + **summer 单无会员拦截**——EffectCareOrder 非雪季发券 (int)member_id 强转会炸）
   - 支付触发链路零改动：DealSuccessPaidOrder / EffectUnpaidOrder / PayWithDeposit 均已对 type=='养护' 调 EffectCareOrder
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
+- **新版养护详情页重设计（7-12）验证 + 部署配套**：① 重编小程序（8 文件：care_order_detail 四件套 + care_order_list + member_detail + print_care_label + data.js，纯前端零后端改动，本地未提交）② **公众平台「扫普通链接二维码打开小程序」登记新路径规则** `mapp/admin/care/care_order_detail/care_order_detail`（体验版先填测试链接）——不登记则新打印标签扫码打不开；旧标签仍指旧页不受影响 ③ DevTools 验证：非雪季横幅/计数、任务链（开始文案→计时 30s 跳动→结束耗时→<60s 二次确认→完成态收敛）、装备编辑（品牌/序列号分左右/招待质保 bool/照片增删/新增品牌）、验证码/店长确认、拍照凭证链、安检/寄存/打印回归、列表与会员详情入口 ④ 真机验证：扫码取板全链路（顾客扫 wxoa 码→WS 推送→本人完成/非本人 toast+重新生成）、切后台 socket 清理、相机拍照上传、双账号「强行中止（他人执行中）」、扫新标签二维码定位到对应 care
 - **养护开单端到端验证**（DevTools/真机）：①开单→草稿自动保存（DB care valid=0）②中断找回（列表出现 + cares 还原 + 渲染养护表单）③去结算 PlaceCareOrder（code `*_YH_*`、care.valid=1、双项/单项×立等/次日 定价）④手工收款→care_task 生成序列 ⑤招待/质保 0 元单 place 即生成任务 ⑥非雪季 now/later 任务变体+票券 17/18、散客+summer 被拦截 ⑦新详情页任务开始/结束、安检确认、取板码核销、打印 ⑧**7-8 批次回归**：默认店铺即时可用、传照片成功、反复编辑保存不 500 且 care_image 每照片一行、卡片全程不折叠、历史装备弹窗三路径（有记录点选/手动填/散客不弹）
 - **上传图片 400（wanlonghuaxue）待收口**：两域名是两台服务器（mini=161.189.64.210 / wanlonghuaxue=60.8.110.78），同 sessionKey 在 mini 鉴权成功、在 wanlonghuaxue 400 → 那台部署落后（缺 6-14 `GetStaffBySessionKey` openid 兜底 `bb210a9`）或 config.sqlServer 指向不同库。**2026-07-09 上传/显示域名 3 处已按用户要求回切 snowmeet.wanlonghuaxue.com**（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST）——⚠️ wanlonghuaxue 那台未重新部署对齐前上传会再次 400；另外 7-8~7-9 期间经 mini 域名上传的照片落在 mini 那台磁盘，回切后旧测试照片会 404（联调测试数据可不管）
 - **养护卡券核销链路未做**：选卡已按 0 计价（机打蜡季卡升级另按券12规则加价），但**不扣次数**——真正扣 `punches` + 写 `punch_card_used` 需要类似租赁 `UseRentalPunchCard` 的养护版（结算/支付环节），待设计。同理券 12 支付成功也未置 used
@@ -353,6 +354,9 @@ dotnet run
 - **养护草稿保存串行化 + 响应合并原则（2026-07-11 修「订单尚未生成」）**：`recept_new.saveCareReceptOrder` 是串行化入口（在飞时排队合并一笔）——并发保存在 order.id=0 时都走 create 分支**重复建单**（生产实录孤儿草稿成对出现间隔 ~90ms）；响应合并以「响应时刻最新本地状态」为基底只吸收服务端主键（care.id/order_id/careImage.id），**绝不整体覆盖**（晚到旧响应会冲掉新选择）。`_checkoutCare` 不再前置要求 order.id（等串行保存建单后取 id）
 - **旧流程非雪季单没有「寄存或快递」步骤（2026-07-11 数据修复）**：2026-03-07 前的非雪季 care 任务链是普通养护链（无寄存步骤）、`summer` 字段空/乱码。已给 26 件未发板的补插「寄存或快递·未开始」任务（腾位法：care 内 sort≥刮蜡 的行 +1，插热蜡刮蜡之间，memo=非雪季养护）；23837 无锚点跳过。care_task 的 sort 是全局递增分配、但只在 care 内比较次序，腾位不跨 care 冲突
 - **非雪季养护数据速查（2026-07-11 核查）**：券「非雪季赠双项」used=0 圈非雪季在管装备；寄存方式落 `care_task.deal_method`（寄存/快递/万龙寄存柜）+ `store_memo`（快递单号）在 task_name='寄存或快递' 行上；热蜡完成自动把寄存任务置「已开始」（CareController:1043）；发板完成自动发券16（养护完成赠送）。财年 177 件非雪季 care：4 已发板、173 在途（130 已寄存完成）
+- **`CareController.UpdateCare` 对 careImages 按 id diff 物理删（2026-07-12 核实）**：`Care/UpdateCareByStaff` → `UpdateCare` 会把「原有但 posted care.careImages 里没有的 id」`Entry().State=Deleted` 物理删行 → payload 必须带全所有要保留的 careImage（含原 id）。同时 posted careImage 要剥掉 `.image`/`.care` 导航（防 EF 图附加撞键，同 7-8 那族坑）；**既有行保留原对象全部标量**（只改 image_id/care_id），别发扁平化新对象——缺的字段会被模型默认值冲掉（create_date=Now 等）。新详情页 onSafeCheck/onEditSave 已按此处理（`_stripImageNavs` / onEditSave 以 raw 对象为基底）
+- **print-care 组件依赖 care 上的 `customerName/customerCell/shop` 三个前端临时字段**（2026-07-12 补齐）：旧页 showPrintBackDrop 会先塞这三字段再传组件；新详情页 7-4 版漏了 → 打印标签顾客名/电话/店铺空。已加 `_preparePrint(cidx)`（member.title/cell 优先，回退 contact_name/contact_num）。任何新调 print-care 的页面都要先补这三字段
+- **标签二维码切新版养护详情页需公众平台登记（2026-07-12）**：`print_care_label.js` 二维码 URL 已改 `mapp/admin/care/care_order_detail/care_order_detail?orderId=&careId=`，须在「扫普通链接二维码打开小程序」为该前缀登记规则（体验版填测试链接）才生效；**已打印的旧标签仍指旧页 `mapp/admin/care/order_detail`，旧页必须保留**（app.json 注册不可删）。新页 onLoad 已支持 `options.q` 解析 + `careId` 定位展开滚动
 
 ---
 
@@ -3010,3 +3014,21 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 两代码仓已 commit+push（SnowmeetApi `aabc3527` / mini `41c0744f`）；build 0 错误、node --check/wxml 全过；26 条寄存任务已入生产库
 - 🚧 **待用户**：① **publish SnowmeetApi（紧迫：punch_card 查询线上 500 中）** ② 重编小程序 ③ 回归：季卡选卡计价 0/升级加价、限装备锁定、服务联动（开热蜡带刮蜡）、连续操作不丢卡、结算一次走通、支付页养护明细
 - ⏳ 待定/后续：卡券核销链路（扣次数/置 used）、23837 补任务、71528/71553 未支付单、孤儿草稿清理、支付宝端 payment_entry 同步
+
+### 2026-07-12 — 新版养护详情页重设计：全量迁移旧页能力 + 非雪季醒目标志 + 任务执行按实际时间引导（plan 流程，纯前端）
+
+会话起始 start-work。用户需求：「根据现有的养护订单详情页重新设计新的页面，风格和目前的新页面保持一致；非雪季订单要有明显标志；尽可能引导店员按实际的任务开始/结束点按钮」。Plan 模式三路探索（旧页 order_detail 全能力 / 新页现状 / 后端 CareTask 接口）+ AskUserQuestion 拍板：**全量迁移+切入口（旧页可退役）、装备编辑一并迁入、引导做视觉+计时提醒（无后端硬约束）**。改动 `snowmeet_wechat_mini` 8 文件，**后端零改动**（所有接口已存在），本地未提交。归档见 [`sessions/2026-07-12_care_order_detail_redesign.md`](sessions/2026-07-12_care_order_detail_redesign.md)。plan：`~/.claude/plans/dapper-foraging-blossom.md`。
+
+1. **非雪季醒目标志**：页面顶部琥珀警示横幅（底 `#fffbeb`/竖条 `#f59e0b`/文字 `#92400e`，配色决策：蓝=操作/绿=成功/红=危险已占用，琥珀与 `btn--warning` 警示语义一致）——任一 care `biz_type='非雪季养护'` 即显示，副文按 `summer` 汇总「立等现修 N 件 · 寄存后修 M 件」；care 卡 chips 改对象数组 `{text,cls}`，非雪季用 `chip-summer` 琥珀 chip 并区分 now/later
+2. **任务执行引导**：当前任务高亮卡（浅蓝底+蓝左边条）+ 整宽大按钮「开始 {任务名}」/「结束 {任务名}」+ 按钮下引导文案（「请在实际开始操作时点击，系统将记录真实开始时间」）；进行中任务实时「进行中 · 已用时 X 分钟」（脉冲圆点 + 页面级单 `setInterval` 30s 一跳只 setData `_elapsedStr` 路径，onHide/onUnload 清理）；结束弹窗显示 `_fmtDuration` 实际耗时，**耗时<60s 追加二次确认「确认已实际完成操作？」**；已完成任务收敛单行（✓+任务名+耗时·执行人·结束时间），未来任务淡化，他人执行中显示「强行中止（xx 执行中）」描边红按钮
+3. **发板核销四方式整合**（删「请使用旧版」提示）：segmented 四选（扫码取板/验证码/拍照凭证/店长确认[isMaster]）+ 分面板。扫码取板迁移：页面级单例 WebSocket 会话（`_scan` 实例字段），`QrCode/CreateNewScanQrCodeByStaff` → wxoa GetOAQRCodeUrl 二维码图 → `wss://{domain}/ws` queryqrscan → 本人扫码自动完成发板/非本人 toast+重新生成；切方式/折叠卡/onHide/onUnload 统一 `_closeScan()`（含 `StopQeryScan` 释放）；断线显示「重新连接」不再 navigateBack。拍照凭证迁移：van-uploader → 两段上传 → `Care/SetPickImageId` → SetTaskStatus 完成；发板完成后显示核销方式（task.memo）+ 凭证缩略图。UI 状态（`_expanded`/`_veriType`）按 care.id 记忆在 `this._uiState`，loadOrder 全量重渲染时回填
+4. **装备基础信息编辑迁入**：装备信息区只读/编辑二态（右上角「编辑」入口）——品牌 picker（末项「＋新增品牌」弹层走 `Care/UpdateBrandByStaff`）/长度/鞋长或前脚/序列号分左右（`a|b` 合成）/雪杖附件/无·招待·质保三选一 segmented（**bool 恒不发 null**）/备注/照片增删（uploading 占位、image_id 对齐服务端）。保存以 `_rawCares` 原始对象为基底合成 payload，careImages 剥导航保标量（详见已知遗留新增条）；编辑中 onShow 跳过自动刷新（防相机返回丢编辑内容）
+5. **切入口 + 深链**：`care_order_list`/`member_detail` 养护跳转切新页；`print_care_label` 标签二维码 URL 切新页（**需公众平台登记新路径**，详见已知遗留）；新页 onLoad 支持 `options.q` 解析（`util.parseQuery`）+ `careId` 定位（只展开目标 care + `wx.pageScrollTo` 到 `#care-{id}`）。`care_back_drop`（旧开单收银组件）不切，随旧流程退役
+6. **顺手修**：打印标签/小票补 `customerName/customerCell/shop`（print-care 依赖，7-4 版漏了会打出空顾客名，详见已知遗留）；`data.js` 收口 7 个旧页内联接口为 promise（CreateVerifyCode/VeriCareFinishCode/SetPickImageId/UpdateBrandByStaff/CreateNewScanQrCodeByStaff/StopQeryScan/GetOAQRCodeUrl）
+
+📌 关键发现/教训：`UpdateCare` careImages 按 id diff 物理删 + 扁平化对象会冲掉标量（详见已知遗留）；print-care 三个前端临时字段依赖；旧页 `socketMessage` 用 `tasks[length-1]` 取发板任务（新页改 `find(task_name==='发板')` 更稳）；`_current` 派生加 `|| _running` 保证乱序开始的任务也能结束；toast 带 icon 文案 ≤7 字（「扫码发板完成」）
+
+**状态（7-12）**
+- ✅ 8 文件全部完成：`node --check` 通过、wxml 标签平衡（view 130/130）、36 个事件绑定与 JS 方法一一对应、wxss 括号平衡；**后端零改动、无库表变更，可独立发小程序**
+- 🚧 **待用户**：① 重编小程序 + DevTools/真机验证（清单见「下一步要做的」首条）② **公众平台登记标签二维码新路径规则** ③ mini 仓 8 文件本地未提交，按部署节奏 commit
+- ⏳ 后续：旧页 order_detail 观察一段时间后可考虑从 admin 入口彻底退役（保留 app.json 注册兼容旧标签）；`onSafeCheck` 的 careImages 剥导航是行为增强（原样发导航也能跑），如安检确认回归出问题优先查这里
