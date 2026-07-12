@@ -181,6 +181,9 @@ dotnet run
 - 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`；showcase「招待」格可点设/撤招待，走 `Rent/SetRentalEntertainByStaff`；深链 `rentItemId` 进入只展开目标 rental）
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
 - 组件（7-9 新增）：`components/reception/ticket_card_selector`（养护开单券/卡双 tab 选择弹层：券列 code/名称/到期日/create_memo，卡列次卡已用/剩余、季卡上次使用时间（按卡名含「季卡」识别），券卡全局互斥单选；事件契约 `Event` = {action, selectedTicket, selectedCard}，配套接口 `MemberAdmin/GetMemberCardsByStaff` staff≥100）
+- 页面（养护订单列表新版，7-12 重做）：`pages/admin/care/care_order_list`（仿租赁 new_rent_list 的 Alpine 样式 + date-range-picker + list-pager 分页；查询条件同旧版；复用通用分页接口 `Order/GetOrdersByStaffPaged`；标签列/照片右侧竖排/时间退款独立行）
+- 页面（养护订单详情新版，7-12 全量迁移）：`pages/admin/care/care_order_detail`（非雪季琥珀横幅 + 任务执行引导计时 + 发板核销四方式含扫码 WebSocket + 装备编辑 + 品牌新增；care_order_list/member_detail/标签二维码三入口已切此页）
+- 养护开单储值意向（7-12）：`components/reception/care_recept_form` 结算条上方显示会员储值 + 「使用储值支付」复选框（会员且有储值时），`checkout` 带 `useDeposit`；`recept_new` 透传给 `Order/PlaceCareOrder?useDeposit=` → 落 `order.pay_with_deposit`（订单级 bool，本期仅记录意向）
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
@@ -3032,3 +3035,26 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 8 文件全部完成：`node --check` 通过、wxml 标签平衡（view 130/130）、36 个事件绑定与 JS 方法一一对应、wxss 括号平衡；**后端零改动、无库表变更，可独立发小程序**
 - 🚧 **待用户**：① 重编小程序 + DevTools/真机验证（清单见「下一步要做的」首条）② **公众平台登记标签二维码新路径规则** ③ mini 仓 8 文件本地未提交，按部署节奏 commit
 - ⏳ 后续：旧页 order_detail 观察一段时间后可考虑从 admin 入口彻底退役（保留 app.json 注册兼容旧标签）；`onSafeCheck` 的 careImages 剥导航是行为增强（原样发导航也能跑），如安检确认回归出问题优先查这里
+
+### 2026-07-12（续）— 养护订单列表重设计+分页 + 列表布局微调 + 养护开单储值选择意向
+
+接续同日养护详情页重设计。三件事，前两件纯前端（`snowmeet_wechat_mini`），第三件前后端 + 需生产库加列。归档见 [`sessions/2026-07-12_care_list_redesign_and_deposit_choice.md`](sessions/2026-07-12_care_list_redesign_and_deposit_choice.md)。
+
+1. **养护订单列表重设计 + 分页**（[`care_order_list`](../snowmeet_wechat_mini/pages/admin/care/care_order_list.js) 4 文件全重写，纯前端）：仿租赁列表 [`new_rent_list`](../snowmeet_wechat_mini/pages/admin/rent/new_rent_list.wxml) 的 Alpine 样式（`#f8f9ff` 背景 + 白卡 + 头部/标签列/详情行）；删旧 `fui-card`/`fui-row`/`fui-col` 三栏。接入 `date-range-picker` + `list-pager` 组件。**后端零改动、data.js 零改动**——复用通用分页接口 `getRentOrdersByStaffPagedPromise`（名字带 Rent 但接 `Order/GetOrdersByStaffPaged`，type 区分业务；`GetCommonOrders` 共用，已支持养护 `isSummerCare`/`useCard`/`haveWarranty`）。查询条件与旧版一字不差（店铺/日期/测试/招待/减免/非雪季/次卡/手机/备注）。养护特有：标签列加【质】【非】、状态 chip 两态（临时订单 red / 正常订单 green，临时单不可点）、装备照片缩略图。统计行「共 N 单 · 本页收款 ¥xx」（分页后金额只能本页累加，标注清楚避免误导）。
+2. **列表布局微调**：时间、退款各自独立成行（原与日期/支付金额同行双列）；装备照片从卡片底部横排改到卡片右侧竖排（`order-body` 三列：标签列 + 详情行 flex + 照片列）。
+3. **养护开单储值选择意向**（前后端，需加列）：用户拍板本期只做「显示储值 + 店员勾选是否用储值」，去结算把选择落到订单让系统知道；**实际扣款/部分抵扣/身份核验下一步专门规划**。复选框不因储值不足禁用（因为选了「允许部分储值+补其他」）。
+   - 前端 [`care_recept_form`](../snowmeet_wechat_mini/components/reception/care_recept_form/care_recept_form.js)：`memberId` observer 拉 `getMemberAssetsByStaffPromise`(depositTotal)；结算条上方 `.deposit-bar`（储值余额 + 「使用储值支付」复选框，**仅会员且有储值时显示**，换人无储值自动清勾选）；`checkout` 事件带 `useDeposit`。
+   - 前端 [`recept_new.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js)：`onCheckout` maintain 分支取 `e.detail.useDeposit` → `_checkoutCare(useDeposit)` → PlaceCareOrder URL 加 `&useDeposit=`。
+   - 后端：[`Order.cs`](../SnowmeetApi/Models/Order/Order.cs) 加订单级字段 `pay_with_deposit`(bool default false)；[`PlaceCareOrder`](../SnowmeetApi/Controllers/OrderController.cs#L2969) 加 `useDeposit` 参数写入 `order.pay_with_deposit`。下一步做储值扣款/核销时读该字段即知这单是否走储值。
+
+📌 关键发现/教训：
+- **`getRentOrdersByStaffPagedPromise` 是通用分页接口**（接 `Order/GetOrdersByStaffPaged`，非租赁专用），养护/零售/雪票都可复用，只需传对 `type`；底层 `GetCommonOrders` 早已支持全业务查询参数。
+- **`careProperties.orderStatus` 只有「临时订单」「正常订单」两值**（[`Order.cs:1225` CarePropertySet](../SnowmeetApi/Models/Order/Order.cs)），与订单级 `order.orderStatus`(支付状态)不同物；养护列表状态 chip 只这两态。
+- **分页列表金额统计只能本页累加**：`PagedOrderResult` 只返回 `items`+`total`(条数)，无全量金额聚合；养护列表统计标「本页收款」而非误导性的「总收款」。
+- **`PayWithDeposit` 对养护只支持全额扣款**（[OrderController.cs:3172](../SnowmeetApi/Controllers/OrderController.cs#L3172)）：会员 + 储值余额 ≥ 全额应付 → 扣款 + EffectCareOrder；不支持部分抵扣、散客不行。本期不调它、只记录意向字段，为下一步铺路。
+- **`order.pay_with_deposit` 需先加列再部署**（同 customer_open_date 教训）：EF 加字段后所有 order 查询 SELECT 该列，不先 `ALTER TABLE [order] ADD pay_with_deposit BIT NOT NULL DEFAULT 0` 会让 order 查询全挂。
+
+**状态（7-12 续）**
+- ✅ 后端 `dotnet build` 0 error（11 历史无关警告）；前端 `node --check` + wxml 平衡（care_order_list view 36/36 / care_recept_form view 105/105）+ wxss 括号平衡全过
+- 🚧 **待用户**：① 重编小程序（care_order_list 4 文件 + care_recept_form + recept_new）② **生产库 `ALTER TABLE [order] ADD pay_with_deposit BIT NOT NULL DEFAULT 0` 再 publish SnowmeetApi**（不先加列 order 查询全挂）③ 验证：养护列表新样式/分页/返回保留页码/时间退款独立行/照片右侧、会员开单显示储值行可勾选（散客不显示）、去结算后 `order.pay_with_deposit=1`
+- ⏳ 下一步：养护储值/卡券实际核销 + 顾客身份验证（用户明确「下一步专门讨论结算/核销」）
