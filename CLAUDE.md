@@ -171,7 +171,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-13）
+## 当前状态（截至 2026-07-14）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -185,6 +185,10 @@ dotnet run
 - 页面（养护订单详情新版，7-12 全量迁移）：`pages/admin/care/care_order_detail`（非雪季琥珀横幅 + 任务执行引导计时 + 发板核销四方式含扫码 WebSocket + 装备编辑 + 品牌新增；care_order_list/member_detail/标签二维码三入口已切此页）
 - 页面（养护订单详情补充，7-13）：`pages/admin/care/care_order_detail` 已加订单级备注编辑保存 + 订单级退款弹窗（金额+备注，确认后按可退款支付记录自动分摊退款）
 - 养护开单储值意向（7-12）：`components/reception/care_recept_form` 结算条上方显示会员储值 + 「使用储值支付」复选框（会员且有储值时），`checkout` 带 `useDeposit`；`recept_new` 透传给 `Order/PlaceCareOrder?useDeposit=` → 落 `order.pay_with_deposit`（订单级 bool，本期仅记录意向）
+- 养护核销全链路（7-14，B1-B4/F1-F3 全部执行，plan `0-calm-storm.md`）：`CareController.EffectCareOrder` 并入卡券核销（ticket used + PunchCardUsed 扣次数，季卡跳过）；`OrderController.PlaceCareOrder` 0 元单按是否用了权益（储值/卡/券）分叉，仅质保招待零权益 0 元单立即生效；新增 `OrderController.WriteoffCareOrder`（幂等+核验门槛+内联储值消费+EffectCareOrder）；`PaymentIdentityController._resolveStatus` 新增 `care_member_required` 状态拦截养护单微信支付非本人；前端 `components/order-payment` 养护分支（核销/储值全覆盖弹微信核验码轮询、支付宝前先微信核验）+ `payment_entry` 按状态隐藏支付按钮
+- 养护详情页安全检查默认值持久化修复（7-14）：`care_order_detail.js` 加 `this._uiState.safeCheck` 页面级草稿 map，`_renderCare` 合并优先服务端值/否则草稿值，任何触发 `loadOrder()` 的无关操作不再冲掉未提交默认值
+- 养护详情页装备「取消养护」功能（7-14，三轮迭代后终态）：任务行内小按钮（仅 `care._canCancel` 时显示，按任务状态自动派生非全部完成也非仅剩发板）→ 点击弹 `van-popup` modal（取消原因必填文本框 + 复用四方式核验面板，全部改取消语义文案）；`Care.cs` 新增 `is_cancel`(bool)+`cancel_reason`(string?) 两字段，`SetTaskStatus`/`VeriCareFinishCode` 加 `isCancel`/`cancelReason` 参数，取消时跳过发板赠券改为置位+CoreDataModLog 留痕。**⚠️ DDL 未确认交付给用户，见已知遗留**
+- 🐛 **未解决（7-14）**：养护详情页「取消养护」modal 里填了取消原因、点「扫码取板」仍提示未填 + 二维码不自动生成，两轮修复（wxml 加 `bindinput` 实时同步 + `onVeriTypeTap` 允许已选中态重试）后用户反馈仍无变化，已在 `care_order_detail.js` `_resolveCancelParams` 加临时诊断 toast（`未填[mode=xxx,val=xxx]`，标注 `// TEMP DEBUG`），等用户提供诊断输出继续排查，见已知遗留
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
@@ -207,6 +211,9 @@ dotnet run
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
+- 🐛 **优先：取消养护 modal「扫码取板」校验 bug 排查**（7-14 未解决）：需要用户重新编译测试后提供 `care_order_detail.js` `_resolveCancelParams` 临时诊断 toast 的完整内容（格式如 `未填[mode=true,val="赶火车"]`），拿到实际运行时值才能判断是 `_cancelMode`/`_cancelReason` 哪个不对、还是 cidx 定位错了 care；定位后记得删除 `// TEMP DEBUG` 诊断代码
+- ⚠️ **`Care.is_cancel`/`cancel_reason` 两列 DDL 交付状态不明**：7-14 会话未见明确把 `ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;` 交付给用户执行，下次会话开工先确认这两列是否已在生产库存在，**不确认就 publish 会让所有 care 查询挂掉**（同 punch_card/customer_open_date 教训）
+- **养护核销全链路端到端验证**（7-14 代码完成未测）：0 元核销单（卡/券导致）需微信核验本人 → 核销生效；储值全额覆盖单同样先核验再消费储值；微信支付时非会员本人扫码被 `care_member_required` 拦截；支付宝支付养护单先弹微信核验码
 - **新版养护详情页重设计（7-12）验证 + 部署配套**：① 重编小程序（8 文件：care_order_detail 四件套 + care_order_list + member_detail + print_care_label + data.js，纯前端零后端改动，本地未提交）② **公众平台「扫普通链接二维码打开小程序」登记新路径规则** `mapp/admin/care/care_order_detail/care_order_detail`（体验版先填测试链接）——不登记则新打印标签扫码打不开；旧标签仍指旧页不受影响 ③ DevTools 验证：非雪季横幅/计数、任务链（开始文案→计时 30s 跳动→结束耗时→<60s 二次确认→完成态收敛）、装备编辑（品牌/序列号分左右/招待质保 bool/照片增删/新增品牌）、验证码/店长确认、拍照凭证链、安检/寄存/打印回归、列表与会员详情入口 ④ 真机验证：扫码取板全链路（顾客扫 wxoa 码→WS 推送→本人完成/非本人 toast+重新生成）、切后台 socket 清理、相机拍照上传、双账号「强行中止（他人执行中）」、扫新标签二维码定位到对应 care
 - **养护开单端到端验证**（DevTools/真机）：①开单→草稿自动保存（DB care valid=0）②中断找回（列表出现 + cares 还原 + 渲染养护表单）③去结算 PlaceCareOrder（code `*_YH_*`、care.valid=1、双项/单项×立等/次日 定价）④手工收款→care_task 生成序列 ⑤招待/质保 0 元单 place 即生成任务 ⑥非雪季 now/later 任务变体+票券 17/18、散客+summer 被拦截 ⑦新详情页任务开始/结束、安检确认、取板码核销、打印 ⑧**7-8 批次回归**：默认店铺即时可用、传照片成功、反复编辑保存不 500 且 care_image 每照片一行、卡片全程不折叠、历史装备弹窗三路径（有记录点选/手动填/散客不弹）
 - **上传图片 400（wanlonghuaxue）待收口**：两域名是两台服务器（mini=161.189.64.210 / wanlonghuaxue=60.8.110.78），同 sessionKey 在 mini 鉴权成功、在 wanlonghuaxue 400 → 那台部署落后（缺 6-14 `GetStaffBySessionKey` openid 兜底 `bb210a9`）或 config.sqlServer 指向不同库。**2026-07-09 上传/显示域名 3 处已按用户要求回切 snowmeet.wanlonghuaxue.com**（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST）——⚠️ wanlonghuaxue 那台未重新部署对齐前上传会再次 400；另外 7-8~7-9 期间经 mini 域名上传的照片落在 mini 那台磁盘，回切后旧测试照片会 404（联调测试数据可不管）
@@ -239,6 +246,8 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`Care.is_cancel`/`cancel_reason` DDL 交付状态不明（2026-07-14）**：本次会话给 `Care.cs` 加了这两个新列，代码已 commit+push，但会话记录里未见明确把 `ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;` 交付给用户执行。下次会话开工先核实生产库是否已有这两列，**不确认就 publish 会让所有 care 查询挂掉**（同 `punch_card`/`customer_open_date` 教训——EF 加字段后所有查询默认 SELECT 该列）
+- **取消养护 modal「扫码取板」校验 bug 未解决（2026-07-14）**：填了取消原因点「扫码取板」仍提示未填、二维码不自动生成。两轮修复（wxml 加 `bindinput` + `onVeriTypeTap` 允许已选中态重试）未见效，`care_order_detail.js` `_resolveCancelParams` 里留有 `// TEMP DEBUG` 临时诊断 toast（把 `care._cancelMode`/`_cancelReason` 运行时值打印出来），下次会话需先问用户要诊断 toast 内容，定位根因后记得删除诊断代码
 - **macOS 上 pyodbc + msodbcsql18**：unixODBC 默认查 `/etc/odbcinst.ini` 但 brew 装的 msodbcsql18 注册在 `/opt/homebrew/etc/odbcinst.ini`。所有 pyodbc 脚本启动前要 `export ODBCSYSINI=/opt/homebrew/etc`（写到 shell rc 或脚本 wrapper 都行）。已在 `snowmeet_ai_doc/skills/export_rent_order/SKILL.md` 文档化
 - **本机(Intel Mac) ODBC 配置异于上条**：上条 `/opt/homebrew/etc` + Driver 18 是给 Apple Silicon 同步机的；Intel Mac（brew 在 `/usr/local`）需 `export ODBCSYSINI=/usr/local/Cellar/unixodbc/2.3.4/etc` + 用 `--conn` 覆盖成 `DRIVER={ODBC Driver 13 for SQL Server}`（脚本 DEFAULT_CONN 写死 Driver 18，本机只装了 13）
 - **数据库里 rental_detail.charge_type 只有'租金'、'超时费'、'赔偿金'三种值**：用户口语的'损坏赔偿'实际是'赔偿金'。新查询写 `IN ('赔偿金','损坏赔偿')` 兼容
@@ -3059,3 +3068,72 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ 后端 `dotnet build` 0 error（11 历史无关警告）；前端 `node --check` + wxml 平衡（care_order_list view 36/36 / care_recept_form view 105/105）+ wxss 括号平衡全过
 - 🚧 **待用户**：① 重编小程序（care_order_list 4 文件 + care_recept_form + recept_new）② **生产库 `ALTER TABLE [order] ADD pay_with_deposit BIT NOT NULL DEFAULT 0` 再 publish SnowmeetApi**（不先加列 order 查询全挂）③ 验证：养护列表新样式/分页/返回保留页码/时间退款独立行/照片右侧、会员开单显示储值行可勾选（散客不显示）、去结算后 `order.pay_with_deposit=1`
 - ⏳ 下一步：养护储值/卡券实际核销 + 顾客身份验证（用户明确「下一步专门讨论结算/核销」）
+
+### 2026-07-14 — 养护核销全链路（会员身份核验+储值实扣+卡券核销）+ 安全检查默认值持久化修复 + 装备取消功能（三轮迭代）+ 取消弹窗校验 bug 排查中
+
+延续 7-12 续「下一步专门讨论结算/核销」的伏笔。会话四块工作：① 执行既定 plan 落地养护开单「核销/支付前身份核验 + 储值实扣 + 卡券核销」完整闭环；② 修复安全检查字段默认值被无关操作冲掉的 bug；③ 新增装备「取消养护」功能（三轮按用户反馈重做，终态为按钮+modal）；④ 会话末尾用户报「取消养护」modal 里「扫码取板」校验 bug，排查中未闭环。代码在 SnowmeetApi + snowmeet_wechat_mini **本次已 commit+push 到 origin/ai**（SnowmeetApi 至 `2cfecf73` / mini 至 `252a5d69`，`git rev-list --left-right --count HEAD...origin/ai` 双仓验证 0/0），需部署 + 重编才生效。归档见 [`sessions/2026-07-14_care_writeoff_cancel_and_debug.md`](sessions/2026-07-14_care_writeoff_cancel_and_debug.md)。plan：`0-calm-storm.md`（本机 `~/.claude/plans/`，未入库）。
+
+#### 一、养护核销全链路（B1-B4 后端 + F1-F3 前端）
+
+**业务背景**：养护开单结算时若用了储值/卡券等会员权益，此前几乎没有身份约束——0 元单直接生效不核验、储值只落意向不实扣、卡券选了不核销。用户拍板：涉及权益的单必须核验「扫码人=开单流程匹配到的会员本人」才能核销/支付；仅储值/卡券导致的 0 元单需核验（质保/招待 0 元单不需要，照旧立即生效）；同时做储值实扣+卡券核销；微信支付本身即视为核验会员本人（支付码即校验）；支付宝支付需先微信核验身份再支付宝支付，核验参考 `rent_order_detail` 已上线的微信身份核验模式。
+
+- **B1** `CareController.EffectCareOrder` 并入卡券核销：`care.use_card && care.card_id != null` → 创建 `PunchCardUsed` + 扣 `punches`（季卡 `total==null` 跳过）
+- **B2** `OrderController.PlaceCareOrder` 0 元单分叉：新增 `usedBenefit` 判定（`care.use_card` 或 `deposit` 或 `ticket_code`），仅无权益的 0 元单（质保/招待）才立即 `EffectCareOrder`
+- **B3** 新增 `OrderController.WriteoffCareOrder(orderId, sessionKey, sessionType)`：幂等（`task_flow_code!=null` 短路）+ 要求 `order.wechat_unverified` 已核验 + `pay_with_deposit` 时内联消费储值（镜像 `PayWithDeposit`）+ `EffectCareOrder`
+- **B4** `PaymentIdentityController._resolveStatus` 新增 `care_member_required` 状态：`order.type=='养护' && payerType=='wechat' && order.member_id!=null && scannerMemberId!=order.member_id` 时返回，前端据此拦截非本人微信支付
+- **F1** `data.js` 新增 `writeoffCareOrderPromise`
+- **F2** `components/order-payment/`：养护分支——`careWriteoff` 派生；0 元核销/储值全额覆盖时弹微信核验二维码（复用 `rent_order_detail` 的 `_openWechatVerify` 模式）+ 2s 轮询 `GetWechatVerifyStatus` → 核验通过调 `WriteoffCareOrder`；支付宝支付前先微信核验
+- **F3** `pages/order/payment_entry`：`identity.status==='care_member_required'` 时隐藏支付按钮 + 提示
+
+#### 二、安全检查字段默认值持久化修复
+
+**问题**：养护订单详情页安全检查字段有默认值（历史带入），但如果做了无关操作（如补录照片并保存）触发 `loadOrder()` 重载，默认值就消失了。用户要求：填写/修改过的值无论做什么操作都要保留；未填写/修改过的，在点「确认安全」前始终显示默认值。
+
+**修复**：`care_order_detail.js` 增加 `this._uiState.safeCheck = {}` 页面级草稿 map（`onLoad` 初始化）；`_renderCare` 合并逻辑优先取服务端已存值，否则取草稿 map 里的值；`onSafeFieldBlur`/`onSafeMemoBlur` 同步写入草稿 map；`_fetchSafeCheckHistory` 拉到历史默认值时也写入草稿 map（而非只 setData）。任何触发 `loadOrder()` 的操作都不再冲掉尚未提交的草稿。
+
+#### 三、装备「取消养护」功能（三轮迭代，终态见下）
+
+**需求**：养护订单详情页针对每件装备增加「取消」功能，走与「发板」相同的核验流程（扫码取板/验证码/拍照凭证/店长确认）+ 一个填写取消原因的文本框，验证通过后更新 `care_task` 发板任务，`care` 表新增 `is_cancel`（bool）+ `cancel_reason`（string）两字段。
+
+**迭代过程**（均由用户截图/反馈驱动）：
+1. 第一版：取消入口做成「发板」面板内的手动开关，仅在「只剩发板未完成」的终态阶段可见 → 用户反馈「已开始的任务也应该能取消，只要不是全部完成或只剩发板未完成」
+2. 第二版：改为 `care._canCancel` 按任务状态自动派生（不再手动切换），可取消阶段扩大到「进行中」，面板常驻显示 → 用户反馈「取消是少数情况，不应该常驻界面，应该做成按钮点开 modal」
+3. **终态（第三版）**：任务行内小按钮「取消养护」（仅在 `care._canCancel` 时显示）→ 点击弹出 `van-popup` modal，内含取消原因文本框（必填）+ 复用同一套四方式核验面板（全部改为取消语义文案）。原「发板」面板恢复成最简单的正常发板形态（无取消感知），两者视觉互斥（`care._canCancel` 只在非终态阶段为真）
+
+**后端**：`Care.cs` 新增 `is_cancel`（bool，默认 false）+ `cancel_reason`（string?）两字段（**⚠️ 未确认已交付 DDL 给用户，见下方状态**）；`CareController.SetTaskStatus`/`VeriCareFinishCode` 新增 `isCancel`/`cancelReason` 参数，发板任务标记完成时若 `isCancel=true` 则跳过原「养护完成赠券」逻辑，改为 `care.is_cancel=true` + 写 `cancel_reason` + `CoreDataModLog` 留痕
+
+**前端**：`care_order_detail.js` 新增 `cancelModal{show,cidx}` + `_resolveCancelParams(care)`（取消模式下校验原因必填）+ `onOpenCancelModal`/`onCloseCancelModal`/`onCancelReasonBlur`；四个核验入口（`onVeriCodeConfirm`/`onMasterFinish`/`onPickPhotoRead`/`_onScanMessage`）都先调 `_resolveCancelParams` 取 `{isCancel, reason}` 透传给后端接口；wxml 新增 modal（`wx:for` + `wx:if="{{cidx===cancelModal.cidx}}"` 过滤定位单个 care，复用同一套 handler）
+
+#### 四、（未解决）取消 modal「扫码取板」校验 bug
+
+会话末尾用户报告：取消养护 modal 里填了取消原因、点「扫码取板」，仍提示「请填写取消原因」；且二维码需要额外点「生成二维码」才出现（不是点「扫码取板」就自动生成）。
+
+**已尝试的修复**（均已提交，效果未经用户确认）：
+1. `onCancelReasonBlur` 只绑定 `bindblur`，怀疑与「扫码取板」按钮的 `catchtap` 之间存在失焦时序竞争 → wxml 加了 `bindinput`，每次按键实时同步 `_cancelReason`
+2. `onVeriTypeTap` 原逻辑对「已选中的类型」再次点击直接 `return`，导致首次校验失败（原因未填）后 `_veriType` 已被设为「扫码取板」，再次点击不会重试 `_openScan` → 改为已选中「扫码取板」时再次点击会原地重试
+
+用户测试后反馈「界面操作没有任何变化」「生成二维码按钮没有消失」——说明 `_openScan` 内部的 `_resolveCancelParams` 校验仍在失败，根因未定位。**已加临时诊断代码**：`_resolveCancelParams` 失败 toast 改为 `未填[mode=xxx,val="xxx"]` 直接把 `care._cancelMode`/`care._cancelReason` 的运行时值打印在 toast 上（`care_order_detail.js` 内标注 `// TEMP DEBUG`，定位后需要删除），**等待用户下次提供该 toast 内容才能继续排查**。
+
+#### 关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`Controllers/CareController.cs`](../SnowmeetApi/Controllers/CareController.cs) | EffectCareOrder 卡券核销；SetTaskStatus/VeriCareFinishCode 加 isCancel/cancelReason |
+| [`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | PlaceCareOrder 0 元单分叉；新增 WriteoffCareOrder |
+| [`Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | _resolveStatus 加 care_member_required |
+| [`Models/Care/Care.cs`](../SnowmeetApi/Models/Care/Care.cs) | 加 is_cancel + cancel_reason |
+| [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) | writeoffCareOrderPromise；updateCareTaskStatusPromise/veriCareFinishCodePromise 加 isCancel/cancelReason 参数 |
+| [`components/order-payment/`](../snowmeet_wechat_mini/components/order-payment/) | 养护核销/储值/微信核验/支付宝前置核验分支 |
+| [`pages/order/payment_entry.{wxml,wxss}`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml) | care_member_required 拦截支付按钮 |
+| [`pages/admin/care/care_order_detail/`](../snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.js) | 安全检查默认值持久化 + 取消功能三轮迭代 + 临时诊断代码（未删） |
+
+#### 关键发现 / 教训
+
+- **WXML `bindinput`/`bindblur` 与相邻按钮 `catchtap` 之间可能存在时序竞争**：部分设备上失焦事件可能晚于相邻元素的点击事件触发，导致按钮读到的表单值是「点击前一刻」而非「最新输入」的值，同时绑 `bindinput` 实时同步可消除该竞争（本例未验证是否为真根因）
+- **「已选中态再次点击直接 return」的交互模式要小心内部副作用未完成的情况**：本例中「扫码取板」选中态代表的是 UI 高亮，不代表「二维码已成功生成」，两者被合并判断导致校验失败后无法重试
+- **临时诊断 toast 是比 console.log 更快的真机现场排查手段**：小程序场景下用户不方便配合看 console，把变量值直接打在 toast 上让用户截图回传即可定位
+
+**状态（7-14）**
+- ✅ B1-B4/F1-F3 养护核销全链路、安全检查默认值修复、取消功能终态均已提交并推送（SnowmeetApi `2cfecf73` / mini `252a5d69`，origin/ai 同步）
+- 🚧 **待用户**：① **先确认 `is_cancel`/`cancel_reason` 两列 DDL 是否已在生产库执行**（`ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;`），未执行则不能 publish（会让 care 查询全挂）② publish SnowmeetApi ③ 重编小程序 ④ 养护核销全链路端到端验证 ⑤ **取消 modal 校验 bug 需要用户重新编译测试后提供诊断 toast 内容**（格式如 `未填[mode=true,val="赶火车"]`），拿到后继续排查，诊断代码待根因定位后需清理
+- ⏳ 待定：本会话未见明确的 DDL 交付动作，下次会话开工需主动核实这两列是否已存在于生产库
