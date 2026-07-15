@@ -116,6 +116,7 @@ dotnet run
   - 编码 input + 扫码按钮 disabled = `noNeed || noCode`
   - 备注 + 租赁模式按钮 disabled = `noNeed`
   - `noNeed=true` 时整张卡片底色变灰（`item-card--disabled`）；「不需要」按钮选中态用红色（`code-flag-btn--warn`）
+- **搜索租赁物禁选规则**：`rent_product.status` 非空且不等于 `正常` 时，搜索弹窗条目必须浅灰置灰且 radio 禁用；前端只依据后端下发的 `status`，不再猜测其他字段。
   - 切换「无编码」/「不需要」时清空被禁用一侧的 `code`/`name`（`memo` 保留）
 - **套餐内装备模式不一致**：套餐模式按钮组右侧显示橙色 ⚠ icon（`warning-o` `#d97706`），点击 toast「套餐内装备模式不一致」。`_modeMixed` 由 `_refreshRentals` 派生（非 noNeed items 的 `pick_type` 去重 size > 1）。
 - **Rental（套餐）级录入完整性 chip**：基于 `evalRental(rental)` 派生 `_rentalEntered + _rentalStatusLabel`。
@@ -171,9 +172,11 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-06-26）
+## 当前状态（截至 2026-06-28）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
+
+**2026-06-28 补充**：`rent_product.status` 已接入租赁生命周期与搜索弹窗联动；发放写 `租赁中`、归还写 `正常`、非空且非 `正常` 的搜索项浅灰禁选；未归还列表手机号按订单明细同源的 `customerCell` / member MSA `cell` 口径回填。
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
@@ -2794,3 +2797,16 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 **状态(6-27)**
 - ✅ 4 处修复编译/语法通过 + 只读数据验证;回头客分析完成
 - 🚧 **待用户**：① **publish SnowmeetApi**(CloseOrder `paymentFulfilled` + ContinueRental 生效计费,务必随积压一起上,否则 CloseOrder 部署后彻底停关单)；② 重编 `snowmeet_wechat_mini`(小数位 + 招待显示租金)；③ 独立 bug 留待:65621 类「押金全退致 `totalRentUnRefund` 为负、`==0` 关不上」、187 条/¥168 万历史虚账(已决定不动)
+
+### 2026-06-28 — rent_product status 联动 + 搜索弹窗禁选
+
+会话起始 start-work。围绕 `rent_product.status` 做一次最小闭环：后端实体/写回逻辑、前端搜索弹窗禁选置灰、以及未归还列表手机号回填口径统一。代码已完成并通过后端 build 与前端诊断，剩余是数据库补列后的运行验证。详见 [`sessions/2026-06-28_rent_product_status_and_search_disable.md`](sessions/2026-06-28_rent_product_status_and_search_disable.md)。
+
+1. **后端字段与生命周期写回**：`RentProduct` 新增 `status`；`SetRentItemStatus` 在租赁物发放时写 `租赁中`，归还时写 `正常`；配套 SQL 脚本 `2026-06-28_rent_product_add_status.sql` 用来补列，历史数据保持 `NULL`。
+2. **前端搜索弹窗禁选**：`search_product_fuzzy` 按 `status` 派生 `_disabled`，`status` 非空且不为 `正常` 的条目浅灰置灰、radio 禁用，点击和确认都拦截。
+3. **未归还列表手机号回填**：按顾客分组时优先 `customerCell`，再兜底 member MSA `cell`，避免订单明细有手机号而汇总栏为空。
+
+**状态(6-28)**
+- ✅ `rent_product.status` 代码已落地，后端 build 与前端诊断通过
+- ✅ SQL 补列脚本已创建
+- 🚧 **待用户**：执行数据库迁移/补列并重启 SnowmeetApi 后，再真机验证搜索弹窗禁选与状态写回是否生效
