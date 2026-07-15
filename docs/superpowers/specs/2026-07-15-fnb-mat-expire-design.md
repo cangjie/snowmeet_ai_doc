@@ -4,7 +4,7 @@
 
 ## 背景与范围
 
-餐饮业务（fnb）需要食材效期台账：录入食材批次 → 列表按临期紧急度展示 → 到期处置（用完/报废）。企业微信内打开的 H5，部署在 `SnowmeetApi/wwwroot/fd/mat_expire/`（域名 mini.snowmeet.top）。
+餐饮业务（fnb）需要食材效期台账：录入食材批次 → 列表按临期紧急度展示 → 到期处置（用完/报废）。企业微信内打开的 H5，部署在 `SnowmeetApi/wwwroot/fnb/mat_expire/`（域名 mini.snowmeet.top）。
 
 已拍板的范围决定：
 
@@ -55,7 +55,7 @@
 
 ## 认证链路（企微 OAuth，新开发）
 
-1. 企微内打开 `https://mini.snowmeet.top/fd/mat_expire/index.html`
+1. 企微内打开 `https://mini.snowmeet.top/fnb/mat_expire/index.html`
 2. 页面 JS 检查 localStorage 的 sessionKey；无效 → 302 跳 `open.weixin.qq.com/connect/oauth2/authorize?appid={CORP_ID}&redirect_uri={当前页}&response_type=code&scope=snsapi_base&agentid=1000009#wechat_redirect`
 3. 回跳带 `?code=` → 调 `Fnb/OAuthLogin?code=` → 后端拿餐饮应用 access_token（复用 `FnbWeComController.GetToken`）调 `cgi-bin/auth/getuserinfo` 换 UserId
 4. 后端写 `mini_session`（新 `session_type='wecom_userid'`，UserId 存 `wechat_openid` 列——列名复用有 alipay 先例），发随机 sessionKey，H5 存 localStorage
@@ -92,7 +92,7 @@ EF：`Models/Fnb/FnbMaterialBatch.cs` + DbSet；**所有「查实体→改→存
 
 ## 部署
 
-- 前端：`wwwroot/fd/mat_expire/{index.html, new.html, mat.css, mat.js}` 随 SnowmeetApi publish
+- 前端：`wwwroot/fnb/mat_expire/{index.html, new.html, mat.css, mat.js}` 随 SnowmeetApi publish
 - 后端：新 controller + model，无既有查询受影响；**先建表再 publish**
 - 推送（本期外）：后续定时任务扫 `临期+今日+已过期 且未处置` → `FnbWeComController.SendNews` 推 @all，图文 url 指向本 H5
 
