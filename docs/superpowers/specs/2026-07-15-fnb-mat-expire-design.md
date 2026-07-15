@@ -81,15 +81,20 @@
 | `DisposeBatch(id, action, sessionKey)` | GET | action=用完\|报废 → dispose_status/userid/date；幂等（已处置返当前状态） |
 | `DeleteBatch(id, sessionKey)` | GET | valid=0 软删 |
 | `GenBatchNo(sessionKey)` | GET | 发号 `B{yyMMdd}-{当日已发数+1，2位}`（仅参考号，不保证并发唯一） |
-| `PushExpireAlert(sessionKey)` | GET | 扫 `未处置 且 状态∈{临期,今日,已过期}` 批次 → 组图文（url 指向本 H5）→ `FnbWeComController.SendNews` 推 @all → 每批次写一行 `fnb_material_alert_log`。**当天已提醒过的批次跳过**（按 alert_log 当天去重）；无可提醒批次时不发、返回 0。本期手动触发（swagger/curl/H5 后续可加按钮），未来 crontab 定时 curl 同一接口 |
+| `UploadPhoto(POST file, sessionKey)` | POST | 现场照片薄上传（存盘+UploadFile 落库照抄 `UploadFileWithThumb`，鉴权改 wecom 会话；staff_id=null、owner=UserId、purpose=食材批次） |
+| `GetImages(ids, sessionKey)` | GET | 按 id 批量查照片路径（编辑模式回显 image_ids 用） |
+| `PushExpireAlert(sessionKey, touser?)` | GET | 扫 `未处置 且 状态∈{临期,今日,已过期}` 批次 → 组图文（url 指向本 H5）→ `FnbWeComController.SendNews` → 每批次写一行 `fnb_material_alert_log`。**当天已成功提醒过的批次跳过**（按 alert_log 去重）；无可提醒批次不发、返 count:0。**接收人 = touser 参数（联调覆盖用）→ 否则读配置文件 → 否则 @all**。本期手动触发，未来 crontab 定时 curl 同一接口 |
 
-照片上传：复用现有 `UploadFile` 接口链路；若其鉴权与 wecom session 不兼容，则在 FnbMaterialController 内加一个转发上传的薄接口（实施时定，二选一）。
+**提醒接收人配置**（2026-07-15 用户拍板：配置文件，不建表不做界面）：app 目录纯文本文件 `config.fnbAlertReceivers`（镜像 `config.sqlServer` 模式：服务器本地、gitignored、publish 不覆盖），内容一行 `@all` 或 `userid1|userid2|…`（企微 touser 格式）；每次推送现读（免重启生效），文件缺失/空默认 `@all`。
+
+照片上传：原 `UploadFileWithThumb` 走 staff 鉴权与 wecom 会话不兼容（实施时已确认），采用 `UploadPhoto` 薄接口方案（见上表）。
 
 EF：`Models/Fnb/FnbMaterialBatch.cs` + `Models/Fnb/FnbMaterialAlertLog.cs` + 两个 DbSet；**所有「查实体→改→存」显式 `Entry().State=Modified`**（全局 NoTracking 坑）。
 
 ## 错误处理 / 边界
 
 - OAuth code 过期/重复使用 → 返 code=1，前端重走授权（code 一次性，回跳后立即换 session 并 `history.replaceState` 清掉 URL 里的 code）
+- 非企微环境（UA 不含 wxwork）不做 OAuth 重定向（会死循环），整页显示「请在企业微信中打开」提示；**联调后门**：URL 带 `?sessionKey=xxx` 直接写入 localStorage，桌面浏览器可跳过 OAuth 调试
 - 到期日手改后，再改生产日期/保质期不回写到期日（手改优先，页面上「自动」徽标消失）
 - 删除 = 软删，列表不显示，不做恢复入口（DB 可查回）
 - 派生「今天」以**服务器日期**为准（GetBatches 返回），避免手机时区/改时间导致状态错乱
