@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>租赁开单</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-container": "#586377",
+                        "tertiary-container": "#21abef",
+                        "surface-container": "#e5eeff",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#cbe6ff",
+                        "outline-variant": "#bfc7d1",
+                        "secondary": "#545f73",
+                        "error": "#ba1a1a",
+                        "on-surface": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#004c6e",
+                        "on-error-container": "#93000a",
+                        "surface": "#f8f9ff",
+                        "on-surface-variant": "#3f4850",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-container": "#d5e0f8",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#004b71",
+                        "surface-tint": "#006495",
+                        "primary": "#006495",
+                        "on-primary-fixed": "#001e30",
+                        "on-primary-container": "#003b5b",
+                        "tertiary": "#006591",
+                        "secondary-fixed-dim": "#bcc7de",
+                        "primary-fixed-dim": "#8fcdff",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-fixed": "#001e2f",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "inverse-surface": "#213145",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#6f7881",
+                        "on-secondary-fixed": "#111c2d",
+                        "secondary-fixed": "#d8e3fb",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#8fcdff",
+                        "background": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "tertiary-fixed-dim": "#89ceff",
+                        "tertiary-fixed": "#c9e6ff",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#4aa9e9",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-container": "#003c58"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "lg": "40px",
+                        "md": "24px",
+                        "margin": "32px",
+                        "sm": "12px",
+                        "gutter": "24px",
+                        "base": "8px",
+                        "xs": "4px",
+                        "xl": "64px"
+                    },
+                    fontFamily: {
+                        "body-sm": ["Lexend"],
+                        "body-md": ["Lexend"],
+                        "label-lg": ["Lexend"],
+                        "headline-sm": ["Lexend"],
+                        "headline-lg": ["Lexend"],
+                        "label-sm": ["Lexend"],
+                        "label-md": ["Lexend"],
+                        "headline-md": ["Lexend"],
+                        "body-lg": ["Lexend"]
+                    },
+                    fontSize: {
+                        "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "label-lg": ["14px", { lineHeight: "1", fontWeight: "600" }],
+                        "headline-sm": ["20px", { lineHeight: "1.4", fontWeight: "600" }],
+                        "headline-lg": ["32px", { lineHeight: "1.2", fontWeight: "700" }],
+                        "label-sm": ["10px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "label-md": ["12px", { lineHeight: "1", fontWeight: "600" }],
+                        "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
+                        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Lexend', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-[200px] pt-14 flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded-full active:opacity-70 flex items-center justify-center" style="">
+<span class="material-symbols-outlined" style='font-variation-settings: "FILL" 0;'>menu</span>
+</button>
+<h1 class="font-lexend text-base font-semibold text-sky-500 dark:text-sky-400" style="">租赁开单</h1>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant flex-shrink-0">
+<img alt="店员头像" class="w-full h-full object-cover" data-alt="professional portrait of young male staff member in well-lit studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACz6kFXJ9luQzn_bm6bj2tjQ8sv9gAYfR-zxBsU3m6HaxAJvKED-y0KcIvZWU-vIL3F0kJDnwzKz7zcC2H9iSabs8cGTIzREJDY_IDQOTbAU1h-lL3hdDfAxOipPgyW522Hx5JsTIoq6ffgUu14UxTH4BBeug-chLC7FJ9u4USesQAt-y6giFjtqjr-I_PIGOKTxOUhto2uFf_rYw2v05PsazZpYQcDzoJvHDuipCtsWhevJ8m6wfpEQUkOZO2x9jZQ3hrCzMAz00" style=""/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 px-4 py-4 flex flex-col gap-md">
+<!-- Member Info Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg flex items-center justify-between p-2">
+<div class="flex items-center gap-3 w-full">
+<!-- Left: Avatar -->
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style='font-variation-settings: "FILL" 1;'>person</span>
+</div>
+<!-- Center: Main Info Area -->
+<div class="flex-1 flex flex-col justify-center min-w-0">
+<div class="flex items-center gap-3">
+<span class="font-headline-sm text-on-surface truncate">张三</span>
+<span class="font-body-sm text-on-surface-variant truncate">138****8888</span>
+</div>
+<div class="flex items-center justify-between mt-0.5">
+<div class="flex items-center gap-1.5">
+<span class="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary font-label-sm text-[9px]">零</span>
+<span class="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary font-label-sm text-[9px]">租</span>
+<span class="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary font-label-sm text-[9px]">养</span>
+<span class="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary font-label-sm text-[9px]">餐</span>
+</div>
+<button class="text-primary font-label-md flex items-center">
+    查看详情 <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Segmented Control -->
+<div class="bg-surface-variant p-1 rounded-lg flex">
+<button class="flex-1 py-2 text-center rounded-md font-label-md bg-surface-container-lowest text-primary shadow-sm" style="">
+                按时间
+            </button>
+<button class="flex-1 py-2 text-center rounded-md font-label-md text-on-surface-variant hover:text-on-surface transition-colors" style="">
+                按品种
+            </button>
+</div>
+<!-- Placeholder for Current Selections -->
+</main>
+<!-- Bottom Fixed Area (Checkout/Cost details) -->
+<div class="fixed bottom-[64px] left-0 w-full flex flex-col z-40">
+<div class="bg-surface-container-lowest border-t border-outline-variant px-4 py-2 flex justify-between gap-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<!-- Add Package -->
+<button class="flex-1 bg-surface-variant text-primary flex flex-col items-center justify-center p-2 rounded-lg gap-1 active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[20px]" style="">inventory_2</span>
+<span class="font-label-sm text-[10px]" style="">添加套餐</span>
+</button>
+<!-- Scan Barcode -->
+<button class="flex-1 bg-surface-variant text-primary flex flex-col items-center justify-center p-2 rounded-lg gap-1 active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[20px]" style="">qr_code_scanner</span>
+<span class="font-label-sm text-[10px]" style="">扫描条码</span>
+</button>
+<!-- Search Item -->
+<button class="flex-1 bg-surface-variant text-primary flex flex-col items-center justify-center p-2 rounded-lg gap-1 active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[20px]" style="">search</span>
+<span class="font-label-sm text-[10px]" style="">搜索单品</span>
+</button>
+<!-- No Barcode Item -->
+<button class="flex-1 bg-surface-variant text-primary flex flex-col items-center justify-center p-2 rounded-lg gap-1 active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[20px]" style="">category</span>
+<span class="font-label-sm text-[10px]" style="">无码物品</span>
+</button>
+</div>
+<div class="bg-white border-t border-slate-100 px-4 py-3 flex items-center justify-between">
+<div class="flex flex-col">
+<!-- Primary Price Row -->
+<div class="flex items-baseline gap-2 mb-1">
+<span class="text-[#6b7280] text-sm">押金总计</span>
+<span class="text-[#006495] text-3xl font-bold font-lexend">¥1,500</span>
+</div>
+<!-- Secondary Info Row -->
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="text-[#ef4444] text-xs font-medium">押金减免 -¥500</span>
+<span class="text-[#374151] text-xs font-medium">租金 ¥349.00</span>
+</div>
+</div>
+<!-- Checkout Button -->
+<button class="bg-[#006495] text-white flex items-center gap-2 px-8 py-4 rounded-full shadow-lg active:scale-95 transition-transform">
+<span class="text-lg font-bold">去结算</span>
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-2 bg-white/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 transition-all duration-200">
+<!-- Tab 1: 工作台 -->
+<button class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1 hover:text-sky-600 dark:hover:text-sky-300 transition-all duration-200 active:scale-95 group" style="">
+<span class="material-symbols-outlined mb-1 transition-colors" style="">dashboard</span>
+<span class="font-lexend text-[10px] font-medium transition-colors" style="">工作台</span>
+</button>
+<!-- Tab 2: 租赁 (Active) -->
+<button class="flex flex-col items-center justify-center bg-sky-50 dark:bg-sky-900/20 text-sky-500 dark:text-sky-300 rounded-lg px-3 py-1 hover:text-sky-600 dark:hover:text-sky-300 transition-all duration-200 active:scale-95" style="">
+<span class="material-symbols-outlined mb-1" style='font-variation-settings: "FILL" 1;'>shopping_cart</span>
+<span class="font-lexend text-[10px] font-medium" style="">租赁</span>
+</button>
+<!-- Tab 3: 库存 -->
+<button class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1 hover:text-sky-600 dark:hover:text-sky-300 transition-all duration-200 active:scale-95 group" style="">
+<span class="material-symbols-outlined mb-1 transition-colors" style="">inventory_2</span>
+<span class="font-lexend text-[10px] font-medium transition-colors" style="">库存</span>
+</button>
+<!-- Tab 4: 个人中心 -->
+<button class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1 hover:text-sky-600 dark:hover:text-sky-300 transition-all duration-200 active:scale-95 group" style="">
+<span class="material-symbols-outlined mb-1 transition-colors" style="">person</span>
+<span class="font-lexend text-[10px] font-medium transition-colors" style="">个人中心</span>
+</button>
+</nav>
+</body></html>

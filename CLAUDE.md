@@ -172,7 +172,11 @@ dotnet run
 
 ---
 
+<<<<<<< HEAD
 ## 当前状态（截至 2026-06-28）
+=======
+## 当前状态（截至 2026-07-15）
+>>>>>>> 218e44e122a5399bef87f9bb0661b84ea929e041
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -183,9 +187,23 @@ dotnet run
 - 页面（未归还租赁物列表，2026-06-22 重做）：`pages/admin/rent/unreturned`（品类 section→顾客分组→租赁物卡片 + 模糊搜索 + 汇总；点卡片带 `rentItemId` 深链跳订单明细并展开目标 rental/折叠其余）
 - 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`；showcase「招待」格可点设/撤招待，走 `Rent/SetRentalEntertainByStaff`；深链 `rentItemId` 进入只展开目标 rental）
 - 组件：`components/reception/rent_recept_form`（购物车 + 详情卡片 + 日历 modal + 编码搜索 modal）、`components/reception/search_product_fuzzy`（编码搜索弹窗，可复用）、`components/order-summary-card` + `components/order-payment`（结算页订单卡 + 二维码组件）
+- 组件（7-9 新增）：`components/reception/ticket_card_selector`（养护开单券/卡双 tab 选择弹层：券列 code/名称/到期日/create_memo，卡列次卡已用/剩余、季卡上次使用时间（按卡名含「季卡」识别），券卡全局互斥单选；事件契约 `Event` = {action, selectedTicket, selectedCard}，配套接口 `MemberAdmin/GetMemberCardsByStaff` staff≥100）
+- 页面（养护订单列表新版，7-12 重做）：`pages/admin/care/care_order_list`（仿租赁 new_rent_list 的 Alpine 样式 + date-range-picker + list-pager 分页；查询条件同旧版；复用通用分页接口 `Order/GetOrdersByStaffPaged`；标签列/照片右侧竖排/时间退款独立行）
+- 页面（养护订单详情新版，7-12 全量迁移）：`pages/admin/care/care_order_detail`（非雪季琥珀横幅 + 任务执行引导计时 + 发板核销四方式含扫码 WebSocket + 装备编辑 + 品牌新增；care_order_list/member_detail/标签二维码三入口已切此页）
+- 页面（养护订单详情补充，7-13）：`pages/admin/care/care_order_detail` 已加订单级备注编辑保存 + 订单级退款弹窗（金额+备注，确认后按可退款支付记录自动分摊退款）
+- 养护开单储值意向（7-12）：`components/reception/care_recept_form` 结算条上方显示会员储值 + 「使用储值支付」复选框（会员且有储值时），`checkout` 带 `useDeposit`；`recept_new` 透传给 `Order/PlaceCareOrder?useDeposit=` → 落 `order.pay_with_deposit`（订单级 bool，本期仅记录意向）
+- 养护核销全链路（7-14，B1-B4/F1-F3 全部执行，plan `0-calm-storm.md`）：`CareController.EffectCareOrder` 并入卡券核销（ticket used + PunchCardUsed 扣次数，季卡跳过）；`OrderController.PlaceCareOrder` 0 元单按是否用了权益（储值/卡/券）分叉，仅质保招待零权益 0 元单立即生效；新增 `OrderController.WriteoffCareOrder`（幂等+核验门槛+内联储值消费+EffectCareOrder）；`PaymentIdentityController._resolveStatus` 新增 `care_member_required` 状态拦截养护单微信支付非本人；前端 `components/order-payment` 养护分支（核销/储值全覆盖弹微信核验码轮询、支付宝前先微信核验）+ `payment_entry` 按状态隐藏支付按钮
+- 养护详情页安全检查默认值持久化修复（7-14）：`care_order_detail.js` 加 `this._uiState.safeCheck` 页面级草稿 map，`_renderCare` 合并优先服务端值/否则草稿值，任何触发 `loadOrder()` 的无关操作不再冲掉未提交默认值
+- 养护详情页装备「取消养护」功能（7-14，三轮迭代后终态）：任务行内小按钮（仅 `care._canCancel` 时显示，按任务状态自动派生非全部完成也非仅剩发板）→ 点击弹 `van-popup` modal（取消原因必填文本框 + 复用四方式核验面板，全部改取消语义文案）；`Care.cs` 新增 `is_cancel`(bool)+`cancel_reason`(string?) 两字段，`SetTaskStatus`/`VeriCareFinishCode` 加 `isCancel`/`cancelReason` 参数，取消时跳过发板赠券改为置位+CoreDataModLog 留痕。**⚠️ DDL 未确认交付给用户，见已知遗留**
+- 🐛 **未解决（7-14）**：养护详情页「取消养护」modal 里填了取消原因、点「扫码取板」仍提示未填 + 二维码不自动生成，两轮修复（wxml 加 `bindinput` 实时同步 + `onVeriTypeTap` 允许已选中态重试）后用户反馈仍无变化，已在 `care_order_detail.js` `_resolveCancelParams` 加临时诊断 toast（`未填[mode=xxx,val=xxx]`，标注 `// TEMP DEBUG`），等用户提供诊断输出继续排查，见已知遗留
+- 养护收尾修复批次（7-15，用户已分批 commit+push，SnowmeetApi 至 `3d0b27b` / mini 至 `5e3f6f0e`）：退款弹窗备注默认取消 care 的 `cancel_reason`；`Refund` 草稿清理加 `type==租赁` 守卫（修养护单 500 NRE）；可退金额 0 退款按钮 disable；`order-payment` 对 `paying_amount==0 && dealed==1` 已生效单直接置 paid（修 0 元招待单「确认生效」必失败）；`recept_new` 0 元未用权益单去结算确认 modal；`EffectCareOrder` 卡核销删 member 比对守卫 + `PlaceCareOrder` 卡不属会员清引用（修 71884 季卡静默不核销）；券16 减免改保底语义（`discount < ticketDiscount` 才补齐，不冲手动加大的减免）；详情页安检备注 1/3 高 + 无照片时安检面板内补传 + 卡券 icon/toast + 删历史数据 toast；列表「券」标签
+- **食材过期提醒 fnb mat_expire（7-15 全量实施，SnowmeetApi `3d0b27b` 已 push）**：企业微信 H5（OAuth snsapi_base + agentid 1000009 换 UserId → `mini_session` 新 `session_type='wecom_userid'`，UserId 存 wechat_openid 列）；后端 `Controllers/Fnb/FnbMaterialController.cs`（OAuthLogin/GetBatches/SaveBatch/DisposeBatch/DeleteBatch/GenBatchNo/UploadPhoto/GetImages/PushExpireAlert）+ `Models/Fnb/` 两模型 + DbSet；前端 `wwwroot/fnb/mat_expire/{index,new}.html + mat.{css,js}`（原生静态 H5，`?sessionKey=` 调试后门，code=2 静默重走 OAuth）；提醒接收人配置文件 `config.fnbAlertReceivers`（镜像 config.sqlServer 模式，缺省 @all，已 gitignore）；状态派生唯一口径（已处理→已过期→今日→临期→正常，today 以服务器为准）；两张表 `fnb_material_batch`/`fnb_material_alert_log` 用户已建（DDL `sql/2026-07-15_fnb_material_batch.sql`）；spec `docs/superpowers/specs/2026-07-15-fnb-mat-expire-design.md`
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
+- 会员管理：`pages/admin/member/`（member_list / member_detail / member_register / member_tag_admin）+ 后端 `Controllers/MemberAdminController.cs`（title_level≥200：搜索/详情/标签/充值/发卡/发券/注册/资料修改 + 7-2 会员合并 `MergeMemberByStaff` → `MemberController.MergeMember`，**7-4 起合并仅系统管理员 title_level≥300**；列表排除 `merge_id` 非空的已合并会员；充值四字段 类型/七色米号/备注/金额 → `deposit_balance.biz_type/biz_id/memo`；注册页开卡礼包 券/租赁次卡/养护次卡 逐项发放）
+- 储值账户管理（7-4 新增）：`pages/admin/deposit/deposit_account_{list,detail}`（手机号搜会员→名下账户 总储值/已消费/可用→流水：充值行带类型/七色米号/备注、消费行带订单号）+ 后端 `MemberAdmin/SearchDepositAccountsByStaff` + `GetDepositAccountDetailByStaff`；admin「储值管理」区块入口「【储值】会员储值账户」
+- 开单页会员条（7-4）：`components/reception/reception_member_bar` 显示会员资产 chip（储值/次卡剩余/龙珠，有则显示），走 `MemberAdmin/GetMemberAssetsByStaff`（**title_level≥100** 店员可读）；「查看详情」已切新版 `member_detail`
 - 雪票财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
   - `add_skipass_columns_to_fy_xlsx.py`（`--xlsx --shop`）— 给「年度雪票」末尾追加 4 列雪票级字段（名称/支付价格/结算价格/取票时间）
   - `add_skipass_detail_merged_sheet.py`（`--xlsx --shop`）— 加「年度雪票明细」合并 sheet（年度雪票 × ski_pass 一对多，多明细整行浅蓝 `EAF2FB`）
@@ -194,10 +212,35 @@ dotnet run
 - 养护财年扩展脚本（`snowmeet_ai_doc/`，参数化跨店复用）：
   - `add_care_detail_merged_sheet.py`（`--xlsx --shop [--start --end]`）— 加「年度养护明细」合并 sheet（年度养护 × care 一对多 + 7 staff 列：安全检查人/修刃人/机打蜡人/热打蜡人/刮蜡人/维修人/发板人，多 care 整行浅蓝 `EAF2FB`，三店跑通零差异）
 
+- **养护开单迁移新流程（2026-07-04 代码完成，待 DevTools/真机验证 + 部署）**：
+  - 前端：`components/reception/care_recept_form/`（镜像 rent_recept_form 接口 syncCare/checkout；业务字段全量对齐旧版 care_recept：装备/品牌(可新增)/照片/票券 12 机打蜡·16 折扣·17/18 非雪季/修刃角度/热蜡刮蜡/立等/维修项+附加费/减免/质保/招待；估价逻辑同旧 getProduct，真理之源是服务端重算）；`recept_new` 养护分支（saveCareReceptOrder→`Care/SaveCareRecept`、checkout→`Order/PlaceCareOrder`、**找回中断单从 order.type 反推 bizType**、save 回填时按下标合并本地 careImages/ticket 展示对象）；settle「查看订单」按 order.type 路由；order-summary-card 加 care 分支
+  - 新版养护详情页 `pages/admin/care/care_order_detail/`（Alpine：非雪季琥珀横幅+订单信息+支付四格+装备卡：服务 chips/照片/任务时间线/安检录入确认/寄存快递/发板核销四方式/装备编辑/打印标签复用 print-care）。**7-12 已全量迁移旧页能力并切入口**（扫码取板 WebSocket + 拍照凭证 + 装备基础信息编辑 + 品牌新增；care_order_list/member_detail/标签二维码三入口切新页；任务执行引导：当前任务高亮大按钮 + 进行中 30s 计时 + 结束显示实际耗时 + 耗时<60s 二次确认）。旧页 order_detail 保留作历史标签二维码兼容入口
+  - 后端（已编译 0 错误，随下次部署生效）：`CareController.SaveCareRecept`（草稿 order valid=0 + cares valid=0；删除的 care **物理删行**——EffectCareOrder 不过滤 valid；careImages 按 id diff 增删；导航置空防 TrackGraph 异常）、`GetReceptingOrder` 加 include cares(+careImages.image)、`OrderController.PlaceCareOrder`（服务端权威定价照抄旧 PlaceOrder 养护分支 + care.valid=1 + GenerateOrderCode 先于 EffectCareOrder + Discount 记录（ticket_discount 金额已修对）+ 0 元单立即 EffectCareOrder + **summer 单无会员拦截**——EffectCareOrder 非雪季发券 (int)member_id 强转会炸）
+  - 支付触发链路零改动：DealSuccessPaidOrder / EffectUnpaidOrder / PayWithDeposit 均已对 type=='养护' 调 EffectCareOrder
+  - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
+
 **下一步要做的**
+- **mat_expire 部署清单（7-15，代码已全部 push 待部署）**：① publish SnowmeetApi（新 controller/模型/静态页随包走，表已建无部署顺序风险；**同包含 7-15 养护后端修复**：Refund 守卫/季卡核销守卫/PlaceCareOrder 清卡/券16 保底）② **企微后台给应用 1000009 配「网页授权及 JS-SDK 可信域名」= mini.snowmeet.top**（需校验文件放 wwwroot 根）③ 服务器部署目录建 `config.fnbAlertReceivers`（一行 `@all` 或 `userid1|userid2`，不建默认 @all）④ 企微工作台/群放入口 `https://mini.snowmeet.top/fnb/mat_expire/index.html` ⑤ 端到端验证：OAuth 落列表页 → 录入（生成批次号/拍照/推算到期/预警/状态预览）→ 列表筛选/处置/编辑/删除 → 造临期+过期数据调 `PushExpireAlert?touser={自己UserId}`（**先 touser=自己避免打扰全员**）→ 企微收图文点击跳回 H5 → alert_log 落行 → 再调当天去重返 count:0
+- **71884 补 punch_card_used 待用户执行**（SQL 已交付）：`INSERT INTO punch_card_used (card_id, order_id, biz_type, biz_id, payment_id, punch_count, valid, create_date) VALUES (42, 71884, N'养护', 25690, NULL, 1, 1, '2026-07-15 10:23:45');`
+- **带券养护单端到端验证券核销**：EffectCareOrder 置券 used=1 代码正确但无实证样本（近 30 天 3 张选券单全 dealed=0 未生效），下次联调开一单带券单支付/核销后 DB 查 `ticket.used`
+- **重编小程序（7-15 前端批次）**：退款备注默认+canRefund disable+安检面板补传照片+备注框 1/3+卡券 icon/toast+列表券标签+order-payment 0 元已生效单+recept_new 0 元确认 modal（用户已 commit 至 `5e3f6f0e`）
+- 🐛 **取消养护 modal「扫码取板」校验 bug 排查**（7-14 未解决）：需要用户重新编译测试后提供 `care_order_detail.js` `_resolveCancelParams` 临时诊断 toast 的完整内容（格式如 `未填[mode=true,val="赶火车"]`），拿到实际运行时值才能判断是 `_cancelMode`/`_cancelReason` 哪个不对、还是 cidx 定位错了 care；定位后记得删除 `// TEMP DEBUG` 诊断代码
+- ⚠️ **`Care.is_cancel`/`cancel_reason` 两列 DDL 交付状态不明**：7-14 会话未见明确把 `ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;` 交付给用户执行，下次会话开工先确认这两列是否已在生产库存在，**不确认就 publish 会让所有 care 查询挂掉**（同 punch_card/customer_open_date 教训）
+- **养护核销全链路端到端验证**（7-14 代码完成未测）：0 元核销单（卡/券导致）需微信核验本人 → 核销生效；储值全额覆盖单同样先核验再消费储值；微信支付时非会员本人扫码被 `care_member_required` 拦截；支付宝支付养护单先弹微信核验码
+- **新版养护详情页重设计（7-12）验证 + 部署配套**：① 重编小程序（8 文件：care_order_detail 四件套 + care_order_list + member_detail + print_care_label + data.js，纯前端零后端改动，本地未提交）② **公众平台「扫普通链接二维码打开小程序」登记新路径规则** `mapp/admin/care/care_order_detail/care_order_detail`（体验版先填测试链接）——不登记则新打印标签扫码打不开；旧标签仍指旧页不受影响 ③ DevTools 验证：非雪季横幅/计数、任务链（开始文案→计时 30s 跳动→结束耗时→<60s 二次确认→完成态收敛）、装备编辑（品牌/序列号分左右/招待质保 bool/照片增删/新增品牌）、验证码/店长确认、拍照凭证链、安检/寄存/打印回归、列表与会员详情入口 ④ 真机验证：扫码取板全链路（顾客扫 wxoa 码→WS 推送→本人完成/非本人 toast+重新生成）、切后台 socket 清理、相机拍照上传、双账号「强行中止（他人执行中）」、扫新标签二维码定位到对应 care
+- **养护开单端到端验证**（DevTools/真机）：①开单→草稿自动保存（DB care valid=0）②中断找回（列表出现 + cares 还原 + 渲染养护表单）③去结算 PlaceCareOrder（code `*_YH_*`、care.valid=1、双项/单项×立等/次日 定价）④手工收款→care_task 生成序列 ⑤招待/质保 0 元单 place 即生成任务 ⑥非雪季 now/later 任务变体+票券 17/18、散客+summer 被拦截 ⑦新详情页任务开始/结束、安检确认、取板码核销、打印 ⑧**7-8 批次回归**：默认店铺即时可用、传照片成功、反复编辑保存不 500 且 care_image 每照片一行、卡片全程不折叠、历史装备弹窗三路径（有记录点选/手动填/散客不弹）
+- **上传图片 400（wanlonghuaxue）待收口**：两域名是两台服务器（mini=161.189.64.210 / wanlonghuaxue=60.8.110.78），同 sessionKey 在 mini 鉴权成功、在 wanlonghuaxue 400 → 那台部署落后（缺 6-14 `GetStaffBySessionKey` openid 兜底 `bb210a9`）或 config.sqlServer 指向不同库。**2026-07-09 上传/显示域名 3 处已按用户要求回切 snowmeet.wanlonghuaxue.com**（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST）——⚠️ wanlonghuaxue 那台未重新部署对齐前上传会再次 400；另外 7-8~7-9 期间经 mini 域名上传的照片落在 mini 那台磁盘，回切后旧测试照片会 404（联调测试数据可不管）
+- **养护卡券核销链路未做**：选卡已按 0 计价（机打蜡季卡升级另按券12规则加价），但**不扣次数**——真正扣 `punches` + 写 `punch_card_used` 需要类似租赁 `UseRentalPunchCard` 的养护版（结算/支付环节），待设计。同理券 12 支付成功也未置 used
+- 存量 ~80 张 template 12 的 `valid=0` 券（45 张「买雪票增券」+ 30 余张 create_memo=雪票id）是否批量置 1 待业务确认（2026-07-09 只修了 15506 名下 4 张 daidai 测试券）
+- `api/Ticket/GetMyTickets`（顾客券包）对未使用券的过期过滤 `<=` 疑似写反（只显示已过期券）——已交独立后台会话核查中（2026-07-09 spawn）
+- **23837（尹鼎元，NS_YH_260205_00001）补寄存任务待定**：7-11 给 26 件旧流程非雪季单补插了「寄存或快递」任务，它因无热蜡/刮蜡锚点被跳过（任务链只有安检/维修/发板），要补的话插在维修与发板之间
+- **两笔未支付非雪季单待处理**：order 71528（member 41021，无支付记录）/ 71553（member 32681，仅作废待支付单），各 ¥330、无任务链（未支付 EffectCareOrder 未跑）——联系补支付或作废（联系方式 DB 查 member_social_account，不入文档）
+- 养护开单联调产生的成对孤儿草稿（valid=0 无 code 总额 0，7-11 前后十余对）可清理，清理 SQL 需用户过目后执行
+- 支付宝端 `alipay_snowmeet/payment_entry` 养护明细未同步（微信端 7-11 已加「养护内容」段：装备/项目/券卡/金额）
 - payment_entry 其它订单类型友好展示（餐饮 / 零售 / 押金等当前走最小版，留待后续按业务需要扩展）
 - 第五步剩余：支付宝小程序对接（替换当前 mock）
-- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积））
+- **部署 SnowmeetApi**（积累多次改动未发布，含：8 态状态机、pricePresets include、CloseOrder 修复、订单找回 contact 字段依赖后端、6-21 SaveRentRecept 置空 member/staff + GetReceptingOrder 正序 + Member 三 getter + AliController 物化、6-22 `Rent/SetRentalEntertainByStaff`、**6-27 CloseOrder `paymentFulfilled` 修复**（⚠️不带此修复部署会让 CloseOrder 彻底停关单）+ **ContinueRental 生效计费**（已发放/暂存才计租金，止住 ¥168 万虚账继续累积）、7-2 会员合并（`MergeMember` 扩展龙珠/次卡/优惠券迁移 + `MemberAdmin/MergeMemberByStaff`）、**7-4 会员管理增强**（合并鉴权 300 + MergeMember contact 改造 + 搜索排除已合并/contact + 养护订单手机号搜索 type 限定 + 充值四字段 + GetMemberAssetsByStaff + 储值账户管理两接口，SnowmeetApi 已 commit+push 至 `cea1f3d4`）、7-4 养护三接口（`89dfb60` 已 push）、**7-8 批次（已 push `c84a55b7`）**：`Order.cs` rentalStatus NRE + useCard 守卫、`CareController` 删行 Entry-state + 新接口 `GetMemberCaredEquipments`——⚠️不部署 rentalStatus 修复线上养护开单保存持续 500、**7-9~7-11 批次（已 push 至 `aabc3527`）**：`TicketController.GenerateTicketByAction` 补 `valid=1`+`member_id`、`MemberAdmin/GetMemberCardsByStaff`（bizType 过滤 + equip 绑定 + isSeason）、`PunchCard` 模型 total/punches 可空化（**⚠️ DB 已改列可空且已有季卡数据，不部署此批线上所有 punch_card 查询持续 500**）、`Care/CalcCareCharge` 全量计费 + `ApplyDefaultServices`/`ApplyServiceLinkage`、`Care.card_id/card_name` 映射（DB 列已加）、`PlaceCareOrder` 共用 CalcCharge（含机打蜡季卡按券12规则加价））
+- 重编小程序（7-4 批次已 commit+push 至 `0bd5df79`：member_detail 合并权限/充值四字段、member_register 开卡礼包/储值 modal、reception_member_bar 资产 chip、deposit_account 两新页 + admin 入口）；真机验证：合并按钮仅 300 级可见、注册配礼包逐项发放、充值四字段落 deposit_balance、开单页会员条资产、储值账户列表/流水
 - ✅ 支付二维码状态实时显示（2026-06-08，方案 A）：`order-payment` 四态（等待扫码 / 顾客已扫码 / 顾客支付中 / 已收款，含已取消）轮询刷新 + WS 收尾去重；后端 `OrderPayment.customer_open_date` 列 + `GetPaymentLiveStatus` 接口。**⚠️ 待用户在生产库 `snowmeet_new` 跑 `ALTER TABLE order_payment ADD customer_open_date datetime NULL` 再部署后端**（EF 已 SELECT 该列，不先加列会让所有 order_payment 查询挂掉）
 - ✅ 开单入口手机号匹配会员自动回填姓名/性别（2026-06-08，recept_entry）：待用户重测定性（登录竞态已修；若仍不填看 console.warn 判断是否会员档案本身没名字）
 - 押金/租金修改弹窗「点开自动清空」仅做了新版 reception（rent_recept_form），旧版 recept 同类弹窗未同步（用户可选）
@@ -216,6 +259,13 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`Refund` 类 500 先查 `payment_refund` 是否已有成功行（2026-07-15）**：Refund 的追加草稿清理段原对非租赁单 `(double)order.totalRentUnRefund` 强转 null 抛 NRE——崩溃点在**退款落库 + 网关已退之后**，钱已退、只是响应 500；用户重试会撞「超额退款」（正确提示）。已修：该段加 `order.type == "租赁"` 守卫。教训：新加的订单级清理/统计逻辑若读 `totalRent*` 系 [NotMapped] 字段，先确认业务类型（非租赁单恒 null）
+- **`DealSuccessPaidOrder` 在 `EffectCareOrder` 之前改写 `order.member_id`（2026-07-15，71884 根因）**：支付方≠开单会员时（典型=同一人微信/支付宝双通道物化出两个会员号），支付成功先把订单归属改成付款方会员 → EffectCareOrder 里任何「`order.member_id` vs 开单时会员资产」的比对守卫都静默失败（71884 季卡不核销）。已修：卡核销守卫删 member 比对（卡在开单时已验证归属）+ PlaceCareOrder 卡不属会员时清 `use_card/card_id/card_name` 双保险。今后 EffectCareOrder 内不要再用 order.member_id 做资产归属判断
+- **券固定减免是「保底」不是「覆盖」（2026-07-15）**：`PlaceCareOrder`/`CalcCareCharge` 对券16 原 `care.discount = ticketDiscount` 无条件覆盖，冲掉店员手动加大的减免（229.99→200）。已改 `care.discount < ticketDiscount` 才补齐。新写券减免逻辑一律保底语义
+- **`mini_session.session_type='wecom_userid'` 是第三种第三方身份（2026-07-15）**：企微 UserId 存 `wechat_openid` 列（列名复用，先例 alipay）；`FnbMaterialController._getWecomUserId` 按 session_type+valid+expire 校验，失效统一返 `code=2`（H5 前端识别后清 localStorage 静默重走 OAuth）。企微 OAuth 本机联调必报 60020（调用方 IP 不在企业可信 IP 白名单），不是代码错，服务器 IP 已白名单
+- **`config.fnbAlertReceivers` 配置文件模式（2026-07-15）**：食材提醒接收人，`Util.workingPath`（=Environment.CurrentDirectory）下纯文本、gitignored、publish 不覆盖、每次推送现读免重启；内容一行 `@all` 或 `userid1|userid2`（企微 touser 格式），缺失/空默认 @all。「服务器本地运营配置」都可照抄此模式（源头 config.sqlServer）
+- **`Care.is_cancel`/`cancel_reason` DDL 交付状态不明（2026-07-14）**：本次会话给 `Care.cs` 加了这两个新列，代码已 commit+push，但会话记录里未见明确把 `ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;` 交付给用户执行。下次会话开工先核实生产库是否已有这两列，**不确认就 publish 会让所有 care 查询挂掉**（同 `punch_card`/`customer_open_date` 教训——EF 加字段后所有查询默认 SELECT 该列）
+- **取消养护 modal「扫码取板」校验 bug 未解决（2026-07-14）**：填了取消原因点「扫码取板」仍提示未填、二维码不自动生成。两轮修复（wxml 加 `bindinput` + `onVeriTypeTap` 允许已选中态重试）未见效，`care_order_detail.js` `_resolveCancelParams` 里留有 `// TEMP DEBUG` 临时诊断 toast（把 `care._cancelMode`/`_cancelReason` 运行时值打印出来），下次会话需先问用户要诊断 toast 内容，定位根因后记得删除诊断代码
 - **macOS 上 pyodbc + msodbcsql18**：unixODBC 默认查 `/etc/odbcinst.ini` 但 brew 装的 msodbcsql18 注册在 `/opt/homebrew/etc/odbcinst.ini`。所有 pyodbc 脚本启动前要 `export ODBCSYSINI=/opt/homebrew/etc`（写到 shell rc 或脚本 wrapper 都行）。已在 `snowmeet_ai_doc/skills/export_rent_order/SKILL.md` 文档化
 - **本机(Intel Mac) ODBC 配置异于上条**：上条 `/opt/homebrew/etc` + Driver 18 是给 Apple Silicon 同步机的；Intel Mac（brew 在 `/usr/local`）需 `export ODBCSYSINI=/usr/local/Cellar/unixodbc/2.3.4/etc` + 用 `--conn` 覆盖成 `DRIVER={ODBC Driver 13 for SQL Server}`（脚本 DEFAULT_CONN 写死 Driver 18，本机只装了 13）
 - **数据库里 rental_detail.charge_type 只有'租金'、'超时费'、'赔偿金'三种值**：用户口语的'损坏赔偿'实际是'赔偿金'。新查询写 `IN ('赔偿金','损坏赔偿')` 兼容
@@ -261,9 +311,10 @@ dotnet run
 - **rental_detail.charge_type 三种值**：`租金` / `超时费` / `赔偿金`（中文，注意"赔偿金"非"赔偿"）。按 rental 分组求和
 - **未结算订单虚账**：`rental.settled=0` 的 rental 会持续按天累积 `rental_detail` 应收记录（如雪季初一直没关单的，累积到 189 天 ¥9 万）。做收入报表必须过滤已结算/已关闭，否则虚增
 - **`api/Rent/GetConfirmedRentOrder` (RentController.cs:5544) 的"确认订单"5 条规则**：paidAmount > 0 AND closed=1 AND close_date != null AND !hide AND 不含非微信非支付宝支付（现金/储值/转账等会被排除）；做对账报表时这是参考过滤口径
-- **`punch_card` / `punch_card_used` 表存在但 EF 未接**：DB 有 `punch_card`(36 行, 字段 id/biz_type/card_name/member_id/mi7_code/total/punches，24 养护卡 + 12 租赁卡，2026-03 建) + `punch_card_used`(字段 id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/valid，`id` 均 IDENTITY)。`SnowmeetApi/Models/` 下**无** `PunchCard` / `PunchCardUsed` 模型（grep 0 命中）。当前业务核销「次卡支付」仍走 `order_online.pay_memo='次卡支付'`（6 单）/ `[order].pay_option='次卡支付'` 字符串标记的老路径，新结构化的 punch_card_used 明细表无写入代码。**2026-06-26 已从 rental 反推回补 17 条租赁次卡使用记录**（见开发日志 6-26 + 脚本 `backfill_punch_card_used.py`）：`punch_card_used` 现 17 行、8 张租赁卡 punches 已写回；尚有 13 条（10 无卡 + 3 多卡）留 `punch_card_used_manual_review.csv` 待人工核
+- **`punch_card` / `punch_card_used` —— 2026-06-29/30 已接入 EF**（原裸建无模型）：DB `punch_card`(字段 id/biz_type/card_name/member_id/mi7_code/total/punches) + `punch_card_used`(id/card_id/order_id/biz_type/biz_id/payment_id/punch_count/**valid 是 bit→bool**)。现有 `Models/Rent/PunchCard.cs`(`remaining=total-punches`)/`PunchCardUsed.cs` + DbSet `punchCard`/`punchCardUsed`。写入路径：`RentController.UseRentalPunchCard`(租赁次卡核销→免雪板租金 detail valid=0 + 写 punch_card_used + 扣 punches)、`MemberAdminController.GrantPunchCard`(店员发卡→插 punch_card)。`GetRentalPunchCardInfo` 返 `usedPunches`(该订单已核销次数)。老 `[order].pay_option='次卡支付'` 字符串路径并存、不强行统一。**2026-06-26 backfill**：从 rental 反推回补 17 条 punch_card_used、8 张租赁卡 punches 已写回（脚本 `backfill_punch_card_used.py`）；尚 13 条（10 无卡+3 多卡）留 `punch_card_used_manual_review.csv` 待人工核。订单列表「次卡=包含」筛选 + 「卡」标签认 `punch_card_used`(EXISTS,与老 use_card union)
 - **退押金「应退」基数必须封顶到实收**（2026-06-26 修）：[`rent_order_detail.js`](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js) 应退押金基数原直接用 `order.totalGuarantyAmount`（订单**配置**应收押金），导致**未支付订单**（paidAmount=0）也算出应退押金（order 71796：押金未付却显应退 ¥0.01）。这是 2026-06-20续3 为修已付订单 71766（应退算成 0）改用配置押金的反向副作用。已改 `Math.min(order.totalGuarantyAmount||0, order.paidAmount||0)`：未付→应退 0、已付不变
 - **`van-button` 的 `disabled` 只拦 `bind:click`、拦不住 `bindtap`**（2026-06-26 踩）：`bindtap` 抓组件根节点原始 tap，绕过 vant 内部 disabled 判断 → 按钮显示禁用样式却仍能点（rent_order_detail 退款按钮原 `bindtap="onRefund"`，未全退租时灰显仍可点发起退款）。要靠 disabled 屏蔽点击必须用 `bind:click`，并在 handler 入口加防御性守卫双保险
+- **⚠️ WXML `{{}}` 表达式不支持方法调用（`.indexOf()` / `.includes()` / `.map()` 等）**（2026-06-30 踩，最耗时）：多选高亮写 `filter.list.indexOf(item) >= 0` 在 WXML 里恒为假（引擎不支持方法调用、不报错、静默失败）→ chip 点了数据变了但永不高亮、看着"选不了"。单选 `a === b` 是支持的运算符所以没事。**判断"是否选中"要么用 `===`，要么给每项预置布尔标记**（如把 `['A','B']` 改成 `[{name,on}]`，WXML 绑 `item.on` 纯属性访问一定生效）；选中态用对象数组时，选中集合变化后要重算这些 on 标记（member_list 的 `sysTags`/`presetTags` + member_detail 标签弹层 `presetTagsView` 都是此法）
 - **支付宝小程序 `alipay_snowmeet` 是独立代码库**：微信端修过的同类 bug 要单独同步。2026-06-26 修 [`alipay_snowmeet/pages/payment_entry/index.js`](../alipay_snowmeet/pages/payment_entry/index.js) 总计显示——原绑 `order.total_amount`（租赁订单恒 0），改 `order.paying_amount`（与微信端 2026-06-20续2 同一修复），日租金同样优先用 `pricePresets`
 - **扫码「支付记录不存在」多是过期二维码**（2026-06-26 答疑）：`PaymentIdentity/CheckPayerIdentity` 的 `_resolveStatus` 只认 `order_payment.valid=1`；店员切换支付方式时 `InvalidatePendingOrderPayments` 把旧 OP 置 valid=0 新建一条，顾客扫旧二维码（带旧 paymentId）就报此错（order 71796：42662 微信 valid=0 / 42664 支付宝 valid=1）。符合设计非 bug。排查先 DB 查该 paymentId 的 valid + 同订单当前有效待支付单
 - **同步全靠 SKILL.md（2026-06-19 固化）**：start-work/end-work 的 git pull / commit / push 全写进 `snowmeet_ai_doc/.claude/skills/` 的 SKILL.md（随 git 跨机），不再依赖 `.claude/settings.local.json` 的 hook（gitignored、机器本地、不跨机）；`settings.local.json` 已 `git rm --cached` 转本机不跟踪。详见开发日志 2026-06-19
@@ -277,7 +328,7 @@ dotnet run
 - **`performWebRequest` 非 200 不 reject 的隐蔽 bug 已修**（2026-05-28）：[`util.js:115`](snowmeet_wechat_mini/utils/util.js#L115) 原代码 toast 后 `return`（不 reject），Promise 永远 pending，调用方既不会 then 也不会 catch。任何接口偶发 500/401 时页面就停在加载中。已加 `reject(res.statusCode)`，影响所有 `wx.request` 全局
 - **WeChat `getPhoneNumber` 只能由 button 直接触发**：JS 不能程序触发 `wx.getPhoneNumber()`。意味着「单一支付按钮 + 中途引导手机号」UX 行不通，必须把授权按钮独立出来（或弹窗里）让用户直接 tap `<button open-type="getPhoneNumber">`
 - **`social_account_for_job` 表有指向已删 member 的脏数据**（2026-05-29（续）发现）：id=55 (cell=18501097897, openid=oHdTn5e..., member_id=40649) 历史员工绑定记录，member_id=40649 在 member 表 0 行 / MSA 表 0 行，是孤儿记录。曾让 MemberLogin 强制覆盖 unionid 反查结果到 40649 → 触发孤儿清理把 PaymentIdentity 刚建的真实会员失效。已 5-29（续）改为 `memberId==null` 时才用 jobAccount 兜底；脏数据本身未删，存量不影响新流程
-- **`payment_entry.wxml:51` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（待修）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付。前端按钮屏蔽条件应改为 `payment && payment.status=='支付成功'`（当前 payment 为准），不用 order 聚合。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待，新用户看到「支付成功」无支付按钮
+- **`payment_entry` 屏蔽支付 UI 用聚合 `order.orderStatus` 误判**（2026-06-28 已修：微信 `pages/order/payment_entry` + 支付宝独立库 `alipay_snowmeet/pages/payment_entry` 两端 `renderData` 改为按**当前扫码 paymentId** 选 payment、需付/总计金额用 `payment.amount`、派生 `order.payStatus` 替代 4 处 `orderStatus` 判定）：当一张订单上有多笔 OrderPayment（部分已支付兄弟 payment + 当前待支付 payment，典型=追加场景原押金已付+追加待付）时，`order.orderStatus='支付成功'`（聚合层面对）但当前这笔仍待付 → 顾客扫追加二维码显示「支付成功」+总计¥0、无支付按钮。典型复现：paymentId=42561 / order 71704，两笔 ¥0.01 一付一待。**支付宝端要单独重编**
 - **`Member.alipayPayerId` 计算属性**（2026-05-30 新加，对标 `wechatMiniOpenId`）：getter 遍历 `memberSocialAccounts` 找 type=`alipay_payerid`。所有 alipay 通道反查会员 id ↔ payerid 都用这个 getter，不必再手 grep MSA
 - **`PaymentIdentityController._applyChoice` 也兜底建无 cell 游客会员**（2026-05-30 新加）：之前只 `_applyConfirmDirect` 在 `scannerMemberId==null` 时调 `_loadSessionContext` + `_createNewMember(phone:null, ...)`；现在 `_applyChoice` 顶部加同样的 10 行代码块，让游客拒绝手机号授权后点「正常支付/替人代付」也能完成支付（不再拒绝"扫码方尚未注册会员"）。**这是 2026-05-29 删 MemberLogin stub 后的责任迁移**：所有 `ConfirmPayIdentity` 子 handler（submit_phone / choose / confirm_direct）都需对 scannerMemberId==null 做相同兜底
 - **`OrderController.AlipayPayByOrderPayment` 新增**（2026-05-30 落 Phase A 后端，未启用）：对标 `WechatPayByOrderPayment` 的 alipay 版，3 分支 op 字段补写（首次 / 换人 / `ali_buyer_id` 不匹配）→ 调小程序 appId 的 `alipay.trade.create` → 落库 `ali_trade_no` 返前端给 `my.tradePay({tradeNO})`。代码已落工作区编译通过、未 commit，**等支付宝注册授权下来再继续**
@@ -316,7 +367,27 @@ dotnet run
 - **购物车排序「真理之源」在前端 `_refreshRentals`（2026-06-21续2）**：`byAddedTime`（已存按 id 升序=创建先后、未存按 timeStamp 排同组最下）/ `byCategoryThenTime`（套餐前单品后、组内按时间）；按 `this.data.sort`(`time`/`category`) 选键，覆盖任何后端返回顺序。后端 `GetReceptingOrder` 也已从 `OrderByDescending(id)` 改 `OrderBy(id)` 正序（需 publish，前端已兜底）。`onSortChange` 仅本地重排不 `_emitSync`。
 - **结算按钮 disable = 有 rental 未录入（`every(_rentalEntered)`），无码单品主项 `category_id=NULL` 判「分类未选」最高优先级缺项（2026-06-21续2 答疑）**：曾被误认为「设招待导致」。招待不影响 evalRental。排查结算点不了先看每个 rental 的录入 chip（折叠态未录入 rental 标题变红）。改进点（未做）：点灰结算时 toast 提示具体缺项。
 - **`Member.wechatMiniOpenId`/`wechatUnionId`/`alipayPayerId` getter 原取 `msaList[0]` 遇空占位返空串（2026-06-21续2，已修 `FirstNonEmptyNum` 取第一个非空，需 publish）**：同一会员可能有 num='' 的脏 MSA（建会员先占位、后补真实，排在前）→ getter 返空 → 代付微信 op.open_id 写空、prepay 无 openid 弹不出窗（曾报 op 42639 / member 41125）。getter 跳过空串后，`WechatPayByOrderPayment` 补写分支 `'' != 真实openid` 触发、自动修正 op.open_id。全库此类空 MSA 极少（当时 wechat 1 例 / alipay 1 例）。
+- **staff.title_level 四档语义（2026-07-04 摸清）**：100=店员 / 200=店长（生产仅 HR 一人）/ **300=系统管理员**（[admin.js](../snowmeet_wechat_mini/pages/admin/admin.js) `>200 → isAdmin` 分界；前端先例 [category_tree.js:770](../snowmeet_wechat_mini/pages/admin/rent/settings/category_tree.js) `>=300`；生产 10 人含苍杰）/ 1000=超管（王奕轩 1 人）。高危操作（会员合并等）用 `ADMIN_LEVEL=300`；开单店员侧只读接口可放 100（如 `GetMemberAssetsByStaff`）
+- **`member_social_account` type=contact 是联系方式快照，不参与手机号匹配（2026-07-04 用户拍板）**：contact 由 开单 `currentContactNum` / 会员合并（源会员 cell 挂目标）写入，仅代表"当时留的联系方式"，不代表会员本人。**所有「手机号 → 会员」的搜索/反查必须限定 `type='cell'`**；已核全系统匹配点（会员搜索/订单搜索/登录反查/Bind/Unbind/支付宝物化等）均已限定，其中 [OrderController.cs:231](../SnowmeetApi/Controllers/OrderController.cs) 养护分支原漏 type 限定已补。旧版合并写的 type=cell 存量（msa 169220）已 UPDATE 成 contact
+- **储值充值三附加字段落位（2026-07-04）**：充值类型（储值送装备/二手回收/零售赠送/预定/**其它赠送**——注意历史数据是「其它」不是「其他」）→ `deposit_balance.biz_type`、七色米订单号 → `biz_id`、备注 → `memo`；`DepositController.DepositCharge` 底层签名本就支持，`ChargeMemberDeposit` 透传即可。消费行 `biz_*` 恒空但 366/368 带 `order_id`+`payment_id`（`CreateDepositBalance` 后赋值），显示"消费于订单"走 `b.order.code` 导航
+- **已合并会员（`member.merge_id` 非空）不出现在会员列表**（2026-07-04）：`SearchMembersByStaff` 基查询加 `m.merge_id == null`；合并时 source 不置 valid=0，靠该过滤隐藏（全库 125 个存量被合并会员一并覆盖）
 - **支付宝支付成功物化「以手机号为锚」绑 openid/建会员（2026-06-21续2 按用户规则重写，需 publish）**：`AliController._materializeAlipayMemberOnPaid` —— 取该支付宝顾客手机号（mini_session.cell，**buyer_open_id 存在 `alipay_openid` 列、不是 `alipay_payerid` 列**，反查兼容两列）→ `payment.member_id` 已知用它不改归属、否则按手机号反查会员（命中即用/有号未命中建新会员(手机号)/无号兜底）→ 目标会员若无「valid=1 且非空」alipay_payerid 则绑本次 openid 并停用空占位（已有有效则不动，幂等）。**调用点去掉 `member_id==null` 限制**：本人/代付单也补绑 openid（原来跳过→openid 永绑不上、下次仍靠 session 兜底）。op 42641 本人直付时手机号其实已在 session.cell 获取（aes 解密正常、aes_key.txt 已落地），judged `direct` 不重复弹手机号属预期。
+- **⚠️ EF `Remove()`/`Add()` 沿导航图遍历附加实体（2026-07-08 踩，SaveCareRecept 500 根因）**：AsNoTracking + Include 加载的实体经 fixup 带反向导航（如 `careImage.care`），`_db.X.Remove(entity)` 会把导航指向的实体一并附加进跟踪器，与 `_db.Update(order)` 已跟踪的同 id 实体撞键 → `InvalidOperationException: cannot be tracked`。删除单实体一律用 `_db.Entry(x).State = EntityState.Deleted`（只附加自身、不遍历导航）。与「全局 NoTracking 需 Entry=Modified」是同一族坑
+- **保存回填别用本地对象整体覆盖服务端返回的子行（2026-07-08）**：`saveCareReceptOrder` 原为保住 url/thumb 展示字段整体用本地 careImages 覆盖 → id 永远 0 → 后端每次保存插新行删旧行（数据抖动）+ 引爆上条撞键。正确做法：保留本地展示字段、按业务键（image_id）回填服务端生成的主键。租赁侧同类回填如再遇 id 抖动照此检查
+- **`wx.uploadFile` 的 success 对任何 HTTP 状态码都触发（2026-07-08 修 uploadFilePromise）**：不判 `res.statusCode` 直接 resolve 会把 400 的 ProblemDetails 当上传结果，下游拿 undefined id 连锁假成功（假图片框 + 垃圾 careImage 进 payload）。已改非 2xx reject + fail 回调 reject（原 `JSON.parse(res)` 对对象必抛）。写新的 wx.uploadFile 封装必须判 statusCode
+- **mini.snowmeet.top 与 snowmeet.wanlonghuaxue.com 是两台服务器两份部署（2026-07-08 确认）**：161.189.64.210 vs 60.8.110.78，同一项目各自部署、config.sqlServer 各自服务器本地——同 sessionKey 两台鉴权结果可以不同（wanlonghuaxue 缺 6-14 `bb210a9` 的 GetStaffBySessionKey openid 兜底或指不同库 → 上传 400）。「同一份代码」不等于「同一状态」；上传/显示域名 2026-07-08 起 3 处暂切 mini（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST，搜「2026-07-08 暂时」可全找到），wanlonghuaxue 部署对齐后再定
+- **care_recept_form 装备卡片展开态「一旦展开就记住」（2026-07-08 用户拍板）**：`_refreshCares` 无手动记录时未录入完整默认展开**并写入 expandedMap**——录入中任何字段变化（含录完最后一项）都不自动折叠，唯一收起方式是手动点卡片头部。背景坑：卡片 key 规则 `id>0?'c'+id:'t'+timeStamp`，首次落库 id 0→真实 id 时 key 漂移丢状态；组件 UI 状态按 key 记忆时要么稳定 key、要么把默认态落成显式记录
+- **⚠️ `Ticket` 模型 C# 默认 `valid = 0`，发券代码不显式置 1 券就天生不可见（2026-07-09 根因定位）**：选券链路 `GetMemberTicketsByStaff` 基查询过滤 `valid==1 && is_active==1`。[`GenerateTicketByAction`](../SnowmeetApi/Controllers/TicketController.cs)（买雪票增券 / 扫码领取 / 非雪季养护 17/18 三条在用发券路径）原漏设 `valid` 和 `member_id`——已补 `valid=1, member_id=memberId`（随下次 publish；非雪季 17/18 此前靠 CareController 545/549 事后补 valid=1 侥幸能用）。存量 template 12 共 84 张 valid=0：4 张 `channel='daidai'`（15506 测试券，2026-07-09 DB 已 UPDATE 置 1）+ 45 张「买雪票增券」+ 30 余张 create_memo=雪票id（待业务确认是否批量修）。`channel='daidai'` 在代码库和 git 全历史都搜不到，是外部通道直插的数据
+- **券可见性接口口径不一致（排查「看得到选不了」先查这条）**：`GetMemberTicketsByStaff`（开单选券）和新版 `api/Ticket/GetMyTickets`（顾客券包）都过滤 `valid=1`；但旧 `/core/Ticket/GetTicketsByUser`（admin `ticket_unuse_list`、旧 `ticket_selector` 组件用）只按 `open_id`+`used` 过滤、**不看 valid/is_active** → 同一张券 admin 券列表能看到、开单选券选不出。排查顺序：DB 直查该券 `valid / is_active / used / expire_date / member_id`
+- **养护开单选会员卡语义（2026-07-09 落地，7-10~11 演进）**：`ticket_card_selector` 选卡 → `care.use_card=true` + **`care.card_id/card_name`（7-11 起是 care 表实体列，随草稿持久化、中断找回可还原）**。券/卡全局互斥：选卡清券侧、选券清卡侧、「不使用」双清。选卡计价 0（例外见机打蜡季卡条），核销链路待做
+- **`punch_card` 表语义（2026-07-10 用户改 schema）**：`total/punches` 可空，**`total=NULL 即季卡（不限次数）`**；`equip_type/equip_brand/equip_scale/equip_serial` 四列 = 季卡绑定装备（三个展示字段全非空即「限装备」，serial 暂不参与限制）。C# `PunchCard` 已可空化 + `remaining` 季卡为 null；所有消费方（GetMemberAssetsByStaff 聚合排除季卡 / GetPunchCardPresets 排除季卡 / 租赁核销排除季卡 + punches 空当 0 / member_detail 显示「季卡·不限次数」）已适配。**限装备季卡**：开单选中后装备类型/品牌/长度自动带入并锁定（`card_equip_lock` 前端标量，中断找回锁会松、值保留）
+- **养护计费/服务项全部服务端化（2026-07-10~11 架构定稿）**：`Care/CalcCareCharge` 每次界面操作 POST 全量状态 `{shop, memberId, deriveServices, changedField, care}`（卡信息只在 care 内，跟单件装备走），响应 `{commonCharge, ticketDiscount, care}` **返回整个 care 作为真理之源回填**。三个服务端 helper：`CalcCharge`（定价，PlaceCareOrder 共用；选卡 0、质保招待 0、summer 330、GetProduct+券 fixed_price、券16 减免 30/20；**机打蜡季卡例外：卡名含「机打蜡」的卡升级热蜡/加修刃按券12模板 fixed_price 加价**）、`ApplyDefaultServices`（换券/卡默认项：双项卡→三项、机打蜡卡→机打蜡、券12→机打蜡、券17/18→非雪季；单项/季卡不默认）、`ApplyServiceLinkage`（changedField 事件联动：热蜡↔刮蜡跟随、机打蜡互斥、修刃默认89、summer later/now 联动）。**前端不再有任何定价/默认/联动逻辑**，新规则只改后端
+- **养护草稿保存串行化 + 响应合并原则（2026-07-11 修「订单尚未生成」）**：`recept_new.saveCareReceptOrder` 是串行化入口（在飞时排队合并一笔）——并发保存在 order.id=0 时都走 create 分支**重复建单**（生产实录孤儿草稿成对出现间隔 ~90ms）；响应合并以「响应时刻最新本地状态」为基底只吸收服务端主键（care.id/order_id/careImage.id），**绝不整体覆盖**（晚到旧响应会冲掉新选择）。`_checkoutCare` 不再前置要求 order.id（等串行保存建单后取 id）
+- **旧流程非雪季单没有「寄存或快递」步骤（2026-07-11 数据修复）**：2026-03-07 前的非雪季 care 任务链是普通养护链（无寄存步骤）、`summer` 字段空/乱码。已给 26 件未发板的补插「寄存或快递·未开始」任务（腾位法：care 内 sort≥刮蜡 的行 +1，插热蜡刮蜡之间，memo=非雪季养护）；23837 无锚点跳过。care_task 的 sort 是全局递增分配、但只在 care 内比较次序，腾位不跨 care 冲突
+- **非雪季养护数据速查（2026-07-11 核查）**：券「非雪季赠双项」used=0 圈非雪季在管装备；寄存方式落 `care_task.deal_method`（寄存/快递/万龙寄存柜）+ `store_memo`（快递单号）在 task_name='寄存或快递' 行上；热蜡完成自动把寄存任务置「已开始」（CareController:1043）；发板完成自动发券16（养护完成赠送）。财年 177 件非雪季 care：4 已发板、173 在途（130 已寄存完成）
+- **`CareController.UpdateCare` 对 careImages 按 id diff 物理删（2026-07-12 核实）**：`Care/UpdateCareByStaff` → `UpdateCare` 会把「原有但 posted care.careImages 里没有的 id」`Entry().State=Deleted` 物理删行 → payload 必须带全所有要保留的 careImage（含原 id）。同时 posted careImage 要剥掉 `.image`/`.care` 导航（防 EF 图附加撞键，同 7-8 那族坑）；**既有行保留原对象全部标量**（只改 image_id/care_id），别发扁平化新对象——缺的字段会被模型默认值冲掉（create_date=Now 等）。新详情页 onSafeCheck/onEditSave 已按此处理（`_stripImageNavs` / onEditSave 以 raw 对象为基底）
+- **print-care 组件依赖 care 上的 `customerName/customerCell/shop` 三个前端临时字段**（2026-07-12 补齐）：旧页 showPrintBackDrop 会先塞这三字段再传组件；新详情页 7-4 版漏了 → 打印标签顾客名/电话/店铺空。已加 `_preparePrint(cidx)`（member.title/cell 优先，回退 contact_name/contact_num）。任何新调 print-care 的页面都要先补这三字段
+- **标签二维码切新版养护详情页需公众平台登记（2026-07-12）**：`print_care_label.js` 二维码 URL 已改 `mapp/admin/care/care_order_detail/care_order_detail?orderId=&careId=`，须在「扫普通链接二维码打开小程序」为该前缀登记规则（体验版填测试链接）才生效；**已打印的旧标签仍指旧页 `mapp/admin/care/order_detail`，旧页必须保留**（app.json 注册不可删）。新页 onLoad 已支持 `options.q` 解析 + `careId` 定位展开滚动
 
 ---
 
@@ -2810,3 +2881,320 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - ✅ `rent_product.status` 代码已落地，后端 build 与前端诊断通过
 - ✅ SQL 补列脚本已创建
 - 🚧 **待用户**：执行数据库迁移/补列并重启 SnowmeetApi 后，再真机验证搜索弹窗禁选与状态写回是否生效
+### 2026-06-28 — 订单追加商品界面重组（独立追加页）+ 多笔退款逐笔输入 + payment_entry 多笔 payment 修复
+
+brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链；真机反复反馈连带修了 payment_entry 多笔 payment 误判(微信+支付宝两端)、库存 status、退款多笔逐笔输入等。代码散落 `snowmeet_wechat_mini`/`SnowmeetApi`/`alipay_snowmeet` **本地未提交**,用户按部署节奏处理；end-work 仅 doc 仓。详见 [`sessions/2026-06-28_rent_append_redesign_and_multi_refund.md`](sessions/2026-06-28_rent_append_redesign_and_multi_refund.md) + spec [`docs/superpowers/specs/2026-06-28-rent-append-redesign-design.md`](docs/superpowers/specs/2026-06-28-rent-append-redesign-design.md)。
+
+1. **追加界面重组**：`rent_order_detail` 移除底部常驻栏 → 新增「追加租赁商品」独立卡片区(草稿/待支付/入口/删除/去支付/放弃全部)；新建独立追加页 `pages/admin/rent/rent_append`(内嵌 `rent_recept_form` + 加载草稿 + 套餐/单品/无码 + 实时保存 + 确认追加分流)。旧底部栏「添加套餐」绑 `selectPackage`≠`recept_package` emit 的 `rentalsSelected`,**其实从没跑通**。
+2. **后端追加链**([`RentController.cs`](../SnowmeetApi/Controllers/RentController.cs))：`AppendRental` 放开"分类/套餐都不传"→`AppendBlank`(无分类空白草稿=无码物品) + 加 `rentProductId`(搜索单品带编码,`AppendCategory` 查 `rent_product` 填 barcode/name+noCode=false)；`AppendPackage`/`AppendCategory` 补 `class_name` + 默认立即租赁(pick_type+atOnce+start_date=Now)；`SaveAppendings`/`SaveAppendingRental` 加 `commit` 参数(commit=false 实时保存草稿、保持 appending=true、不提交不生效不建 Guaranty)；`RemoveAppendingRental` 清 Guaranty(valid=0)+重算 `paying_amount`；`EffectAppendingRentals` 索引 bug(`guaranties[i]→[j]`)；`EffectRental` atOnce 立即发放补 `rent_product.status="租赁中"`。
+3. **生效分流**：确认追加 → 应付>0 跳结算页支付后生效 / 应付=0 二次确认后生效；草稿(`appending=true`)可删=放弃、待支付(`appending=false` 未生效)可去支付或删；[`OrderController.Refund`](../SnowmeetApi/Controllers/OrderController.cs) 全退款(`refundAmount>0 && totalRentUnRefund==0`)清未确认草稿(valid=0)。
+4. **payment_entry 多笔 payment 误判修(既知 bug,彻底修)**：订单多笔 OP(原押金已付+追加待付)时,前端用聚合 `orderStatus`/`paying_amount` 误判当前这笔为「支付成功」+总计¥0、无支付按钮。改为按**当前扫码 paymentId** 选这笔、金额用 `payment.amount`、派生 `payStatus` 替代 4 处 `orderStatus` 判定。微信端 [`payment_entry`](../snowmeet_wechat_mini/pages/order/payment_entry.js) + **支付宝端独立库 [`alipay_snowmeet/pages/payment_entry`](../alipay_snowmeet/pages/payment_entry/index.js)** 同步(单独重编)。详情页 `showGoPay` 放宽(有 pendingRentals 也显示去支付)。
+5. **退款多笔逐笔输入**(`onRefund` 重构,纯前端,后端 `Refund` 本就收 refunds 数组)：**排除储值支付**(储值付租金不退押金);单笔直接退/多笔可退之和==应退逐笔全退/多笔可退之和>应退弹**三列表格逐笔输入 modal**(支付方式/可退/实际退款),各笔之和严格==应退才可确认(`remainToAlloc===0`,不用 `abs<0.01` 容差以避 `0.02-0.03=0.00999<0.01` 误判)。
+6. **列表支付方式不折行**(`new_rent_list`)：方式拆独占一行 + 整行宽度 + nowrap。
+
+📌 关键发现/教训：
+- **`SaveAppendings` commit 参数顺序依赖**：旧后端不认 `commit` 会当默认提交(commit=true)→每次编辑提前"确认+生效"。**实时保存必须先部署后端、再重编微信端**。
+- **追加用模式 P(后端 AppendRental 建草稿入库,非前端构造)**：草稿缺开单前端临时字段(class_name/categoryName/chooseCategories),追加页加载时从 `it.category` 兜底补(GetOrder 已 Include rentItems.category)。
+- **草稿阶段不建 Guaranty**(`SyncRentalGuaranty` 用 `if(commit)` 包裹),删草稿只 valid=0;删待支付项才清 Guaranty+重算 paying_amount。
+- **`EffectRental` 是开单+追加三生效点共同出口**(RentController.cs 4914/4816/6606),atOnce 立即发放补库存即三处都覆盖;库存 status 更新原只在手动发放 `SetRentItemStatus`(已发放→租赁中/已归还→正常)。
+- **金额配平判定用 round 到 2 位 `===0`**,别用 `abs(a-b)<0.01` 容差(浮点 `0.02-0.03=0.00999…<0.01` 误判已配平)。
+- **支付宝端 `alipay_snowmeet` 独立代码库**:微信端 payment_entry 同类 bug 必单独同步 + 在支付宝开发者工具单独重编。
+
+**状态(6-28)**
+- ✅ 全部 `node --check`/`dotnet build` 通过;追加链 + 多笔退款 + payment_entry 两端修复 + 不折行完成
+- 🚧 **待用户**：① **publish SnowmeetApi**(追加链全部后端 + 库存 status + Refund 清草稿;⚠️**实时保存 commit 参数必须先部署后端再重编微信端**,否则编辑即提前生效) ② 重编 `snowmeet_wechat_mini`(追加页/详情页/payment_entry/退款 modal/不折行) ③ 重编 `alipay_snowmeet`(payment_entry 支付宝端) ④ 真机验证:追加套餐/单品(带编码)/无码→编辑实时保存→确认分流(支付/二次确认)→生效;待支付去支付/删除;微信+支付宝多笔扫码以当前这笔为准;退款逐笔输入
+- ⏳ 仍开放:含双板套餐 `AppendPackage` noCode 写死 true(应按品类 code 前缀判定)、多品类槽位退化为单品类;扫码条码追加(toast 占位);储值付租金退款 `_refundWithDeposit` 仍单笔(未套多笔分流)
+
+### 2026-06-29 — 租赁订单详情页:次卡(punch_card)消费功能首版(plan 流程,前后端)
+
+退款区加「次卡消费」:会员有租赁次卡时,次卡抵含雪板雪鞋租赁商品租金(一商品一天一次)。**PunchCard/PunchCardUsed 模型 + DbSet 首次接入 EF**(两表早存在、之前裸建无模型);`RentController` 加 `GetRentalPunchCardInfo`(返会员卡+含雪板 rental+本次需扣)、`UseRentalPunchCard`(按 rental_date 升序免雪板租金 detail valid=0 + 写 punch_card_used + 扣 punches)。详见 [`sessions/2026-06-29_punch_card_consumption.md`](sessions/2026-06-29_punch_card_consumption.md)。**首版是「点按钮立即核销」,6-30 大改(见下)**。
+
+### 2026-06-30 — 次卡消费打磨(复选框/微信核验/申请退款核销/卡标签) + 会员管理 v1(plan 流程)
+
+详见 [`sessions/2026-06-30_punch_card_refinements_and_member_management.md`](sessions/2026-06-30_punch_card_refinements_and_member_management.md)。代码 `SnowmeetApi`+`snowmeet_wechat_mini` **本地未提交**。
+
+**A. 次卡消费打磨**(按用户多轮反馈,rent_order_detail 前后端):
+1. 改**复选框**(可选,同储值付租金) + **微信身份核验门槛**(次卡也核验本人,`_openWechatVerify(purpose)` 分流) + **全归还后才可勾**。
+2. **核销移到「申请退款」时**:次卡改**勾选预览**(记 `punchCardSelection{card_id,punch_count,freedRent}` + renderOrder 加回被免雪板租金),真核销在 `onRefund` 链式 `_runWriteoffAndRefund`:UseRentalPunchCard→PayWithDeposit→refund(`_allocateRefund` 贪心、排除储值支付)。叠加:勾储值→加 sumSummary、仅次卡→加 freedRent。
+3. **无应退→按钮变「确认核销」**(`order._pendingWriteoff`)。
+4. **已核销 N 次显示 + 后端 `usedPunches`**(6-29 那次 edit 被消息打断没落,本次补;前端次卡行 wx:if 不再被 cards.length 卡死)。
+5. **储值支付时间 1970 修**:`DepositController.ConsumeDeposit` 漏写 `paid_date`→epoch;补 paid_date + 前端支付明细 fallback create_date(历史不刷库也对)。
+6. **订单查询 次卡=包含 兼容 punch_card_used**:`GetCommonOrders` 次卡过滤 union `EXISTS punch_card_used`(旧 use_card 规则保留)。
+7. **列表「卡」标签**:`Order` 加 `[NotMapped] usePunchCard`,`GetOrdersByStaffPaged` 分页后批量标记;前端 `useCard = usePunchCard || pay_method=='次卡支付'`。
+
+**B. 会员管理 v1**(全新功能,设计稿 `templates/member/`):
+- 后端:新表 `member_tag`(会员标签) + `member_tag_preset`(标签库字典) + 模型/DbSet;新建 `MemberAdminController`(title_level≥200):搜索分页(姓名/手机/参与业务/标签,派生只对当前页)、详情、标签增删、标签库、手机号注册、充值储值(C,depositType 留 A/B 接口)、发次卡(预置卡种)、发券(直绑 member_id)。
+- 前端:`pages/admin/member/` 三页 + 标签弹层 + 三 grant 弹窗 + data.js 11 promise + app.json + admin 入口;标签库 DB 驱动(member_tag_preset)。
+- 关键决策(勘察拍板):储值现状单一「服务储值」(=C,未来 ABC);龙珠=`user_point_balance`;次卡预置卡种;`TicketTemplate`/`Ticket` 模型只映射子集、`GenerateTickets` 不绑 member→发券自建 Ticket 直绑;member 3.2 万→分页。
+
+📌 关键发现/教训:
+- **被打断的 edit 要回查落没落**(6-29 usedPunches 没生效,靠读源码补);关键改动后 grep 确认。
+- **`ConsumeDeposit` 漏 paid_date** 是「储值支付时间 1970」根因;所有储值消费入口统一修。
+- **安全分类器拦 AI 对生产库 DDL**:`member_tag` 用户手动建;授权只在 plan/问句不够,需 in-message 明确或用户自跑。
+- **DB schema 比 C# 模型新(又一例)**:TicketTemplate/Ticket 只映射子集,发券只能用已映射字段;3.2 万会员列表派生只对当前页算,不全表聚合。
+
+**状态(6-30)**
+- ✅ 前后端完成:`dotnet build` 0 error、前端全 `node --check`+wxml 平衡;`member_tag` 已建、查询经真实数据(member 15506 苍杰)验证。
+- 🚧 **待用户**:① 生产库建 `member_tag_preset`(SQL 已给 [`sql/2026-06-30_member_tag_preset.sql`](sql/2026-06-30_member_tag_preset.sql))② **publish SnowmeetApi**(次卡打磨后端 + 会员管理 MemberAdminController/模型/DbSet)③ 重编小程序(次卡复选框/核验/申请退款核销/卡标签 + 会员管理 4 页 + 入口)④ 真机端到端:次卡消费全链路 + 会员搜索/详情/标签/充值/发卡/发券/注册。
+- ⏳ 仍开放:A/B 储值类型(仅留接口);远程预约/绑定账户编辑/充值龙珠(v1 不做);次卡核销撤销。
+
+**续(6-30，第一次 end-work 后按反馈继续，详见 session「续」段)**:①参与业务筛选改**多选**(bizTypes,后端逐个 AND EXISTS);②**⚠️ WXML 不支持 `数组.indexOf()`** 表达式→多选高亮恒失败,改用每项 `on` 布尔标记(`[{name,on}]`),member_detail 标签弹层同 bug 一并修;③新增**标签库维护页** `member_tag_admin`(后端 `GetTagLibraryWithStats`/`MergeTagPreset`/`DeleteTagPreset`(仅0用量可删)/`AddTagPreset`);④**最近订单可点**(recentOrders 加 id,按 type 跳租赁/养护/零售详情)+**分类 tab**(Take 30);⑤**支付成功/确认补全会员姓名性别**(`OrderController.SupplementMemberProfileFromOrder`,只填空,挂 `DealSuccessPaidOrder` 覆盖 notify+EffectUnpaidOrder);⑥**会员详情可改姓名/性别/手机号**(`MemberAdminController.UpdateMemberProfile`,复用 `UpdateMemberInfo`(名/性别差异日志)+`Unbind/BindMemberMainCellNum`(手机号日志),修 UpdateMemberInfo gender 日志 field_name typo)。均 dotnet build 0 error + 前端校验过、本地未提交。publish 时后端多了 6 个方法。
+
+### 2026-07-02 — 会员合并（Member Merge）功能落地（前后端，执行既有 plan）
+
+会话起始 start-work 后，执行 plan `~/.claude/plans/punch-card-calm-wand.md`（会员合并）。会员详情页把「当前会员」合并到另一会员：订单/储值/龙珠/次卡/优惠券全部迁移、当前会员 `is_merge=1` 失效、MSA valid=0、全程 core_data_mod_log。代码在 SnowmeetApi + snowmeet_wechat_mini **本地未提交**，用户按部署节奏处理；**无库表变更**。归档见 [`sessions/2026-07-02_member_merge_feature.md`](sessions/2026-07-02_member_merge_feature.md)。
+
+**后端**
+- [`MemberController.MergeMember`](../SnowmeetApi/Controllers/MemberController.cs) 扩展：原有 订单+储值 迁移后、`SaveChangesAsync` 前补三段同款迁移（共用 traceId，每行 `Entry().State=Modified` 应对全局 NoTracking + 每行 core_data_mod_log field=member_id/prev=source/current=target）：
+  - 龙珠 `user_point_balance`（`_db.point`，无 update_date 列）
+  - 次卡 `punch_card`（`_db.punchCard`，`update_date` 一并更新）
+  - 优惠券 `ticket`（`_db.ticket`；**主键是字符串 `code` 而 `CoreDataModLog.key_value` 是 int** → `key_value=0`、code 记入 `manual_memo`「优惠券迁移 code=XXX」保留追溯）
+- [`MemberAdminController.MergeMemberByStaff`](../SnowmeetApi/Controllers/MemberAdminController.cs) 新增（HttpGet，title_level≥200）：校验 source≠target、两会员存在、source `is_merge!=1`，另加 **target 也不能是已被合并会员** 的守卫（plan 外的合理防御）；调 `new MemberController(_db,_config).MergeMember`
+
+**前端（snowmeet_wechat_mini）**
+- [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 加 `mergeMemberByStaffPromise(sourceId, targetId, sessionKey)` 并导出
+- [`member_detail`](../snowmeet_wechat_mini/pages/admin/member/member_detail.wxml) 资料卡「编辑」右侧加红色「合并」按钮（`head-edit--merge`，van-icon `exchange` + `#ba1a1a`）→ 底部搜索弹层（复用 `.mask/.sheet/.opt` 既有样式；红色警示条说明资产转移+不可撤销；**纯数字输入按手机号搜、否则按姓名搜**，复用 `searchMembersByStaffPromise`，结果排除当前会员自己）→ 点选目标 → `wx.showModal` 红字「确认合并」（4 字上限内）强二次确认 → 调接口 → 成功 `redirectTo` 目标会员详情
+
+**验证**：`dotnet build` 0 error / 12 历史警告；`node --check`（member_detail.js + data.js）通过；wxml 标签平衡（view 111/111 等全对）。
+
+📌 关键发现 / 教训：
+- **`ticket` 表主键是字符串 `code`，`core_data_mod_log.key_value` 是 int**：字符串主键表的差异日志把主键放 `manual_memo`，`key_value` 置 0，模式可复用
+- **`MergeMember` 原有实现只迁 订单+储值**：`GetWholeMemberById` 的 Include（points/tickets）早就存在，但迁移遗漏了这三类资产——合并类功能要按「会员资产清单」逐项过一遍（订单/储值/龙珠/次卡/优惠券/MSA），不能只看现有代码覆盖了什么
+
+**状态（7-2）**
+- ✅ 前后端完成 + 编译/语法验证通过；plan 全部执行完毕
+- 🚧 **待用户**：① publish SnowmeetApi（MergeMember 扩展 + MergeMemberByStaff，随积压一起上）② 重编小程序 ③ 真机验证合并链路 ④ 首单合并后 DB 只读核对（五类资产 member_id 已迁、source merge_id/is_merge、MSA valid=0、mod log 齐全）
+
+### 2026-07-04 — 会员管理增强日：合并权限 300 + contact 联系手机号原则 + 开卡礼包 + 充值四字段 + 储值账户管理系统
+
+会话起始 start-work。围绕会员管理连续落地 6 组功能/修复，跨 `SnowmeetApi` + `snowmeet_wechat_mini` + 生产库一次数据修复。**本场代码已全部 commit+push 到两仓 origin/ai**（SnowmeetApi 至 `cea1f3d4`、mini 至 `0bd5df79`），待 publish + 重编。归档见 [`sessions/2026-07-04_member_perms_contact_deposit_admin.md`](sessions/2026-07-04_member_perms_contact_deposit_admin.md)。
+
+1. **会员合并限系统管理员**：DB 实查 + 代码语义摸清 title_level 四档（100 店员/200 店长/300 系统管理员/1000 超管，详见已知遗留）；后端 `MergeMemberByStaff` 鉴权 `ADMIN_LEVEL=300`；前端合并按钮 `wx:if isAdmin`（`staff.title_level>=300`，沿 category_tree 写法）+ 入口守卫。途中发现本机 mini 落后 origin 33 commits（member 前端在另一台机做的），stash 工具配置后拉齐
+2. **合并 MSA contact 改造**：源会员社交账号不迁移（现状确认）；源 cell 挂目标改 `type=contact` + memo「批量合并用户时添加的联系手机号」，查重扩 cell/contact（[`MemberController.MergeMember`](../SnowmeetApi/Controllers/MemberController.cs)）
+3. **contact 不参与手机号搜索原则 + 存量修复**：13501177897 搜出 15506 的根因 = 7-3 晚旧版合并写的 type=cell（msa 169220）。回滚搜索扩展（只查 cell）+ 补 [OrderController.cs:231](../SnowmeetApi/Controllers/OrderController.cs) 养护分支 type 限定 + 生产库 UPDATE 169220→contact（已执行验证零命中）。原则/排查详见已知遗留
+4. **注册页开卡礼包**（plan 流程，纯前端）：礼包清单模式（券可设张数、次卡按 `GetPunchCardPresets` distinct 卡种分租赁/养护入口）+ 注册成功后串行逐项发放 + done 页 ✓/✗ 结果与补发提示
+5. **充值四字段单弹窗**（类型/七色米订单号/备注/金额）：后端 `ChargeMemberDeposit` 加 chargeType/mi7Code/memo 透传底层 `DepositCharge`（本就支持）；member_detail 充值弹窗 + member_register 初始储值改 modal；**「其他赠送」→「其它赠送」对齐生产历史数据**
+6. **会员列表排除已合并会员**：`SearchMembersByStaff` 加 `merge_id == null`（全库 125 存量覆盖）
+7. **开单页会员条资产 chip**：新接口 `GetMemberAssetsByStaff`（≥100 店员级，返储值/龙珠/次卡剩余聚合数）；`reception_member_bar` 有则显示三 chip；「查看详情」切新版 member_detail（清 CLAUDE.md 旧 TODO）
+8. **储值账户管理系统**（plan 流程）：后端 `SearchDepositAccountsByStaff`（手机号搜、按会员分组分页）+ `GetDepositAccountDetailByStaff`（流水：充值行 biz_type/biz_id/memo、消费行 order.code）；前端 `pages/admin/deposit/deposit_account_{list,detail}` 两新页 + admin「储值管理」入口。DB 预演全通过（89 会员/485 流水/消费行 366/368 带 order_id）
+
+📌 关键发现/教训：title_level 四档、contact 快照原则、DepositCharge 底层早支持三参数、充值类型枚举以生产 `GROUP BY` 历史值为准（其它≠其他）、旧版代码存量数据要随语义变更一起修、本机 Windows pyodbc 用 Driver 17 + CONVERT nvarchar + stdout utf-8、end-work 前先 `git status` 核实（本场代码被随手分批提交推送，非工作区堆积）
+
+**状态（7-4）**
+- ✅ 全部编译/语法/DB 预演通过；两代码仓已 commit+push（SnowmeetApi `cea1f3d4` / mini `0bd5df79`）；生产库 msa 169220 修复已生效
+- 🚧 **待用户**：① publish SnowmeetApi（随积压一起上）② 重编小程序 ③ 真机验证：合并按钮 300 级、注册礼包、充值四字段、会员条资产、储值账户列表/流水
+- ⏳ 待定：100 级店员点开单页「查看详情」进 member_detail 会提示没权限（详情接口 200 级），是否放宽待业务定
+
+### 2026-07-04（续）— 养护开单迁移新开单流程（前后端全量落地）
+
+用户需求原话：「参考小程序过去的养护开单的代码和现在新重构的租赁开单的流程，迁移养护开单。会员、开单流程都遵循租赁开单的流程（公共流程）；养护自身的业务数据结构参考旧版代码。」Plan 模式三路并行探索（旧养护代码 / 新租赁架构 / 后端 Care 模型）后拍板：**功能全量对齐旧版 + 本期新做养护详情页**。归档见 [`sessions/2026-07-04_care_reception_migration.md`](sessions/2026-07-04_care_reception_migration.md)。
+
+1. **后端三接口**（编译 0 错误，未 commit）：
+   - `CareController.SaveCareRecept`（POST，镜像 SaveRentRecept）：草稿 order valid=0 + cares valid=0；增量保存（新增/Modified/**物理删行**）；careImages 按 id diff；member/staff/care.order/tasks/careImages.image 导航全置空防 TrackGraph 异常
+   - `RentController.GetReceptingOrder` 加 `.Include(o.cares).ThenInclude(careImages).ThenInclude(image)` + cares 正序 —— 一个接口租赁/养护两用
+   - `OrderController.PlaceCareOrder`（GET {tempOrderId}，镜像 PlaceRentOrder 守卫 + 旧 PlaceOrder 养护分支定价）：服务端权威重算 common_charge（GetProduct 名称匹配/ticket fixed_price/summer 330/质保招待 0）→ total → member_pick_date（urgent 今/明）→ care.valid=1 → **先 GenerateOrderCode 再 EffectCareOrder**（task_flow_code 依赖 code.Split('_')）→ Discount 记录（**修对了旧代码 ticket_discount 金额误用 discount 的 copy-paste bug**）→ 0 元单立即 EffectCareOrder；**summer 单无会员拦截**（EffectCareOrder 非雪季发券 17/18 处 `(int)member_id` 强转，散客必炸）
+2. **支付触发链路零改动**：`DealSuccessPaidOrder`（微信/支付宝回调）、`EffectUnpaidOrder`（手工收款，内部调 DealSuccessPaidOrder）、`PayWithDeposit` 三条路径都已对 type=='养护' 调 EffectCareOrder —— 迁移前亲自验证过
+3. **前端新组件 `components/reception/care_recept_form/`**：镜像 rent_recept_form 契约（props shop/memberId/cares；events syncCare/checkout），wxss `@import` 租赁表单复用卡片/chip/金额 modal；字段全量对齐旧 care_recept：装备类型/品牌 picker+新增品牌/长度/照片（uploadFilePromise 即传即得 image_id）/票券（12 机打蜡 fixed_price、16 折扣 30/20、17→summer now、18→summer later）/修刃+角度/热蜡（连带刮蜡）/立等/维修项多选+附加费/减免/质保招待/备注；evalCare 对齐旧 getCareWellFormMessage（类型必选、图片或品牌长度必填其一、至少一个业务项）
+4. **recept_new 接线**：maintain 分支渲染 care 表单（删占位）；`saveCareReceptOrder`（type='养护'，剥 ticket/product 对象；**响应按下标合并回本地 careImages/ticket** —— 后端 CareImage 无 url/thumb 字段 round-trip 会丢显示地址）；`_checkoutCare` → PlaceCareOrder → settle → 本地态脱钩；**找回中断单从 `recoveredOrder.type` 反推 bizType**（原来只看 URL/draft，养护草稿会被租赁表单渲染）
+5. **结算链路**：settle paid modal「查看订单」按 order.type 路由（养护→新详情页）；order-summary-card 加「养护内容」分支
+6. **新版养护详情页 `pages/admin/care/care_order_detail/`**（Alpine，app.json 已注册）：订单信息双列 + 支付四格+折叠明细 + 装备卡（服务 chips/照片预览/任务时间线 current 派生/安检录入+确认安全/寄存快递 dealMethod/取板码发送+验证+店长确认/打印复用 print-care）。**扫码取板 + 拍照凭证两种核销留在旧页 order_detail 后续迁移**（页内有文字提示）
+
+📌 关键发现/教训：EffectCareOrder 加载 cares **不过滤 valid**（草稿删除必须物理删行）；csproj 未开 Nullable → 非空 string 字段不触发隐式 Required 校验（equipment=null 草稿可存）；Care 模型 warranty/entertain/use_card 是 **bool**（旧前端 1/0，新前端须发布尔，同 atOnce 教训）；后端字段是 left_angle/right_angle（旧前端 left_angel 拼写错，以后端为准）；Plan agent 撞会话限额返回空结果 → 主 agent 用探索产物自行完成方案设计
+
+**状态（7-4 续）**
+- ✅ 后端三接口 + 前端组件/接线/详情页全部落地；SnowmeetApi 编译 0 错误
+- 🚧 **待用户**：① DevTools/真机按 7 步清单端到端验证（见「下一步要做的」首条）② 两仓 commit（本场业务代码未提交）③ 随积压一起 publish
+- ⏳ 后续迁移：发板扫码核销 + 拍照凭证、装备基础信息编辑（新详情页当前只读，改走旧页）
+
+### 2026-07-08 — 养护开单联调修复日：默认店铺 + 保存守卫 + 两处后端崩溃 + 上传链路 + 历史装备弹窗
+
+会话起始 start-work。接 7-4 养护开单迁移，用户 DevTools/真机实测暴露一串问题逐个修复，外加一个新功能。改动跨 `snowmeet_wechat_mini`（6 文件）+ `SnowmeetApi`（2 文件），**代码仓本地未提交**，用户按部署节奏处理；end-work 仅 push doc 仓。归档见 [`sessions/2026-07-08_care_reception_debug_and_history_equipment.md`](sessions/2026-07-08_care_reception_debug_and_history_equipment.md)。
+
+1. **开单页默认店铺**（[`shop_selector.js`](../snowmeet_wechat_mini/components/shop_selector/shop_selector.js)）：beacon 扫描期间/30s 超时不选店 → 养护按钮灰死。修：`scene='recept'` 开扫前先 `_fallback` 落默认店并 triggerEvent（beacon 命中后覆盖）；兜底链 staff 基地店 → **万龙服务中心**（新常量）→ 列表第一家。其它 7 个用该组件的页面语义不变
+2. **未选装备类型不调 SaveCareRecept**（[`recept_new.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js)）：`saveCareReceptOrder` 开头 `some(c => !c.equipment)` 即跳过（唯一入口全覆盖）；选定类型后下一次 syncCare 整单保存；去结算不受影响（canCheckout 门控）
+3. **`Order.rentalStatus` NRE**（[`Order.cs:376`](../SnowmeetApi/Models/Order/Order.cs)）：`if (rentals == null && rentals.Count <= 0)` 的 `&&` 应为 `||`——SaveCareRecept 防 TrackGraph 置 `order.rentals=null` 后序列化响应即炸（数据已落库、前端见 500）。附带修 rentals 空列表误返「已完成」；`useCard` 补 null 守卫（全文件唯一无守卫无 try/catch 的集合解引用）
+4. **上传 400 排查 + uploadFilePromise 假成功修复**：本地 `UploadFileWithThumb` 无 bug；同 sessionKey 在 mini 鉴权成功、在 wanlonghuaxue 400 → 两台服务器（DNS 两 IP）部署/配置不一致（详见已知遗留）。前端确定 bug：`wx.uploadFile` success 对 400 也触发、resolve 错误体 → 连锁假成功（假图片框 + `image_id:undefined` 垃圾进 payload）。修 [`data.js`](../snowmeet_wechat_mini/utils/data.js) 非 2xx/fail reject；**上传/显示域名 3 处暂切 mini.snowmeet.top**（用户拍板，标「2026-07-08 暂时」）
+5. **SaveCareRecept 500 跟踪撞键**：前端回填 careImage id 恒 0 → 每次保存插新行 + `Remove(oriImage)` 沿导航图把 AsNoTracking 的 Care 拖进跟踪器与 posted Care 撞键。修：后端三处 `Remove()` → `Entry().State=Deleted`（[`CareController.cs`](../SnowmeetApi/Controllers/CareController.cs)）；前端按 image_id 回填服务端 id（保留本地 url/thumb）。测试期重复 care_image 行部署后首次成功保存自动清
+6. **装备卡片录入中永不自动折叠**（两轮，用户拍板终态）：第一轮修 key 漂移（id 0→真实 id 展开记录丢失）；第二轮改「一旦展开写入 expandedMap 记住」，录完最后一项也不收起，唯一收起是手动点头部
+7. **历史装备弹窗（新功能）**：后端新接口 [`Care/GetMemberCaredEquipments`](../SnowmeetApi/Controllers/CareController.cs)（staff≥100，member+equipment 查 valid=1 养护记录，brand+scale 去重按时间倒序）；前端选双板/单板后（会员且有记录才弹）底部弹层：点选带入品牌/长度、下半区可手动选品牌+填长度（新装备）、跳过回页面直填；散客/无记录/查询失败静默不弹
+
+📌 关键发现/教训（详见已知遗留 4 条新增）：EF `Remove()` 沿导航图附加撞键 → 删除用 `Entry().State=Deleted`；保存回填按业务键回填服务端主键、别整体覆盖；`wx.uploadFile` success 必判 statusCode；两域名两台服务器状态可不同；组件 UI 状态 key 漂移。
+
+**状态（7-8）**
+- ✅ 全部 `dotnet build` 0 error / `node --check` / wxml 标签平衡；养护开单链路 DevTools 联调推进到「传照片 + 反复保存」环节
+- 🚧 **待用户**：① publish SnowmeetApi（随积压一起，7-8 的 rentalStatus 修复不上则线上养护保存持续 500）② 重编小程序（7-8 全部前端）+ 公众平台加 mini.snowmeet.top 进 uploadFile 合法域名 ③ wanlonghuaxue 那台重新部署 + 核对 config.sqlServer，再定上传域名是否切回 ④ 养护端到端 7 步清单 + 7-8 回归（默认店铺/传照片/反复保存/不折叠/历史弹窗三路径）
+
+### 2026-07-09 — 上传域名回切 + 打蜡券不可见根因修复（valid=0）+ 养护开单券/卡双 tab 选择弹层
+
+会话起始 start-work（doc 仓 already up to date；核实两代码仓 7-8 批次已被用户 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）。三条主线，改动跨 `snowmeet_wechat_mini`（7 文件，含新组件 4 文件）+ `SnowmeetApi`（2 文件）+ 生产库一次数据修复，**代码仓本地未提交**，用户按部署节奏处理。归档见 [`sessions/2026-07-09_ticket_valid_fix_and_card_selector.md`](sessions/2026-07-09_ticket_valid_fix_and_card_selector.md)。
+
+1. **上传/显示域名回切**（用户拍板）：7-8 暂切 mini.snowmeet.top 的 3 处（[`data.js`](../snowmeet_wechat_mini/utils/data.js) uploadFilePromise / care_recept_form `UPLOAD_HOST` / care_order_detail `IMG_HOST`）改回 `snowmeet.wanlonghuaxue.com`，「2026-07-08 暂时」注释清理。⚠️ wanlonghuaxue 那台部署对齐前上传会再次 400；过渡期传到 mini 磁盘的测试照片回切后 404
+2. **「选择我的优惠券不显示」根因定位 + 修复**（会员 15506 四张免费打蜡券）：连生产库实查——四张券 `valid=0` 被 `GetMemberTicketsByStaff` 基查询第一道过滤挡掉（其余条件全满足）；第四张 code 实为 `193596120`（用户抄多一位）。根因链：`Ticket` 模型 C# 默认 `valid=0` + `GenerateTicketByAction` 漏设 valid/member_id + 四张券来自外部 `channel='daidai'` 通道（代码/git 史无此字）。修复：① 用户确认测试数据后 DB `UPDATE ... SET valid=1`（限定 code+member+valid=0，恰 4 行）② [`TicketController.GenerateTicketByAction`](../SnowmeetApi/Controllers/TicketController.cs) 补 `valid=1, member_id=memberId`。顺带发现旧 `/core/Ticket/GetTicketsByUser` 不过滤 valid（口径不一致，详见已知遗留）+ 新版 `GetMyTickets` 过期过滤 `<=` 疑似写反（spawn 独立后台会话核查中）。存量 84 张 template12 valid=0 中其余 ~80 张待业务确认
+3. **养护开单优惠券弹层重做成券/卡双 tab**（两轮迭代，用户第二轮拍板卡可选+全局互斥）：新组件 [`components/reception/ticket_card_selector/`](../snowmeet_wechat_mini/components/reception/ticket_card_selector/ticket_card_selector.js)（自带 van-popup，Alpine 风格对齐 search_product_fuzzy）——优惠券 tab 列 code/名称/到期日/**create_memo**（蓝底小标签）+ 占用置灰；会员卡 tab 次卡显示已用/剩余、季卡（卡名含「季卡」）显示上次使用时间；**券/卡/「不使用」三向互斥单选**，确认事件 `{action, selectedTicket, selectedCard}`。配套后端新接口 [`MemberAdmin/GetMemberCardsByStaff`](../SnowmeetApi/Controllers/MemberAdminController.cs)（staff≥100，punch_card 全量 + `punch_card_used` group max(create_date) 求上次使用）。表单侧：选卡落 `use_card=true`（既有持久化字段）+ `card_id/card_name` 前端标量（recept_new 保存回填带回）；选券清卡/选卡清券；行显示「(卡)卡名」、chips 券/卡互斥。旧 `ticket_selector/ticket_list` 未动（旧版养护不受影响）
+
+📌 关键发现/教训：`Ticket` 默认 `valid=0` 是发券路径静默失效之源（新发券代码必须显式置 valid）；券可见性三接口口径不一致；本机微信开发者工具自带 node.exe 可做 `node --check`；`punch_card` 现库全是次卡、季卡按卡名自适应识别。
+
+**状态（7-9）**
+- ✅ 后端 `dotnet build` 0 错误 ×2；前端 `node --check` + wxml 平衡全过；生产库 4 张测试券 valid 已置 1（立即可选）
+- 🚧 **待用户**：① 两代码仓 commit（7-9 批次全部本地未提交）② publish SnowmeetApi（追加 7-9：GenerateTicketByAction 修复 + GetMemberCardsByStaff——不部署则会员卡 tab 空、新发券继续不可见）③ 重编小程序 ④ DevTools 验证：券 tab create_memo 显示、卡 tab 列表/互斥单选、选卡后 use_card 落库、保存往返卡名不丢
+- ⏳ 待定/后续：养护次卡核销链路（选卡目前不改价不扣次数）、~80 张存量 valid=0 券批量修复、GetMyTickets 过期过滤核查（后台会话跑着）、care 表加 card_id 列（可选）
+
+### 2026-07-10~11 — punch_card 季卡化 + 养护计费/服务项全面服务端化 + 保存串行化 + 非雪季数据核查修复
+
+跨两天联调迭代（用户边测边提需求，多为服务端小步快改）。改动跨 `SnowmeetApi`（4 文件）+ `snowmeet_wechat_mini`（6 文件）+ 生产库两次结构变更（用户自改）+ 一次数据写入。**两代码仓已全部 commit+push**（SnowmeetApi `aabc3527` / mini `41c0744f`），⚠️ 待 publish——**不部署则线上 punch_card 查询持续 500**（DB 列已可空、老模型不可空）。归档见 [`sessions/2026-07-10_summer_card_serverside_pricing.md`](sessions/2026-07-10_summer_card_serverside_pricing.md)。
+
+1. **punch_card 可空化 + 季卡语义**（用户改列后线上 `GetMemberAssetsByStaff` 抛 SqlNullValueException）：`total/punches` → int?，`total=NULL 即季卡不限次数`；`remaining` 季卡 null；全部消费方适配（资产聚合/发卡预设/租赁核销排除季卡，punches 空当 0；member_detail 显示「季卡·不限次数」）
+2. **季卡绑定装备**（equip_type/brand/scale/serial 四列，serial 暂不限制）：`GetMemberCardsByStaff` 返回绑定信息 + `equipBound`；选中限装备季卡 → 开单界面装备信息自动带入并锁定（按钮灰死+toast、picker/input disabled、橙色提示行）；选卡弹层显示「绑定装备」行；`GetMemberCardsByStaff` 加 `bizType` 过滤（养护开单不显示租赁卡）
+3. **计费/服务项全面服务端化**（plan 流程 + 多轮演进，架构见已知遗留）：`CalcCareCharge` 全量 payload（含 changedField）→ 响应返回整个 care；`CalcCharge`/`ApplyDefaultServices`/`ApplyServiceLinkage` 三 helper，`PlaceCareOrder` 共用定价；选卡 0 元（用户拍板）、机打蜡季卡升级按券12模板加价、券16 减免服务端化、双项卡默认三项、换券/卡先清空再套默认；前端 `_fetchPrice` 只做整包提交+回填，`onSvcToggle`/`onSummerTap` 只翻开关；`care.card_id/card_name` 加 DB 列入模型（卡跟 care 走、找回可还原）
+4. **「订单尚未生成」根因修复**：并发保存 id=0 重复建单（孤儿草稿成对 ~90ms）+ 下单后脱钩期点结算被前置守卫拦截。修：保存串行化（在飞排队合并）+ checkout 等保存建单后取 id + 响应合并改「本地为基底只吸收主键」（此前晚到旧响应整体覆盖，曾冲掉刚选的季卡）
+5. **选卡后装备卡片不折叠**：key 漂移迁移（id 0→真实 id 时把 't'+timeStamp 的展开记录搬到 'c'+id）+ 选券/卡时显式记展开
+6. **顾客支付页养护明细**（payment_entry 新增「养护内容」段）：每件装备一段列 装备/项目/所用券卡/金额，文案对齐开单页 _svcChips；机打蜡按钮显示条件放宽（券12 或 机打蜡季卡选中 或 free_wax=1）
+7. **非雪季养护数据核查（只读）+ 修复（写）**：券「非雪季赠双项」未用 143 件中 13 件未寄存未刮蜡（10 位真实顾客名单已出）；财年 177 件中 4 件已发板；173 件在途清单（含手机号）已出。**29 件无寄存步骤**分两类：27 件旧流程（任务链无此步骤）+ 2 件未支付单（71528/71553）。已给 26 件补插「寄存或快递·未开始」任务（事务+校验+抽查，热蜡刮蜡间腾位插入），23837 无锚点跳过待定
+
+📌 关键发现/教训：DB schema 由用户直改、模型必须跟上否则 EF 读 NULL 即 500（部署顺序敏感）；「服务联动是事件语义」——光看状态区分不了"刚开热蜡"和"手动关刮蜡"，前端须传 changedField；保存响应整体覆盖本地状态是状态丢失总根源（正确姿势=本地为基底吸收主键）；care_task.sort 全局分配但仅 care 内有序，腾位插行安全；PowerShell `>` 重定向会把 UTF-8 stdout 转成乱码（拿数据直接从 stdout 取）
+
+**状态（7-11）**
+- ✅ 两代码仓已 commit+push（SnowmeetApi `aabc3527` / mini `41c0744f`）；build 0 错误、node --check/wxml 全过；26 条寄存任务已入生产库
+- 🚧 **待用户**：① **publish SnowmeetApi（紧迫：punch_card 查询线上 500 中）** ② 重编小程序 ③ 回归：季卡选卡计价 0/升级加价、限装备锁定、服务联动（开热蜡带刮蜡）、连续操作不丢卡、结算一次走通、支付页养护明细
+- ⏳ 待定/后续：卡券核销链路（扣次数/置 used）、23837 补任务、71528/71553 未支付单、孤儿草稿清理、支付宝端 payment_entry 同步
+
+### 2026-07-12 — 新版养护详情页重设计：全量迁移旧页能力 + 非雪季醒目标志 + 任务执行按实际时间引导（plan 流程，纯前端）
+
+会话起始 start-work。用户需求：「根据现有的养护订单详情页重新设计新的页面，风格和目前的新页面保持一致；非雪季订单要有明显标志；尽可能引导店员按实际的任务开始/结束点按钮」。Plan 模式三路探索（旧页 order_detail 全能力 / 新页现状 / 后端 CareTask 接口）+ AskUserQuestion 拍板：**全量迁移+切入口（旧页可退役）、装备编辑一并迁入、引导做视觉+计时提醒（无后端硬约束）**。改动 `snowmeet_wechat_mini` 8 文件，**后端零改动**（所有接口已存在），本地未提交。归档见 [`sessions/2026-07-12_care_order_detail_redesign.md`](sessions/2026-07-12_care_order_detail_redesign.md)。plan：`~/.claude/plans/dapper-foraging-blossom.md`。
+
+1. **非雪季醒目标志**：页面顶部琥珀警示横幅（底 `#fffbeb`/竖条 `#f59e0b`/文字 `#92400e`，配色决策：蓝=操作/绿=成功/红=危险已占用，琥珀与 `btn--warning` 警示语义一致）——任一 care `biz_type='非雪季养护'` 即显示，副文按 `summer` 汇总「立等现修 N 件 · 寄存后修 M 件」；care 卡 chips 改对象数组 `{text,cls}`，非雪季用 `chip-summer` 琥珀 chip 并区分 now/later
+2. **任务执行引导**：当前任务高亮卡（浅蓝底+蓝左边条）+ 整宽大按钮「开始 {任务名}」/「结束 {任务名}」+ 按钮下引导文案（「请在实际开始操作时点击，系统将记录真实开始时间」）；进行中任务实时「进行中 · 已用时 X 分钟」（脉冲圆点 + 页面级单 `setInterval` 30s 一跳只 setData `_elapsedStr` 路径，onHide/onUnload 清理）；结束弹窗显示 `_fmtDuration` 实际耗时，**耗时<60s 追加二次确认「确认已实际完成操作？」**；已完成任务收敛单行（✓+任务名+耗时·执行人·结束时间），未来任务淡化，他人执行中显示「强行中止（xx 执行中）」描边红按钮
+3. **发板核销四方式整合**（删「请使用旧版」提示）：segmented 四选（扫码取板/验证码/拍照凭证/店长确认[isMaster]）+ 分面板。扫码取板迁移：页面级单例 WebSocket 会话（`_scan` 实例字段），`QrCode/CreateNewScanQrCodeByStaff` → wxoa GetOAQRCodeUrl 二维码图 → `wss://{domain}/ws` queryqrscan → 本人扫码自动完成发板/非本人 toast+重新生成；切方式/折叠卡/onHide/onUnload 统一 `_closeScan()`（含 `StopQeryScan` 释放）；断线显示「重新连接」不再 navigateBack。拍照凭证迁移：van-uploader → 两段上传 → `Care/SetPickImageId` → SetTaskStatus 完成；发板完成后显示核销方式（task.memo）+ 凭证缩略图。UI 状态（`_expanded`/`_veriType`）按 care.id 记忆在 `this._uiState`，loadOrder 全量重渲染时回填
+4. **装备基础信息编辑迁入**：装备信息区只读/编辑二态（右上角「编辑」入口）——品牌 picker（末项「＋新增品牌」弹层走 `Care/UpdateBrandByStaff`）/长度/鞋长或前脚/序列号分左右（`a|b` 合成）/雪杖附件/无·招待·质保三选一 segmented（**bool 恒不发 null**）/备注/照片增删（uploading 占位、image_id 对齐服务端）。保存以 `_rawCares` 原始对象为基底合成 payload，careImages 剥导航保标量（详见已知遗留新增条）；编辑中 onShow 跳过自动刷新（防相机返回丢编辑内容）
+5. **切入口 + 深链**：`care_order_list`/`member_detail` 养护跳转切新页；`print_care_label` 标签二维码 URL 切新页（**需公众平台登记新路径**，详见已知遗留）；新页 onLoad 支持 `options.q` 解析（`util.parseQuery`）+ `careId` 定位（只展开目标 care + `wx.pageScrollTo` 到 `#care-{id}`）。`care_back_drop`（旧开单收银组件）不切，随旧流程退役
+6. **顺手修**：打印标签/小票补 `customerName/customerCell/shop`（print-care 依赖，7-4 版漏了会打出空顾客名，详见已知遗留）；`data.js` 收口 7 个旧页内联接口为 promise（CreateVerifyCode/VeriCareFinishCode/SetPickImageId/UpdateBrandByStaff/CreateNewScanQrCodeByStaff/StopQeryScan/GetOAQRCodeUrl）
+
+📌 关键发现/教训：`UpdateCare` careImages 按 id diff 物理删 + 扁平化对象会冲掉标量（详见已知遗留）；print-care 三个前端临时字段依赖；旧页 `socketMessage` 用 `tasks[length-1]` 取发板任务（新页改 `find(task_name==='发板')` 更稳）；`_current` 派生加 `|| _running` 保证乱序开始的任务也能结束；toast 带 icon 文案 ≤7 字（「扫码发板完成」）
+
+**状态（7-12）**
+- ✅ 8 文件全部完成：`node --check` 通过、wxml 标签平衡（view 130/130）、36 个事件绑定与 JS 方法一一对应、wxss 括号平衡；**后端零改动、无库表变更，可独立发小程序**
+- 🚧 **待用户**：① 重编小程序 + DevTools/真机验证（清单见「下一步要做的」首条）② **公众平台登记标签二维码新路径规则** ③ mini 仓 8 文件本地未提交，按部署节奏 commit
+- ⏳ 后续：旧页 order_detail 观察一段时间后可考虑从 admin 入口彻底退役（保留 app.json 注册兼容旧标签）；`onSafeCheck` 的 careImages 剥导航是行为增强（原样发导航也能跑），如安检确认回归出问题优先查这里
+
+### 2026-07-12（续）— 养护订单列表重设计+分页 + 列表布局微调 + 养护开单储值选择意向
+
+接续同日养护详情页重设计。三件事，前两件纯前端（`snowmeet_wechat_mini`），第三件前后端 + 需生产库加列。归档见 [`sessions/2026-07-12_care_list_redesign_and_deposit_choice.md`](sessions/2026-07-12_care_list_redesign_and_deposit_choice.md)。
+
+1. **养护订单列表重设计 + 分页**（[`care_order_list`](../snowmeet_wechat_mini/pages/admin/care/care_order_list.js) 4 文件全重写，纯前端）：仿租赁列表 [`new_rent_list`](../snowmeet_wechat_mini/pages/admin/rent/new_rent_list.wxml) 的 Alpine 样式（`#f8f9ff` 背景 + 白卡 + 头部/标签列/详情行）；删旧 `fui-card`/`fui-row`/`fui-col` 三栏。接入 `date-range-picker` + `list-pager` 组件。**后端零改动、data.js 零改动**——复用通用分页接口 `getRentOrdersByStaffPagedPromise`（名字带 Rent 但接 `Order/GetOrdersByStaffPaged`，type 区分业务；`GetCommonOrders` 共用，已支持养护 `isSummerCare`/`useCard`/`haveWarranty`）。查询条件与旧版一字不差（店铺/日期/测试/招待/减免/非雪季/次卡/手机/备注）。养护特有：标签列加【质】【非】、状态 chip 两态（临时订单 red / 正常订单 green，临时单不可点）、装备照片缩略图。统计行「共 N 单 · 本页收款 ¥xx」（分页后金额只能本页累加，标注清楚避免误导）。
+2. **列表布局微调**：时间、退款各自独立成行（原与日期/支付金额同行双列）；装备照片从卡片底部横排改到卡片右侧竖排（`order-body` 三列：标签列 + 详情行 flex + 照片列）。
+3. **养护开单储值选择意向**（前后端，需加列）：用户拍板本期只做「显示储值 + 店员勾选是否用储值」，去结算把选择落到订单让系统知道；**实际扣款/部分抵扣/身份核验下一步专门规划**。复选框不因储值不足禁用（因为选了「允许部分储值+补其他」）。
+   - 前端 [`care_recept_form`](../snowmeet_wechat_mini/components/reception/care_recept_form/care_recept_form.js)：`memberId` observer 拉 `getMemberAssetsByStaffPromise`(depositTotal)；结算条上方 `.deposit-bar`（储值余额 + 「使用储值支付」复选框，**仅会员且有储值时显示**，换人无储值自动清勾选）；`checkout` 事件带 `useDeposit`。
+   - 前端 [`recept_new.js`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js)：`onCheckout` maintain 分支取 `e.detail.useDeposit` → `_checkoutCare(useDeposit)` → PlaceCareOrder URL 加 `&useDeposit=`。
+   - 后端：[`Order.cs`](../SnowmeetApi/Models/Order/Order.cs) 加订单级字段 `pay_with_deposit`(bool default false)；[`PlaceCareOrder`](../SnowmeetApi/Controllers/OrderController.cs#L2969) 加 `useDeposit` 参数写入 `order.pay_with_deposit`。下一步做储值扣款/核销时读该字段即知这单是否走储值。
+
+📌 关键发现/教训：
+- **`getRentOrdersByStaffPagedPromise` 是通用分页接口**（接 `Order/GetOrdersByStaffPaged`，非租赁专用），养护/零售/雪票都可复用，只需传对 `type`；底层 `GetCommonOrders` 早已支持全业务查询参数。
+- **`careProperties.orderStatus` 只有「临时订单」「正常订单」两值**（[`Order.cs:1225` CarePropertySet](../SnowmeetApi/Models/Order/Order.cs)），与订单级 `order.orderStatus`(支付状态)不同物；养护列表状态 chip 只这两态。
+- **分页列表金额统计只能本页累加**：`PagedOrderResult` 只返回 `items`+`total`(条数)，无全量金额聚合；养护列表统计标「本页收款」而非误导性的「总收款」。
+- **`PayWithDeposit` 对养护只支持全额扣款**（[OrderController.cs:3172](../SnowmeetApi/Controllers/OrderController.cs#L3172)）：会员 + 储值余额 ≥ 全额应付 → 扣款 + EffectCareOrder；不支持部分抵扣、散客不行。本期不调它、只记录意向字段，为下一步铺路。
+- **`order.pay_with_deposit` 需先加列再部署**（同 customer_open_date 教训）：EF 加字段后所有 order 查询 SELECT 该列，不先 `ALTER TABLE [order] ADD pay_with_deposit BIT NOT NULL DEFAULT 0` 会让 order 查询全挂。
+
+**状态（7-12 续）**
+- ✅ 后端 `dotnet build` 0 error（11 历史无关警告）；前端 `node --check` + wxml 平衡（care_order_list view 36/36 / care_recept_form view 105/105）+ wxss 括号平衡全过
+- 🚧 **待用户**：① 重编小程序（care_order_list 4 文件 + care_recept_form + recept_new）② **生产库 `ALTER TABLE [order] ADD pay_with_deposit BIT NOT NULL DEFAULT 0` 再 publish SnowmeetApi**（不先加列 order 查询全挂）③ 验证：养护列表新样式/分页/返回保留页码/时间退款独立行/照片右侧、会员开单显示储值行可勾选（散客不显示）、去结算后 `order.pay_with_deposit=1`
+- ⏳ 下一步：养护储值/卡券实际核销 + 顾客身份验证（用户明确「下一步专门讨论结算/核销」）
+
+### 2026-07-14 — 养护核销全链路（会员身份核验+储值实扣+卡券核销）+ 安全检查默认值持久化修复 + 装备取消功能（三轮迭代）+ 取消弹窗校验 bug 排查中
+
+延续 7-12 续「下一步专门讨论结算/核销」的伏笔。会话四块工作：① 执行既定 plan 落地养护开单「核销/支付前身份核验 + 储值实扣 + 卡券核销」完整闭环；② 修复安全检查字段默认值被无关操作冲掉的 bug；③ 新增装备「取消养护」功能（三轮按用户反馈重做，终态为按钮+modal）；④ 会话末尾用户报「取消养护」modal 里「扫码取板」校验 bug，排查中未闭环。代码在 SnowmeetApi + snowmeet_wechat_mini **本次已 commit+push 到 origin/ai**（SnowmeetApi 至 `2cfecf73` / mini 至 `252a5d69`，`git rev-list --left-right --count HEAD...origin/ai` 双仓验证 0/0），需部署 + 重编才生效。归档见 [`sessions/2026-07-14_care_writeoff_cancel_and_debug.md`](sessions/2026-07-14_care_writeoff_cancel_and_debug.md)。plan：`0-calm-storm.md`（本机 `~/.claude/plans/`，未入库）。
+
+#### 一、养护核销全链路（B1-B4 后端 + F1-F3 前端）
+
+**业务背景**：养护开单结算时若用了储值/卡券等会员权益，此前几乎没有身份约束——0 元单直接生效不核验、储值只落意向不实扣、卡券选了不核销。用户拍板：涉及权益的单必须核验「扫码人=开单流程匹配到的会员本人」才能核销/支付；仅储值/卡券导致的 0 元单需核验（质保/招待 0 元单不需要，照旧立即生效）；同时做储值实扣+卡券核销；微信支付本身即视为核验会员本人（支付码即校验）；支付宝支付需先微信核验身份再支付宝支付，核验参考 `rent_order_detail` 已上线的微信身份核验模式。
+
+- **B1** `CareController.EffectCareOrder` 并入卡券核销：`care.use_card && care.card_id != null` → 创建 `PunchCardUsed` + 扣 `punches`（季卡 `total==null` 跳过）
+- **B2** `OrderController.PlaceCareOrder` 0 元单分叉：新增 `usedBenefit` 判定（`care.use_card` 或 `deposit` 或 `ticket_code`），仅无权益的 0 元单（质保/招待）才立即 `EffectCareOrder`
+- **B3** 新增 `OrderController.WriteoffCareOrder(orderId, sessionKey, sessionType)`：幂等（`task_flow_code!=null` 短路）+ 要求 `order.wechat_unverified` 已核验 + `pay_with_deposit` 时内联消费储值（镜像 `PayWithDeposit`）+ `EffectCareOrder`
+- **B4** `PaymentIdentityController._resolveStatus` 新增 `care_member_required` 状态：`order.type=='养护' && payerType=='wechat' && order.member_id!=null && scannerMemberId!=order.member_id` 时返回，前端据此拦截非本人微信支付
+- **F1** `data.js` 新增 `writeoffCareOrderPromise`
+- **F2** `components/order-payment/`：养护分支——`careWriteoff` 派生；0 元核销/储值全额覆盖时弹微信核验二维码（复用 `rent_order_detail` 的 `_openWechatVerify` 模式）+ 2s 轮询 `GetWechatVerifyStatus` → 核验通过调 `WriteoffCareOrder`；支付宝支付前先微信核验
+- **F3** `pages/order/payment_entry`：`identity.status==='care_member_required'` 时隐藏支付按钮 + 提示
+
+#### 二、安全检查字段默认值持久化修复
+
+**问题**：养护订单详情页安全检查字段有默认值（历史带入），但如果做了无关操作（如补录照片并保存）触发 `loadOrder()` 重载，默认值就消失了。用户要求：填写/修改过的值无论做什么操作都要保留；未填写/修改过的，在点「确认安全」前始终显示默认值。
+
+**修复**：`care_order_detail.js` 增加 `this._uiState.safeCheck = {}` 页面级草稿 map（`onLoad` 初始化）；`_renderCare` 合并逻辑优先取服务端已存值，否则取草稿 map 里的值；`onSafeFieldBlur`/`onSafeMemoBlur` 同步写入草稿 map；`_fetchSafeCheckHistory` 拉到历史默认值时也写入草稿 map（而非只 setData）。任何触发 `loadOrder()` 的操作都不再冲掉尚未提交的草稿。
+
+#### 三、装备「取消养护」功能（三轮迭代，终态见下）
+
+**需求**：养护订单详情页针对每件装备增加「取消」功能，走与「发板」相同的核验流程（扫码取板/验证码/拍照凭证/店长确认）+ 一个填写取消原因的文本框，验证通过后更新 `care_task` 发板任务，`care` 表新增 `is_cancel`（bool）+ `cancel_reason`（string）两字段。
+
+**迭代过程**（均由用户截图/反馈驱动）：
+1. 第一版：取消入口做成「发板」面板内的手动开关，仅在「只剩发板未完成」的终态阶段可见 → 用户反馈「已开始的任务也应该能取消，只要不是全部完成或只剩发板未完成」
+2. 第二版：改为 `care._canCancel` 按任务状态自动派生（不再手动切换），可取消阶段扩大到「进行中」，面板常驻显示 → 用户反馈「取消是少数情况，不应该常驻界面，应该做成按钮点开 modal」
+3. **终态（第三版）**：任务行内小按钮「取消养护」（仅在 `care._canCancel` 时显示）→ 点击弹出 `van-popup` modal，内含取消原因文本框（必填）+ 复用同一套四方式核验面板（全部改为取消语义文案）。原「发板」面板恢复成最简单的正常发板形态（无取消感知），两者视觉互斥（`care._canCancel` 只在非终态阶段为真）
+
+**后端**：`Care.cs` 新增 `is_cancel`（bool，默认 false）+ `cancel_reason`（string?）两字段（**⚠️ 未确认已交付 DDL 给用户，见下方状态**）；`CareController.SetTaskStatus`/`VeriCareFinishCode` 新增 `isCancel`/`cancelReason` 参数，发板任务标记完成时若 `isCancel=true` 则跳过原「养护完成赠券」逻辑，改为 `care.is_cancel=true` + 写 `cancel_reason` + `CoreDataModLog` 留痕
+
+**前端**：`care_order_detail.js` 新增 `cancelModal{show,cidx}` + `_resolveCancelParams(care)`（取消模式下校验原因必填）+ `onOpenCancelModal`/`onCloseCancelModal`/`onCancelReasonBlur`；四个核验入口（`onVeriCodeConfirm`/`onMasterFinish`/`onPickPhotoRead`/`_onScanMessage`）都先调 `_resolveCancelParams` 取 `{isCancel, reason}` 透传给后端接口；wxml 新增 modal（`wx:for` + `wx:if="{{cidx===cancelModal.cidx}}"` 过滤定位单个 care，复用同一套 handler）
+
+#### 四、（未解决）取消 modal「扫码取板」校验 bug
+
+会话末尾用户报告：取消养护 modal 里填了取消原因、点「扫码取板」，仍提示「请填写取消原因」；且二维码需要额外点「生成二维码」才出现（不是点「扫码取板」就自动生成）。
+
+**已尝试的修复**（均已提交，效果未经用户确认）：
+1. `onCancelReasonBlur` 只绑定 `bindblur`，怀疑与「扫码取板」按钮的 `catchtap` 之间存在失焦时序竞争 → wxml 加了 `bindinput`，每次按键实时同步 `_cancelReason`
+2. `onVeriTypeTap` 原逻辑对「已选中的类型」再次点击直接 `return`，导致首次校验失败（原因未填）后 `_veriType` 已被设为「扫码取板」，再次点击不会重试 `_openScan` → 改为已选中「扫码取板」时再次点击会原地重试
+
+用户测试后反馈「界面操作没有任何变化」「生成二维码按钮没有消失」——说明 `_openScan` 内部的 `_resolveCancelParams` 校验仍在失败，根因未定位。**已加临时诊断代码**：`_resolveCancelParams` 失败 toast 改为 `未填[mode=xxx,val="xxx"]` 直接把 `care._cancelMode`/`care._cancelReason` 的运行时值打印在 toast 上（`care_order_detail.js` 内标注 `// TEMP DEBUG`，定位后需要删除），**等待用户下次提供该 toast 内容才能继续排查**。
+
+#### 关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`Controllers/CareController.cs`](../SnowmeetApi/Controllers/CareController.cs) | EffectCareOrder 卡券核销；SetTaskStatus/VeriCareFinishCode 加 isCancel/cancelReason |
+| [`Controllers/OrderController.cs`](../SnowmeetApi/Controllers/OrderController.cs) | PlaceCareOrder 0 元单分叉；新增 WriteoffCareOrder |
+| [`Controllers/Order/PaymentIdentityController.cs`](../SnowmeetApi/Controllers/Order/PaymentIdentityController.cs) | _resolveStatus 加 care_member_required |
+| [`Models/Care/Care.cs`](../SnowmeetApi/Models/Care/Care.cs) | 加 is_cancel + cancel_reason |
+| [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) | writeoffCareOrderPromise；updateCareTaskStatusPromise/veriCareFinishCodePromise 加 isCancel/cancelReason 参数 |
+| [`components/order-payment/`](../snowmeet_wechat_mini/components/order-payment/) | 养护核销/储值/微信核验/支付宝前置核验分支 |
+| [`pages/order/payment_entry.{wxml,wxss}`](../snowmeet_wechat_mini/pages/order/payment_entry.wxml) | care_member_required 拦截支付按钮 |
+| [`pages/admin/care/care_order_detail/`](../snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.js) | 安全检查默认值持久化 + 取消功能三轮迭代 + 临时诊断代码（未删） |
+
+#### 关键发现 / 教训
+
+- **WXML `bindinput`/`bindblur` 与相邻按钮 `catchtap` 之间可能存在时序竞争**：部分设备上失焦事件可能晚于相邻元素的点击事件触发，导致按钮读到的表单值是「点击前一刻」而非「最新输入」的值，同时绑 `bindinput` 实时同步可消除该竞争（本例未验证是否为真根因）
+- **「已选中态再次点击直接 return」的交互模式要小心内部副作用未完成的情况**：本例中「扫码取板」选中态代表的是 UI 高亮，不代表「二维码已成功生成」，两者被合并判断导致校验失败后无法重试
+- **临时诊断 toast 是比 console.log 更快的真机现场排查手段**：小程序场景下用户不方便配合看 console，把变量值直接打在 toast 上让用户截图回传即可定位
+
+**状态（7-14）**
+- ✅ B1-B4/F1-F3 养护核销全链路、安全检查默认值修复、取消功能终态均已提交并推送（SnowmeetApi `2cfecf73` / mini `252a5d69`，origin/ai 同步）
+- 🚧 **待用户**：① **先确认 `is_cancel`/`cancel_reason` 两列 DDL 是否已在生产库执行**（`ALTER TABLE care ADD is_cancel BIT NOT NULL DEFAULT 0; ALTER TABLE care ADD cancel_reason NVARCHAR(500) NULL;`），未执行则不能 publish（会让 care 查询全挂）② publish SnowmeetApi ③ 重编小程序 ④ 养护核销全链路端到端验证 ⑤ **取消 modal 校验 bug 需要用户重新编译测试后提供诊断 toast 内容**（格式如 `未填[mode=true,val="赶火车"]`），拿到后继续排查，诊断代码待根因定位后需清理
+- ⏳ 待定：本会话未见明确的 DDL 交付动作，下次会话开工需主动核实这两列是否已存在于生产库
+
+### 2026-07-15 — 养护流程收尾修复（7+ 项）+ 食材过期提醒 fnb mat_expire 全量实施
+
+上午接续 7-14 养护核销线逐个修用户实测 bug（Phase A）；下午用户宣布养护暂告一段落，开启全新功能「食材过期提醒」企微 H5（Phase B，brainstorming → spec → DDL → plan → 实施 → 烟测 → push 完整闭环）。**两代码仓已全部 commit+push**（SnowmeetApi 至 `3d0b27b` / mini 至 `5e3f6f0e`，养护修复由用户分批提交），待 publish + 重编。归档见 [`sessions/2026-07-15_care_fixes_and_fnb_mat_expire.md`](sessions/2026-07-15_care_fixes_and_fnb_mat_expire.md)。
+
+#### 一、Phase A — 养护收尾修复
+
+1. **退款弹窗备注默认取消原因**：`onOpenRefundPopup` 取第一个 `is_cancel` care 的 `cancel_reason` 预填
+2. **`Refund/71881` 500 NRE**：追加草稿清理段对养护单 `(double)totalRentUnRefund` 强转 null → 加 `type==租赁` 守卫。**关键认知**：崩溃在退款落库+网关已退之后，钱已退成功——用户重试报「超额退款」是正确提示（DB 实查确认），无需处理
+3. **可退金额 0 → 退款按钮 disable**（`canRefund` 派生 + 守卫 toast）
+4. **0 元招待单「确认生效」报处理失败**：`order-payment` 对 `paying_amount==0 && dealed==1` 已生效单直接置 paid 态 + triggerEvent('paid')；另加 `recept_new` 0 元未用权益单去结算二次确认 modal
+5. **71884 季卡不核销根因（生产库实查）**：`DealSuccessPaidOrder` 在 `EffectCareOrder` 之前把 `order.member_id 15506→41137`（支付宝付款方物化的另一会员号）→ 旧守卫 `punchCard.member_id == order.member_id` 静默失败。修：删 member 比对守卫 + `PlaceCareOrder` 卡不属会员清引用；补记录 SQL 已交付用户待执行。顺带核查券核销代码正确但无实证样本（近 30 天选券单全未生效）
+6. **券16 减免冲掉手动减免**：`PlaceCareOrder`/`CalcCareCharge` 无条件覆盖 → 改保底 `discount < ticketDiscount` 才补齐
+7. **详情页/列表 UI 五件**：删「已带入历史安检数据」toast；安检备注框 1/3 高；装备无照片时安检面板内 van-uploader 直接补传（`_rawCares` 基底 + `_stripImageNavs`，沿 7-12 约定）；装备卡卡券 icon + 点按 toast 详情（券名走 `Ticket/GetTicket/{code}` 缓存）；列表加橙色「券」标签
+
+#### 二、Phase B — 食材过期提醒（fnb mat_expire）
+
+- **形态**：企微内打开的原生静态 H5（无构建链），部署 `wwwroot/fnb/mat_expire/`；OAuth snsapi_base + agentid 1000009 换 UserId → `mini_session` 新 `session_type='wecom_userid'`（UserId 存 wechat_openid 列）；闭环 = 录入+列表+处置（用完/报废）+编辑+删除+手动企微推送提醒（本期不做定时/扫码/多店）
+- **两张表用户已建**（DDL [`sql/2026-07-15_fnb_material_batch.sql`](sql/2026-07-15_fnb_material_batch.sql)）：`fnb_material_batch`（效期台账，`expire_date` 唯一真理之源）+ `fnb_material_alert_log`（推送记录快照，当天去重依据）
+- **状态派生唯一口径不落库**：已处理(dispose_status非空)→已过期→今日→临期(≤today+warn_days)→正常；today 以服务器日期为准
+- **后端**：[`FnbMaterialController`](../SnowmeetApi/Controllers/Fnb/FnbMaterialController.cs)（~470 行，9 接口）+ 两模型 + DbSet；`PushExpireAlert` 接收人 = touser 参数 → `config.fnbAlertReceivers`（用户拍板配置文件方案，plan 首版漏了被拒后补）→ @all；`SaveBatch` 显式 `Entry().State=Modified`（NoTracking 惯例）
+- **前端**：`mat.js`（`ensureSession` 含 `?sessionKey=` 调试后门、code=2 静默重走 OAuth、非企微 UA 显提示防死循环）+ `index.html`（六状态 chips/徽章/more_vert 面板/FAB）+ `new.html`（生成批次号/照片即传即得/生产日期+保质期推算到期日+手改后不覆盖/预警步进/实时状态预览）；配色从设计稿 computed style 提取（style 属性超 6000 字符，采样窗口放大到 120000 才抓全），图标内联 SVG、系统字体栈
+- **验证**：build 0 error；本地起服务三项烟测（伪 sessionKey→code=2 / 假 code→优雅报错 / 企微 60020=本机 IP 不在白名单属预期）；`python3 -m http.server` + sessionKey 后门 + mock 注入，两页视觉与设计稿一致
+- SnowmeetApi commit `3d0b27b`（9 文件 +1434 行）push origin/ai；spec 多轮同步至 `94f85da`
+
+📌 关键发现/教训（详见已知遗留 5 条新增）：Refund 类 500 先查 payment_refund 成功行；DealSuccessPaidOrder 改写 member_id 使 EffectCareOrder 内 member 比对守卫必失败；券减免保底语义；`wecom_userid` session 类型 + 企微 60020；config.fnbAlertReceivers 配置文件模式。
+
+**状态（7-15）**
+- ✅ Phase A 七项修复 + Phase B 全量实施，两代码仓已 push；spec/DDL 入 doc 仓
+- 🚧 **待用户**：① publish SnowmeetApi（mat_expire + 7-15 养护后端修复，随积压一起）② 企微后台配可信域名 mini.snowmeet.top（应用 1000009）③ 服务器建 `config.fnbAlertReceivers` ④ 重编小程序（7-15 前端批次）⑤ mat_expire 端到端验证（推送先 `touser=自己`）⑥ 71884 补 punch_card_used INSERT ⑦ 带券养护单验证券核销
+- ⏳ 仍开放：取消养护 modal 校验 bug（7-14，等诊断 toast）、`Care.is_cancel` DDL 核实、定时推送（crontab curl 同一接口即接上）、扫码录批次号
