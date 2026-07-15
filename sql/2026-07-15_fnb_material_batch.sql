@@ -23,3 +23,21 @@ CREATE TABLE fnb_material_batch (
 CREATE INDEX IX_fnb_material_batch_expire ON fnb_material_batch (valid, expire_date) INCLUDE (dispose_status);
 -- 批次号搜索
 CREATE INDEX IX_fnb_material_batch_batch_no ON fnb_material_batch (batch_no);
+
+-- 提醒发送记录：每次企微推送、每个被提醒的批次一行（同一次推送多批次共享同一 msgid）。
+-- 用途：批次维度「提醒过几次/最后提醒时间」展示 + 当天已提醒去重（防重复骚扰）+ 推送失败排查
+CREATE TABLE fnb_material_alert_log (
+    id            INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    batch_id      INT            NOT NULL,                -- fnb_material_batch.id
+    alert_status  NVARCHAR(10)   NOT NULL,                -- 提醒时点状态快照：临期 / 今日 / 已过期
+    expire_date   DATE           NOT NULL,                -- 到期日快照（批次事后被改/删仍可追溯当时依据）
+    touser        NVARCHAR(200)  NOT NULL DEFAULT '@all', -- 企微接收人（@all 或 userid|userid…）
+    msgid         VARCHAR(100)   NULL,                    -- 企微返回 msgid（同次推送多批次共享）
+    success       INT            NOT NULL DEFAULT 0,      -- 1=企微返回 errcode=0
+    err_msg       NVARCHAR(200)  NULL,                    -- 失败时记 errcode+errmsg
+    send_userid   VARCHAR(64)    NULL,                    -- 触发人企微 UserId（定时任务触发=NULL）
+    create_date   DATETIME       NOT NULL DEFAULT GETDATE()
+);
+
+-- 「该批次最近一次提醒」+ 当天去重查询
+CREATE INDEX IX_fnb_material_alert_log_batch ON fnb_material_alert_log (batch_id, create_date);

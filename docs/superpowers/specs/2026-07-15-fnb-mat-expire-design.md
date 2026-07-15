@@ -51,7 +51,10 @@
 
 ## 数据表
 
-`fnb_material_batch`，DDL 见 [sql/2026-07-15_fnb_material_batch.sql](../../../sql/2026-07-15_fnb_material_batch.sql)（用户在生产库执行）。要点：批次号不设唯一约束；照片 `image_ids` 逗号分隔复用 `upload_file`；`valid` INT 软删，与 order/care 同约定；录入人/处置人存企微 UserId 字符串。
+两张表，DDL 见 [sql/2026-07-15_fnb_material_batch.sql](../../../sql/2026-07-15_fnb_material_batch.sql)（用户在生产库执行）：
+
+- `fnb_material_batch`（食材批次台账）：批次号不设唯一约束；照片 `image_ids` 逗号分隔复用 `upload_file`；`valid` INT 软删，与 order/care 同约定；录入人/处置人存企微 UserId 字符串
+- `fnb_material_alert_log`（提醒发送记录）：每次企微推送、每个被提醒的批次一行，同次推送多批次共享 `msgid`；快照 `alert_status`/`expire_date`（事后改/删批次仍可追溯当时依据）；记 `touser`/`success`/`err_msg`/`send_userid`。用途：批次维度「提醒过几次/最后提醒时间」+ 当天已提醒去重 + 推送失败排查
 
 ## 认证链路（企微 OAuth，新开发）
 
@@ -78,10 +81,11 @@
 | `DisposeBatch(id, action, sessionKey)` | GET | action=用完\|报废 → dispose_status/userid/date；幂等（已处置返当前状态） |
 | `DeleteBatch(id, sessionKey)` | GET | valid=0 软删 |
 | `GenBatchNo(sessionKey)` | GET | 发号 `B{yyMMdd}-{当日已发数+1，2位}`（仅参考号，不保证并发唯一） |
+| `PushExpireAlert(sessionKey)` | GET | 扫 `未处置 且 状态∈{临期,今日,已过期}` 批次 → 组图文（url 指向本 H5）→ `FnbWeComController.SendNews` 推 @all → 每批次写一行 `fnb_material_alert_log`。**当天已提醒过的批次跳过**（按 alert_log 当天去重）；无可提醒批次时不发、返回 0。本期手动触发（swagger/curl/H5 后续可加按钮），未来 crontab 定时 curl 同一接口 |
 
 照片上传：复用现有 `UploadFile` 接口链路；若其鉴权与 wecom session 不兼容，则在 FnbMaterialController 内加一个转发上传的薄接口（实施时定，二选一）。
 
-EF：`Models/Fnb/FnbMaterialBatch.cs` + DbSet；**所有「查实体→改→存」显式 `Entry().State=Modified`**（全局 NoTracking 坑）。
+EF：`Models/Fnb/FnbMaterialBatch.cs` + `Models/Fnb/FnbMaterialAlertLog.cs` + 两个 DbSet；**所有「查实体→改→存」显式 `Entry().State=Modified`**（全局 NoTracking 坑）。
 
 ## 错误处理 / 边界
 
@@ -94,8 +98,8 @@ EF：`Models/Fnb/FnbMaterialBatch.cs` + DbSet；**所有「查实体→改→存
 
 - 前端：`wwwroot/fnb/mat_expire/{index.html, new.html, mat.css, mat.js}` 随 SnowmeetApi publish
 - 后端：新 controller + model，无既有查询受影响；**先建表再 publish**
-- 推送（本期外）：后续定时任务扫 `临期+今日+已过期 且未处置` → `FnbWeComController.SendNews` 推 @all，图文 url 指向本 H5
+- 推送：`PushExpireAlert` 接口本期落地（含 alert_log 记录 + 当天去重），**定时触发本期不做**——先手动调，未来 crontab 定时 curl 同一接口即接上
 
 ## 本期不做（明确排除）
 
-底部 4 tab、扫码录批次号、企微 JS-SDK、定时推送任务、多店、批次号唯一性约束、照片关联表。
+底部 4 tab、扫码录批次号、企微 JS-SDK、定时**触发**（推送接口本期做、只是不定时跑）、多店、批次号唯一性约束、照片关联表。
