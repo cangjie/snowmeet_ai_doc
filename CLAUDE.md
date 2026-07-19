@@ -230,6 +230,7 @@ dotnet run
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
+- ⏳ **养护开单店铺不一致待拍板（7-19 续2，纯诊断未改码）**：根因＝「找回中断的订单」用 `recept_new.js:112 shop: recoveredOrder.shop || shop` 优先取订单原始创建店铺、覆盖当前 shop-selector 选中值。需用户决定：保留订单原始店铺归属（现状，需加 UI 提示）还是找回时强制同步当前选店（详见开发日志 2026-07-19 续2）
 - **mat_expire 部署清单（7-19 更新，本地代码全部未提交）**：
   - ⚠️ **新硬阻塞：publish 前必须先给每个要用 H5 的人插 `member_social_account(type='wecom', num=企微UserId)` 记录**（`sql/2026-07-16_fnb_material_batch_add_staff_id.sql` 有模板）——staff 闸门上线后，没录这条的人（**包括当前正在测试的人**）会被 OAuthLogin 直接拒绝「仅限在职员工使用」。`member_id` 必须指向该员工 `social_account_for_job.member_id` 那个会员号，链路才通
   - ① commit 两代码仓（SnowmeetApi + wwwroot 静态文件，本次全部本地未提交）→ publish SnowmeetApi（`fnb_material_batch.staff_id`/`valid` 两列用户已在生产库改好，无额外 DDL 阻塞；随包带 OcrScanName 新接口 + staff 闸门 + PushExpireAlert 去 session 校验 + 每批次推送改造）
@@ -3266,3 +3267,23 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 2. **共享 UI 组件的隐藏副作用会跨页面复现同一个 bug**：`shop_selector` 被 10+ 个页面引用，这类组件改动前先 grep 全部引用点评估影响面，改完也同时修复了所有引用页面
 3. **排查「代码/数据看着都对但结果不对」优先在数据库层面复现后端的精确过滤条件**，用「有筛选 vs 无筛选」两个查询对比行数——比逐行读 C# LINQ 或猜前端传参更快定位问题在哪一层
 4. **异步操作没有互斥保护会产生「后来者覆盖」的隐蔽 bug**：beacon 扫描是异步的，用户手动操作后如果不显式停止后台任务，稍后异步结果可能覆盖用户的显式意图——这类组件设计要明确「用户主动操作 vs 自动检测」谁该赢
+
+### 2026-07-19（续2） — 养护开单店铺不一致排查：「找回中断的订单」沿用旧店铺（纯诊断，待用户拍板）
+
+用户提问：养护开单时 shop-selector 显示选中「万龙体验中心」，但提交给 `Care/CalcCareCharge` 的店铺却是「崇礼旗舰店」。本节纯只读代码排查，**未改任何代码**。详见 [`sessions/2026-07-19_care_shop_recover_mismatch.md`](sessions/2026-07-19_care_shop_recover_mismatch.md)。
+
+**根因定位**：问题出在「找回中断的订单」流程，唯一能让 `recept_new.js` 的 `shop` 与 shop-selector 当前选中值脱节的路径。
+
+1. [`recept_entry.js:276-284`](../snowmeet_wechat_mini/pages/admin/reception/recept_entry.js#L276) `onRecoverOrderTap` 打开一张中断单时，URL 带的是**当前 shop-selector 选中的店**
+2. 但 [`recept_new.js:112`](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js#L112) `onLoad`：`shop: recoveredOrder.shop || shop` —— 只要拉到 `recoveredOrder`，就用**订单自己创建时落库的 shop 字段**覆盖 URL 传入值，即便 UI「当前店铺」芯片仍显示旧值
+3. 该 `this.data.shop` 一路传给 `care-recept-form`（[recept_new.wxml:43](../snowmeet_wechat_mini/pages/admin/reception/recept_new.wxml#L43)），组件原样塞进 `Care/CalcCareCharge` 请求体（[care_recept_form.js:312](../snowmeet_wechat_mini/components/reception/care_recept_form/care_recept_form.js#L312) `shop: this.data.shop`）
+
+所以只要这张被找回的订单最初在崇礼旗舰店创建（换店/beacon 误定位/员工手选），今天用「找回中断的订单」重开就会静默沿用旧店铺。
+
+**次要疑点**：[`RentController.cs:4552`](../SnowmeetApi/Controllers/RentController.cs#L4552) `GetReceptingOrders` 的过滤 `o.shop.Trim().Equals(shop) || shop == "" || shop == null` 在 `shop` 为空字符串时**不过滤**——若打开"找回中断的订单"面板时 `currentShopName` 恰好还是空（beacon 扫描未落地），列表本身就会跨店显示。
+
+**待用户拍板的设计取舍**（未答复，会话即被 end-work 打断）：订单的 `shop` 字段是财务/报表按店归属的业务字段，找回旧单时到底该：
+- 保留订单原始店铺（现状）——但 UI 应明确提示"这张单归属崇礼旗舰店"，不能让人误以为是当前选中店；还是
+- 找回时强制同步成当前选中店——但店员真的换了地点接单时，会篡改原单的店铺归属
+
+**状态**：⏳ 待用户下次回答上述设计问题后再动代码；本次纯诊断无代码改动。
