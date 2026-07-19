@@ -172,7 +172,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-15）
+## 当前状态（截至 2026-07-19）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -194,6 +194,20 @@ dotnet run
 - 🐛 **未解决（7-14）**：养护详情页「取消养护」modal 里填了取消原因、点「扫码取板」仍提示未填 + 二维码不自动生成，两轮修复（wxml 加 `bindinput` 实时同步 + `onVeriTypeTap` 允许已选中态重试）后用户反馈仍无变化，已在 `care_order_detail.js` `_resolveCancelParams` 加临时诊断 toast（`未填[mode=xxx,val=xxx]`，标注 `// TEMP DEBUG`），等用户提供诊断输出继续排查，见已知遗留
 - 养护收尾修复批次（7-15，用户已分批 commit+push，SnowmeetApi 至 `3d0b27b` / mini 至 `5e3f6f0e`）：退款弹窗备注默认取消 care 的 `cancel_reason`；`Refund` 草稿清理加 `type==租赁` 守卫（修养护单 500 NRE）；可退金额 0 退款按钮 disable；`order-payment` 对 `paying_amount==0 && dealed==1` 已生效单直接置 paid（修 0 元招待单「确认生效」必失败）；`recept_new` 0 元未用权益单去结算确认 modal；`EffectCareOrder` 卡核销删 member 比对守卫 + `PlaceCareOrder` 卡不属会员清引用（修 71884 季卡静默不核销）；券16 减免改保底语义（`discount < ticketDiscount` 才补齐，不冲手动加大的减免）；详情页安检备注 1/3 高 + 无照片时安检面板内补传 + 卡券 icon/toast + 删历史数据 toast；列表「券」标签
 - **食材过期提醒 fnb mat_expire（7-15 全量实施，SnowmeetApi `3d0b27b` 已 push）**：企业微信 H5（OAuth snsapi_base + agentid 1000009 换 UserId → `mini_session` 新 `session_type='wecom_userid'`，UserId 存 wechat_openid 列）；后端 `Controllers/Fnb/FnbMaterialController.cs`（OAuthLogin/GetBatches/SaveBatch/DisposeBatch/DeleteBatch/GenBatchNo/UploadPhoto/GetImages/PushExpireAlert）+ `Models/Fnb/` 两模型 + DbSet；前端 `wwwroot/fnb/mat_expire/{index,new}.html + mat.{css,js}`（原生静态 H5，`?sessionKey=` 调试后门，code=2 静默重走 OAuth）；提醒接收人配置文件 `config.fnbAlertReceivers`（镜像 config.sqlServer 模式，缺省 @all，已 gitignore）；状态派生唯一口径（已处理→已过期→今日→临期→正常，today 以服务器为准）；两张表 `fnb_material_batch`/`fnb_material_alert_log` 用户已建（DDL `sql/2026-07-15_fnb_material_batch.sql`）；spec `docs/superpowers/specs/2026-07-15-fnb-mat-expire-design.md`
+- **mat_expire 收尾批次（7-16~7-19，本地未提交，见下方待办）**：
+  - **staff 鉴权闸门**：`member_social_account` 新增 `TYPE_WECOM="wecom"` 常量；`fnb_material_batch` 加 `staff_id`（用户已在 DB 建列）；`OAuthLogin` 换到企微 UserId 后必须关联到「企微UserId→msa(type=wecom)→member→在职时间窗 staff(valid=1)」才发 session，关联不上直接拒绝（不发 session）；8 个业务接口每请求重新校验（离职后旧 session 立即失效）；`SaveBatch` 新增批次落 `staff_id`
+  - **`PushExpireAlert` 去掉 sessionKey 强制校验**（用户拍板）：签名改为 `(touser=null, sessionKey=null)` 两个都可选，为 crontab 定时直接 curl 铺路；`sessionKey` 传了仅用于日志记 `send_userid`，不传落 NULL；滥用兜底靠既有的「当天已成功提醒过的批次跳过」去重
+  - **推送改「每批次一条独立图文」**（原是一条汇总消息）：标题 `【状态】食材名`、摘要 `批次号·到期日·还剩/已逾期N天`、图用该批次 `image_ids` 第一张（无照片用站内 `images/logo.png` 占位）、点击跳 `new.html?id={批次id}`（详情/编辑页，不再是列表页）；单批失败不阻断其余批次，`fnb_material_alert_log` 逐批次记自己的 msgid/success/err_msg
+  - **详情页（编辑模式）新增「操作」区**：标记用完（绿）/标记报废（琥珀）/返回列表（中性）/删除（红）2×2 网格，与列表页动作面板同接口同文案；已处理批次只留返回/删除
+  - **列表页交互**：删掉顶部重复的「+」按钮（只留右下角 FAB）；卡片改整卡可点直达详情页（三点按钮 `stopPropagation` 仍开动作面板）
+  - **生产日期/保质期→到期日联动 bug 修复**：旧逻辑 `expireManual` 一旦被碰过就永久锁死联动；改成「动生产日期/保质期/单位就重算，手改到期日只在下次动源前有效」，新建默认生产日期=今天（消除 date input 空值的浅色假象），编辑回填时 `produce_date` 为空则按 `到期日−保质期` 反推
+  - **同名食材带默认值**：录入名称后按最近一条同名批次（id 最大）带出保质期 + 预警提前天数，只覆盖「空白/此前自动带出」的值，用户手输后不再被覆盖
+  - **摄像头实时 OCR 扫描**（`getUserMedia` 全屏取景 + canvas 每 1.3s 抓帧 + 复用腾讯云 `GeneralBasicOCR`，新接口 `FnbMaterial/OcrScanName`）：
+    - 名称：候选按字高降序取前 5（过滤日期/条码/净含量/「保质期・贮存・执行标准」等说明行），**多选**按点击顺序拼接，点确认按钮一次性填入
+    - 生产日期 / 到期日期 / 保质期：**单选点击即填入即关闭扫描层**（与名称不同，不需要二次确认）
+    - 日期识别覆盖中英文多种格式（`2026年7月16日` / `2026-07-16` / `20260716` 喷码 / `16 JUL 2026` / `JUL 16,2026` 等），到期日期入口按「保质期至/前食用/到期/EXP/BEST BEFORE」等锚词优先展示该行日期，无锚词命中才回落全部日期
+    - 保质期识别支持阿拉伯数字和中文数字（`十二个月`/`一百八十天`），先剔除行内日期串防「2026年7月3日」误判成「7个月3天」
+  - **`fnb_material_batch.valid` 列由用户从 int 改为 bit**：`Models/Fnb/FnbMaterialBatch.cs` 同步改 `bool`，控制器 7 处 `== 1` 判断改布尔用法，已重新编译验证
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
@@ -216,7 +230,14 @@ dotnet run
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
-- **mat_expire 部署清单（7-15，代码已全部 push 待部署）**：① publish SnowmeetApi（新 controller/模型/静态页随包走，表已建无部署顺序风险；**同包含 7-15 养护后端修复**：Refund 守卫/季卡核销守卫/PlaceCareOrder 清卡/券16 保底）② **企微后台给应用 1000009 配「网页授权及 JS-SDK 可信域名」= mini.snowmeet.top**（需校验文件放 wwwroot 根）③ 服务器部署目录建 `config.fnbAlertReceivers`（一行 `@all` 或 `userid1|userid2`，不建默认 @all）④ 企微工作台/群放入口 `https://mini.snowmeet.top/fnb/mat_expire/index.html` ⑤ 端到端验证：OAuth 落列表页 → 录入（生成批次号/拍照/推算到期/预警/状态预览）→ 列表筛选/处置/编辑/删除 → 造临期+过期数据调 `PushExpireAlert?touser={自己UserId}`（**先 touser=自己避免打扰全员**）→ 企微收图文点击跳回 H5 → alert_log 落行 → 再调当天去重返 count:0
+- **mat_expire 部署清单（7-19 更新，本地代码全部未提交）**：
+  - ⚠️ **新硬阻塞：publish 前必须先给每个要用 H5 的人插 `member_social_account(type='wecom', num=企微UserId)` 记录**（`sql/2026-07-16_fnb_material_batch_add_staff_id.sql` 有模板）——staff 闸门上线后，没录这条的人（**包括当前正在测试的人**）会被 OAuthLogin 直接拒绝「仅限在职员工使用」。`member_id` 必须指向该员工 `social_account_for_job.member_id` 那个会员号，链路才通
+  - ① commit 两代码仓（SnowmeetApi + wwwroot 静态文件，本次全部本地未提交）→ publish SnowmeetApi（`fnb_material_batch.staff_id`/`valid` 两列用户已在生产库改好，无额外 DDL 阻塞；随包带 OcrScanName 新接口 + staff 闸门 + PushExpireAlert 去 session 校验 + 每批次推送改造）
+  - ② 企微后台给应用 1000009 配「网页授权及 JS-SDK 可信域名」= mini.snowmeet.top（需校验文件放 wwwroot 根）
+  - ③ `config.fnbAlertReceivers` 用户已建（一行 `@all` 或 `userid1|userid2`）——**上次测试遇到「无任何反应」未最终定性**是当天去重命中还是配置问题，publish 后需带着新版返回的诊断信息重新验证一次
+  - ④ 企微工作台/群放入口 `https://mini.snowmeet.top/fnb/mat_expire/index.html`
+  - ⑤ 端到端验证：staff 闸门（在职→放行 / 未录 wecom MSA→拒绝）→ 录入（OCR 扫描名称多选/生产日期/到期日期/保质期四个入口，同名食材默认值带出，生产日期+保质期改动到期日联动）→ 列表筛选/处置/编辑/删除（含详情页新操作区）→ `PushExpireAlert`（联调期不带 sessionKey 直接调，或带 `touser={自己UserId}` 避免打扰全员）→ 企微收到每批次独立图文（含批次照片或占位图）→ 点击卡片跳批次详情页（非列表）
+  - ⑥ **OCR 扫描真机专项**：`getUserMedia` 相机权限授权流程、企微 iOS WKWebView 兼容性（iOS 14.3+）、光线/角度对识别率的实际影响
 - **71884 补 punch_card_used 待用户执行**（SQL 已交付）：`INSERT INTO punch_card_used (card_id, order_id, biz_type, biz_id, payment_id, punch_count, valid, create_date) VALUES (42, 71884, N'养护', 25690, NULL, 1, 1, '2026-07-15 10:23:45');`
 - **带券养护单端到端验证券核销**：EffectCareOrder 置券 used=1 代码正确但无实证样本（近 30 天 3 张选券单全 dealed=0 未生效），下次联调开一单带券单支付/核销后 DB 查 `ticket.used`
 - **重编小程序（7-15 前端批次）**：退款备注默认+canRefund disable+安检面板补传照片+备注框 1/3+卡券 icon/toast+列表券标签+order-payment 0 元已生效单+recept_new 0 元确认 modal（用户已 commit 至 `5e3f6f0e`）
@@ -255,6 +276,7 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`shop_selector` 组件的自动 beacon 定位会静默覆盖用户手动选择（2026-07-19 修，需知悉的架构缺陷）**：组件在**任何页面**加载时都会自动起蓝牙 beacon 扫描（最长 30s），跟 `scene='recept'` 与否无关；用户从下拉框手动选店（`selectChanged`）不会停掉这个后台扫描，若扫描稍后异步命中，会经 `_finalizeIfHit`→`_applySelectedShop` 静默把选择改回扫描结果——而且这里还有条「万龙互换逻辑」：只要命中店名含「万龙」且当前登录店员自己的 `base_shop` 也含「万龙」，就会把结果**强制换成店员自己的基地店**，不是扫描实际命中的那家。养护订单查询页复现：店长基地店是「万龙体验中心」（`shop_list.care=0`，不开展养护业务），手动选「万龙服务中心」查询后台跑的扫描把选择换回了店长自己的「万龙体验中心」，查询自然返回 0 单。已在 `components/shop_selector/shop_selector.js` 的 `selectChanged` 顶部加 `that._stopScan()` 修复（`_stopScan` 本身防御性写好、handler/timer 判空+try/catch，随时调用安全）。**这是共享组件，修复同时覆盖所有引用它的页面**（养护/零售/租赁订单列表、未归还列表、打印任务、商品设置、雪票报表、开单入口等），不用逐页改；但也意味着任何新用到 `shop_selector` 的页面都天然继承这条修复，不需要额外处理。诊断方法留档：先直接对生产库模拟后端过滤 SQL（同日期区间 有筛选 vs 无筛选 对比行数）排除后端/数据问题，再查前端组件时序
 - **`Refund` 类 500 先查 `payment_refund` 是否已有成功行（2026-07-15）**：Refund 的追加草稿清理段原对非租赁单 `(double)order.totalRentUnRefund` 强转 null 抛 NRE——崩溃点在**退款落库 + 网关已退之后**，钱已退、只是响应 500；用户重试会撞「超额退款」（正确提示）。已修：该段加 `order.type == "租赁"` 守卫。教训：新加的订单级清理/统计逻辑若读 `totalRent*` 系 [NotMapped] 字段，先确认业务类型（非租赁单恒 null）
 - **`DealSuccessPaidOrder` 在 `EffectCareOrder` 之前改写 `order.member_id`（2026-07-15，71884 根因）**：支付方≠开单会员时（典型=同一人微信/支付宝双通道物化出两个会员号），支付成功先把订单归属改成付款方会员 → EffectCareOrder 里任何「`order.member_id` vs 开单时会员资产」的比对守卫都静默失败（71884 季卡不核销）。已修：卡核销守卫删 member 比对（卡在开单时已验证归属）+ PlaceCareOrder 卡不属会员时清 `use_card/card_id/card_name` 双保险。今后 EffectCareOrder 内不要再用 order.member_id 做资产归属判断
 - **券固定减免是「保底」不是「覆盖」（2026-07-15）**：`PlaceCareOrder`/`CalcCareCharge` 对券16 原 `care.discount = ticketDiscount` 无条件覆盖，冲掉店员手动加大的减免（229.99→200）。已改 `care.discount < ticketDiscount` 才补齐。新写券减免逻辑一律保底语义
@@ -3194,3 +3216,53 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - ✅ Phase A 七项修复 + Phase B 全量实施，两代码仓已 push；spec/DDL 入 doc 仓
 - 🚧 **待用户**：① publish SnowmeetApi（mat_expire + 7-15 养护后端修复，随积压一起）② 企微后台配可信域名 mini.snowmeet.top（应用 1000009）③ 服务器建 `config.fnbAlertReceivers` ④ 重编小程序（7-15 前端批次）⑤ mat_expire 端到端验证（推送先 `touser=自己`）⑥ 71884 补 punch_card_used INSERT ⑦ 带券养护单验证券核销
 - ⏳ 仍开放：取消养护 modal 校验 bug（7-14，等诊断 toast）、`Care.is_cancel` DDL 核实、定时推送（crontab curl 同一接口即接上）、扫码录批次号
+
+### 2026-07-19 — mat_expire 收尾打磨（staff 闸门 + OCR 扫描三期 + 推送/详情页改造）+ 养护订单列表店铺筛选 bug 修复
+
+上半场接续 7-15 的食材过期提醒继续打磨（用户多轮迭代反馈驱动），下半场用户说「食材管理暂告一段落」切回养护系统，第一件事就是排查养护订单列表的店铺筛选 bug。全部改动本地未提交。
+
+#### 一、mat_expire 打磨（前后端多轮小步迭代）
+
+1. **员工 staff 关联 + 进入闸门**：用户要求 msa 加 `type=wecom` 记录企微号、`fnb_material_batch` 加 `staff_id` 记录添加人、且必须校验「当前用户是否在职 staff」才能进系统。实现：`MemberSocialAccount.TYPE_WECOM` 常量 + `FnbMaterialBatch.staff_id`；`_resolveStaffId` 复用现成的 `StaffController.GetStaffBySocialNum`（企微UserId→msa(wecom)→member→`social_account_for_job`→`staff_social_account`时间窗→staff）；`OAuthLogin` 换到 UserId 后立即校验，关联不到在职 staff 直接拒绝不发 session；8 个业务接口的鉴权 helper 统一升级为 `_requireStaff`（会话+在职 staff 双重校验，每请求重新查，离职当场失效）。前端 `mat.js` 登录被拒从 toast 一闪改成整页拒绝提示
+2. **列表页去重按钮**：用户发现顶栏「+」和右下角 FAB 功能重复，删顶栏那个
+3. **生产日期/保质期→到期日联动 bug（耗时最长的一轮）**：三轮排查——① 用户反馈填了生产日期+保质期到期日不联动 → 发现根因是旧代码 `expireManual` 一旦被 date input 碰过（哪怕只是 Safari 分段编辑器点一下）就永久锁死联动、无法恢复，改成「动源（生产日期/保质期/单位）即重算，手改到期日只保留到下次动源」② 用户反馈编辑页也一样不联动 → 发现存量批次 `produce_date` 常年为空（旧版页面无默认值，date input 空值在 Safari 显示成浅色假象让人以为已填），加「新建默认生产日期=今天」+「编辑回填时空生产日期按 到期日−保质期 反推」③ 用户反馈仍不联动 → 确认是**服务器还没 publish**，用户测的是旧版部署（所有改动都还在本地）
+4. **同名食材带默认值**：录入名称后按最近同名批次（id 最大）带出保质期+预警天数，只覆盖空白/此前自动带出的值，用户手输后不再被覆盖
+5. **摄像头实时 OCR 扫描三期迭代**（用户逐字段追加需求）：
+   - 期一：`getUserMedia` 全屏取景 + canvas 每 1.3s 抓帧 + 复用现成腾讯云 `GeneralBasicOCR`（`OcrController` 同一套凭据），新接口 `FnbMaterial/OcrScanName`，名称候选按字高降序 + 过滤日期/条码/净含量/说明行
+   - 期二：加生产日期扫描——`ExtractDates` 正则组覆盖中英文多种日期格式（中文年月日/连字符/点分/8位喷码/6位喷码/日月年/英文月份缩写），年份 2015-2039 + 月日合法性兜底防误报
+   - 期三：加到期日期扫描（用户明确要求「保质期 yyyy-mm-dd」「请在…前使用」「…到期」等锚词优先）+ 保质期扫描（`N天`/`N个月`，支持中文数字「十二个月」「一百八十天」，先剔除行内日期串防「2026年7月3日」被误判成「7个月3天」）
+   - 交互收敛：用户指出「日期/保质期是单值，点一次填上即可；只有名称需要多选组词」→ date/expire/shelf 三种模式改成点 chip 即填即关，只有名称扫描保留多选+确认按钮
+6. **推送格式改造**：原一条汇总消息 → 改每批次一条独立图文（图=该批次首张照片或站内占位 logo，点击跳详情页非列表页）；`PushExpireAlert` 去掉 sessionKey 强制校验（用户拍板，为 crontab 定时铺路），`sessionKey` 变可选只用于记日志
+7. **详情页新增操作区** + **列表卡片整卡可点直达详情**：把原本只在列表动作面板里的「标记用完/报废/删除」搬到详情页，2×2 网格四色分区（绿/琥珀/中性/红）+ 返回列表按钮
+8. **`valid` 列迁移同步**：用户把 `fnb_material_batch.valid` 从 int 改成 bit，`FnbMaterialBatch.cs` 同步改 `bool`，控制器 7 处 `== 1` 判断改布尔写法
+
+用户反馈「编辑好了 config.fnbAlertReceivers 但是运行接口没有任何反应」——排查后判断大概率是当天去重命中（同批次一天只成功推一次），但没有最终定性，需要 publish 新版（带诊断信息）后重新验证。
+
+#### 二、养护订单列表店铺筛选 bug：`shop_selector` 自动定位覆盖手动选择
+
+用户报告：养护订单查询页，选「全部店铺」能查到「万龙服务中心」的单，直接选「万龙服务中心」反而查不到任何单。
+
+**排查过程**：① 先怀疑前端把空字符串当 shop 传给后端导致过滤条件恒假，但推演后发现这个假设跟「全部店铺 works」矛盾 ② 直接连生产库核实 `order.shop` 存量值（`万龙服务中心` 13079/`万龙`1323孤儿值/`万龙体验中心`34 等），确认 DB 数据本身干净 ③ 对生产库模拟后端 `GetCommonOrders` 的确切过滤 SQL，用同一日期区间分别跑「无 shop 过滤」vs「shop='万龙服务中心'」两版查询——**两者返回结果完全一致（18 单）**，排除后端逻辑和数据问题 ④ 转向前端排查 `shop_selector` 组件，发现它在**任何页面**加载时都会自动开蓝牙 beacon 扫描（不判断 `scene`），用户手动选店（`selectChanged`）不会停止这个后台扫描；若扫描随后异步命中，会经 `_finalizeIfHit`→`_applySelectedShop` 静默覆盖手动选择，且这里有条「万龙互换逻辑」：命中店名含「万龙」+ 当前登录店员基地店也含「万龙」时，强制把结果换成**店员自己的基地店**（而非扫描实际命中那家）——若该店员基地店恰是「万龙体验中心」（`shop_list.care=0`，不开展养护业务），选择就被覆盖成一个永远查不到养护单的店
+
+**修复**：[`shop_selector.js`](../snowmeet_wechat_mini/components/shop_selector/shop_selector.js) 的 `selectChanged` 顶部加 `that._stopScan()`，让手动选择永远不会被稍后异步命中的 beacon 结果覆盖。共享组件，一次修复覆盖所有引用页面（养护/零售/租赁订单列表、未归还列表、打印任务、商品设置、雪票报表、开单入口等）。纯前端，无需后端改动。
+
+#### 关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`Models/Member/MemberSocialAccount.cs`](../SnowmeetApi/Models/Member/MemberSocialAccount.cs) | 加 `TYPE_WECOM` 常量 |
+| [`Models/Fnb/FnbMaterialBatch.cs`](../SnowmeetApi/Models/Fnb/FnbMaterialBatch.cs) | 加 `staff_id`；`valid` int→bool |
+| [`Controllers/Fnb/FnbMaterialController.cs`](../SnowmeetApi/Controllers/Fnb/FnbMaterialController.cs) | staff 闸门（`_resolveStaffId`/`_requireStaff`）+ 新接口 `OcrScanName`（含 `ExtractDates`/`ExtractShelfLives`/`IsNameCandidate`）+ 每批次独立推送 + `PushExpireAlert` 去 session 校验 + valid 布尔化 |
+| [`wwwroot/fnb/mat_expire/new.html`](../SnowmeetApi/wwwroot/fnb/mat_expire/new.html) | 联动 bug 修复、同名默认值、OCR 扫描三期交互、详情页操作区 |
+| [`wwwroot/fnb/mat_expire/index.html`](../SnowmeetApi/wwwroot/fnb/mat_expire/index.html) | 删重复按钮、卡片整卡可点 |
+| [`wwwroot/fnb/mat_expire/mat.js`](../SnowmeetApi/wwwroot/fnb/mat_expire/mat.js) | 登录拒绝整页提示、OAuth 重定向带查询参数 |
+| [`wwwroot/fnb/mat_expire/mat.css`](../SnowmeetApi/wwwroot/fnb/mat_expire/mat.css) | 扫描层 + 操作区 + chip 样式 |
+| [`components/shop_selector/shop_selector.js`](../snowmeet_wechat_mini/components/shop_selector/shop_selector.js) | `selectChanged` 加 `_stopScan()`，手动选择不再被异步 beacon 覆盖 |
+| [`sql/2026-07-16_fnb_material_batch_add_staff_id.sql`](sql/2026-07-16_fnb_material_batch_add_staff_id.sql) | 新建：staff_id DDL 备忘 + wecom MSA 录入模板 |
+
+#### 学到的小知识
+
+1. **date input 空值在 Safari 显示成浅色假象**：用户以为「明明有值」，实际值是空，联动/校验逻辑读不到，排查这类「看着有值实际没有」的 bug 先让用户区分深浅色文字
+2. **共享 UI 组件的隐藏副作用会跨页面复现同一个 bug**：`shop_selector` 被 10+ 个页面引用，这类组件改动前先 grep 全部引用点评估影响面，改完也同时修复了所有引用页面
+3. **排查「代码/数据看着都对但结果不对」优先在数据库层面复现后端的精确过滤条件**，用「有筛选 vs 无筛选」两个查询对比行数——比逐行读 C# LINQ 或猜前端传参更快定位问题在哪一层
+4. **异步操作没有互斥保护会产生「后来者覆盖」的隐蔽 bug**：beacon 扫描是异步的，用户手动操作后如果不显式停止后台任务，稍后异步结果可能覆盖用户的显式意图——这类组件设计要明确「用户主动操作 vs 自动检测」谁该赢
