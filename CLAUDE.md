@@ -3287,3 +3287,10 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - 找回时强制同步成当前选中店——但店员真的换了地点接单时，会篡改原单的店铺归属
 
 **状态**：⏳ 待用户下次回答上述设计问题后再动代码；本次纯诊断无代码改动。
+
+### 2026-07-19（续3） — 养护标签二维码 URL 规则 + careId 深链展开行为核实（纯只读问答）
+
+用户提问两点，均为核实既有实现，未发现问题、无代码改动。详见 [`sessions/2026-07-19_care_qr_deep_link_verification.md`](sessions/2026-07-19_care_qr_deep_link_verification.md)。
+
+1. **打印顾客小票二维码 URL 规则**：唯一生成入口 [`components/care/print_care_label.js:294`](../snowmeet_wechat_mini/components/care/print_care_label.js#L294)，`https://mini.snowmeet.top/mapp/admin/care/care_order_detail/care_order_detail?orderId={id}&careId={id}`，打印时现算不落库；落地页 `care_order_detail.js` 优先解析 `options.q`（扫码进入）、fallback `options.id/careId`（站内跳转）
+2. **careId 深链只展开目标 care、其余折叠**：核实 [`_applyTargetCare()`](../snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.js#L459) 遍历全部 care 显式赋值 `_expanded=(c.id===cid)`（非默认值副作用），配合 `renderOrder` 首次默认展开分支加 `!this._targetCareId` 判断规避冲突，逻辑已正确实现（2026-07-12 详情页重设计的既有能力）
