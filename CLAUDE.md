@@ -172,7 +172,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-19）
+## 当前状态（截至 2026-07-21）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -208,6 +208,9 @@ dotnet run
     - 日期识别覆盖中英文多种格式（`2026年7月16日` / `2026-07-16` / `20260716` 喷码 / `16 JUL 2026` / `JUL 16,2026` 等），到期日期入口按「保质期至/前食用/到期/EXP/BEST BEFORE」等锚词优先展示该行日期，无锚词命中才回落全部日期
     - 保质期识别支持阿拉伯数字和中文数字（`十二个月`/`一百八十天`），先剔除行内日期串防「2026年7月3日」误判成「7个月3天」
   - **`fnb_material_batch.valid` 列由用户从 int 改为 bit**：`Models/Fnb/FnbMaterialBatch.cs` 同步改 `bool`，控制器 7 处 `== 1` 判断改布尔用法，已重新编译验证
+- **mat_expire 移植进微信小程序（2026-07-21，本地未提交）**：H5（`wwwroot/fnb/mat_expire/`）继续保留给企微场景，本次新增小程序原生实现，两套并存不互相替代。后端唯一改动：[`FnbMaterialController.cs`](../SnowmeetApi/Controllers/Fnb/FnbMaterialController.cs) `_requireStaff` 加 fallback 分支，session 走 `Util.GetStaffBySessionKey(_db, sessionKey, "wechat_mini_openid")`，零改动兼容企微 H5 老用户，解锁全部 8 个业务接口给小程序会话。前端新增：`utils/matExpire.js`（状态派生 `deriveStatus`，口径与 H5 一致：已处理>已过期>今日>临期>正常，须用服务端 `today`）+ `data.js` 9 个 wrapper + `components/fnb/ocr_scan_layer/`（`<camera resolution="medium">` 实时连续扫描，非单张快照，`CAPTURE_INTERVAL_MS=1500` 定时抓帧调 OCR，与 H5 版 canvas 抓帧同一套后端识别逻辑异构实现）+ `pages/admin/fnb/mat_expire_list/` + `mat_expire_detail/`（列表/详情/OCR全部搬到原生页面）。开放给全体在职店员，无 title_level 限制（用户明确拍板）。admin 菜单「餐饮」组新增入口「【餐饮】食材过期提醒」
+- **食材标签打印（2026-07-21，本地未提交，尽量复用养护标签打印机制）**：新组件 `components/fnb/print_food_label/`，底层复用 `utils/ble_label_printer/tsc.js`（TSPL 生成）+ `utils/util.js` 通用蓝牙 Promise（与 `components/care/print_care_label.js` 同款基础设施，两个文件一行未改）；「搜到就连、连上第一台就用」的重试循环是本次新写（旧组件里等价逻辑是 `print_care_label.js:178-182` 注释掉的死代码，这次写活）。后端新增只读接口 `PrinterController.GetAllPrinters`（全表查询，不按 shop 过滤——`FnbMaterialBatch` 本身不分店；与既有 `GetPrinters`/`GetPrinterByScene` 三口并存不合并）。标签 **60×40mm**（迭代过：初版 30×20mm→用户要求放大到 60×40mm，字体/二维码坐标等比例 ×2）内容仅 名称/批次号/到期日期 + 二维码（`https://mini.snowmeet.top/mapp/fnb/mat_detail?id={batchId}`，扫码进小程序批次详情页，**需公众平台登记新路径**，同养护标签先例）。设计按 **200dpi 保守假设**（1mm=8dots，画布 480×320dots）——猜错方向后果不对称，真机分辨率更高只会内容偏小不会出边，反之才会裁切，详见已知遗留 DPI 原则。**打印份数可配置**：`copies` 字段（默认 `'1'`，数字键盘 `type="number"` input）→ `_resolveCopies()` 校验（非正整数兜底 1，上限 99）→ `tsc.js` 现成的 `setPrint(n)` 命令（份数由打印机固件重复出纸，BLE 只需发一遍缓冲区，不用像养护标签那样整份重发）。两个入口：列表页 ⋯ 上下文菜单「打印标签」+ 详情页独立按钮（`opsShow` 门控，同 `van-popup` 弹层）
+- **养护标签二维码放大（2026-07-21，`print_care_label.js` 直接改的生产文件）**：用户看到食材标签二维码效果后要求同步放大养护标签（顾客小票+标签存根共用同一 `getCommand`），`setQrcode` 的 `cellWidth` 3→4、x 坐标 400→360（左移防止放大后在 75mm 标签宽度上出边被裁）。⚠️ x=300 处「其他：」/「注：」两个可选文本字段与二维码共享同一竖向区间（y≈150-190），若这两字段实际内容较长，理论上仍可能与放大后二维码左边缘重叠，需下一批真机打印时留意，详见已知遗留
 - 数据接口（已对接）：`Order/GetShops`、`Rent/GetRentPackageList`、`Rent/GetRentPackage/{id}`、`Rent/GetRentPriceList`、`Rent/SaveRentRecept`、`Order/GetShopByName`、`Rent/GetRentProductFuzzy`、`Rent/GetTopRentCategories`、`Rent/GetSubRentCategories/{id}`、`Rent/GetRentCategory/{id}`、`Order/GetOrderFromPaymentByCustomer/{paymentId}`、`Order/WechatPayByOrderPayment/{paymentId}`、`PaymentIdentity/CheckPayerIdentity`、`PaymentIdentity/ConfirmPayIdentity`
 - 支付身份验证后端：`Controllers/Order/PaymentIdentityController.cs`（5 状态决策树 + submit_phone / choose / confirm_direct 三 action），模型 `Models/Order/Order.cs` (+`wechat_unverified`) / `Models/Order/OrderPayment.cs` (+`is_proxy_pay`) / `Models/Member/MemberSocialAccount.cs` (+`TYPE_WECHAT_MINI_OPENID` 等 4 个 type 常量)
 - 支付身份验证小程序：`components/pay-identity-confirm/`（4 文件，渲染 direct_to_scanner/choose_identity/error **三态**卡片；phone_required 已迁至 payment_entry「全屏遮罩 + 底部滑入卡片」软授权弹窗，允许跳过）、`utils/data.js` 新增 `checkPayerIdentityPromise` + `confirmPayIdentityPromise`、`pages/order/payment_entry.{js,wxml,json}` 接入 identity 状态机 + 软授权流程（`pay()` 检查 `identity.scannerHasCell`，无手机号则弹卡片，授权/跳过都可继续支付）
@@ -230,6 +233,11 @@ dotnet run
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
+- **mat_expire 小程序移植 + 食材标签打印部署清单（7-21，两代码仓本地全部未提交）**：
+  - ① commit 两仓（SnowmeetApi：`_requireStaff` fallback + `PrinterController.GetAllPrinters`；`snowmeet_wechat_mini`：mat_expire 四组件/页面 + `print_food_label` + `data.js` 10 个 wrapper + `print_care_label.js` QR 调整）→ publish SnowmeetApi → 重编小程序
+  - ② **公众平台「扫普通链接二维码打开小程序」新增一条规则**：`mini.snowmeet.top/mapp/fnb/mat_detail` → `pages/admin/fnb/mat_expire_detail/mat_expire_detail`（食材标签二维码用，同养护标签先例，体验版先填测试链接）
+  - ③ 真机验证（本环境无法做）：BLE 扫描/连接食材/养护两种标签打印机；60×40mm 食材标签实际 DPI 是否符合 200dpi 保守假设（会决定是否出边）；食材标签二维码 `cellWidth=6` 与养护标签放大后 `cellWidth=4` 的实际扫描成功率；打印份数 `setPrint(n)` 真机多份出纸效果；OCR 连续扫描（`ocr_scan_layer`）在小程序 `<camera>` 组件下的真实识别率与耗时；名称字段截断上限（约 5-6 字）是否够用
+  - ④ 养护标签放大后需留意「其他：」/「注：」文本字段与二维码是否实际重叠（详见已知遗留）
 - ⏳ **养护开单店铺不一致待拍板（7-19 续2，纯诊断未改码）**：根因＝「找回中断的订单」用 `recept_new.js:112 shop: recoveredOrder.shop || shop` 优先取订单原始创建店铺、覆盖当前 shop-selector 选中值。需用户决定：保留订单原始店铺归属（现状，需加 UI 提示）还是找回时强制同步当前选店（详见开发日志 2026-07-19 续2）
 - **mat_expire 部署清单（7-19 更新，本地代码全部未提交）**：
   - ⚠️ **新硬阻塞：publish 前必须先给每个要用 H5 的人插 `member_social_account(type='wecom', num=企微UserId)` 记录**（`sql/2026-07-16_fnb_material_batch_add_staff_id.sql` 有模板）——staff 闸门上线后，没录这条的人（**包括当前正在测试的人**）会被 OAuthLogin 直接拒绝「仅限在职员工使用」。`member_id` 必须指向该员工 `social_account_for_job.member_id` 那个会员号，链路才通
@@ -277,6 +285,9 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **TSPL 标签坐标设计的 DPI 安全方向原则（2026-07-21）**：DPI 是打印机硬件固定属性，非软件可调；TSPL 所有坐标（含二维码 `cellWidth`）单位都是「点」，同一组点数最终物理多大完全取决于真机分辨率。不确定真实 DPI 时应按**更保守（更低）**的 DPI 假设设计（如 200dpi）——猜错方向的后果不对称：真机若实际分辨率更高，内容只会偏小、不会出边；反过来按更高 DPI 假设设计，真机若分辨率更低，坐标会被物理放大、直接超出标签边缘被裁。等真机测出真实 DPI 后如需要，整体等比例缩放坐标是一次性小改动，不是重写。食材标签（`print_food_label.js`）60×40mm 设计即按此原则采用 200dpi/480×320dots 画布
+- **`tsc.js` 的 `setPrint(n)` 是通用 N 份打印指令，`setPagePrint()` 只是其 n=1 特例（2026-07-21 发现）**：份数由打印机固件自己重复出纸，BLE 只需传一遍缓冲区命令，不需要像 `print_care_label.js` 那样为多份打印整份重发 BLE 数据、自己记账 `looptime`/`currentPrint`。新写打印份数需求直接用 `setPrint(n)` 即可，不必照搬养护标签那套更复杂的多份重发逻辑
+- **`print_care_label.js` 二维码放大后与相邻文本字段的潜在重叠（2026-07-21，未经真机验证）**：`setQrcode` 的 `cellWidth` 3→4、x 从 400 左移到 360（防止放大后在 75mm 标签宽度上出边）后，x=300 处的「其他：」/「注：」两个可选文本字段与二维码共享同一竖向区间（y≈150-190）。这两字段是否填、填多长都是运行时可变的，若实际内容较长，理论上可能与放大后的二维码左边缘重叠——下一批真机打印时需留意，若确实重叠再回来在「二维码稍微减小」和「压缩文本字段可用宽度」之间取舍
 - **`shop_selector` 组件的自动 beacon 定位会静默覆盖用户手动选择（2026-07-19 修，需知悉的架构缺陷）**：组件在**任何页面**加载时都会自动起蓝牙 beacon 扫描（最长 30s），跟 `scene='recept'` 与否无关；用户从下拉框手动选店（`selectChanged`）不会停掉这个后台扫描，若扫描稍后异步命中，会经 `_finalizeIfHit`→`_applySelectedShop` 静默把选择改回扫描结果——而且这里还有条「万龙互换逻辑」：只要命中店名含「万龙」且当前登录店员自己的 `base_shop` 也含「万龙」，就会把结果**强制换成店员自己的基地店**，不是扫描实际命中的那家。养护订单查询页复现：店长基地店是「万龙体验中心」（`shop_list.care=0`，不开展养护业务），手动选「万龙服务中心」查询后台跑的扫描把选择换回了店长自己的「万龙体验中心」，查询自然返回 0 单。已在 `components/shop_selector/shop_selector.js` 的 `selectChanged` 顶部加 `that._stopScan()` 修复（`_stopScan` 本身防御性写好、handler/timer 判空+try/catch，随时调用安全）。**这是共享组件，修复同时覆盖所有引用它的页面**（养护/零售/租赁订单列表、未归还列表、打印任务、商品设置、雪票报表、开单入口等），不用逐页改；但也意味着任何新用到 `shop_selector` 的页面都天然继承这条修复，不需要额外处理。诊断方法留档：先直接对生产库模拟后端过滤 SQL（同日期区间 有筛选 vs 无筛选 对比行数）排除后端/数据问题，再查前端组件时序
 - **`Refund` 类 500 先查 `payment_refund` 是否已有成功行（2026-07-15）**：Refund 的追加草稿清理段原对非租赁单 `(double)order.totalRentUnRefund` 强转 null 抛 NRE——崩溃点在**退款落库 + 网关已退之后**，钱已退、只是响应 500；用户重试会撞「超额退款」（正确提示）。已修：该段加 `order.type == "租赁"` 守卫。教训：新加的订单级清理/统计逻辑若读 `totalRent*` 系 [NotMapped] 字段，先确认业务类型（非租赁单恒 null）
 - **`DealSuccessPaidOrder` 在 `EffectCareOrder` 之前改写 `order.member_id`（2026-07-15，71884 根因）**：支付方≠开单会员时（典型=同一人微信/支付宝双通道物化出两个会员号），支付成功先把订单归属改成付款方会员 → EffectCareOrder 里任何「`order.member_id` vs 开单时会员资产」的比对守卫都静默失败（71884 季卡不核销）。已修：卡核销守卫删 member 比对（卡在开单时已验证归属）+ PlaceCareOrder 卡不属会员时清 `use_card/card_id/card_name` 双保险。今后 EffectCareOrder 内不要再用 order.member_id 做资产归属判断
@@ -3294,3 +3305,58 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 
 1. **打印顾客小票二维码 URL 规则**：唯一生成入口 [`components/care/print_care_label.js:294`](../snowmeet_wechat_mini/components/care/print_care_label.js#L294)，`https://mini.snowmeet.top/mapp/admin/care/care_order_detail/care_order_detail?orderId={id}&careId={id}`，打印时现算不落库；落地页 `care_order_detail.js` 优先解析 `options.q`（扫码进入）、fallback `options.id/careId`（站内跳转）
 2. **careId 深链只展开目标 care、其余折叠**：核实 [`_applyTargetCare()`](../snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.js#L459) 遍历全部 care 显式赋值 `_expanded=(c.id===cid)`（非默认值副作用），配合 `renderOrder` 首次默认展开分支加 `!this._targetCareId` 判断规避冲突，逻辑已正确实现（2026-07-12 详情页重设计的既有能力）
+
+### 2026-07-21 — mat_expire 移植进微信小程序 + 食材标签打印（复用养护标签机制）+ 养护标签二维码放大
+
+两块主线工作，均在 Plan Mode 下研究后实施；外加两个小追加（打印份数、养护标签调优）。全部改动本地未提交（SnowmeetApi + snowmeet_wechat_mini 两仓）。
+
+#### 一、mat_expire H5 → 小程序移植（9 任务，plan `h5-peaceful-duckling.md`）
+
+7-15/7-19 做的「食材过期提醒」此前只有企微内 H5 版本（`wwwroot/fnb/mat_expire/`）。本次给微信小程序做一套原生实现，**两套并存**、互不替代（H5 服务企微场景，小程序服务日常员工使用）。
+
+- **后端唯一改动**：`FnbMaterialController._requireStaff` 加 fallback 分支，session 走 `Util.GetStaffBySessionKey(_db, sessionKey, "wechat_mini_openid")`，对企微 H5 老用户零行为变化，同时解锁全部 8 个业务接口给小程序会话
+- **前端新增**：`utils/matExpire.js`（状态派生 `deriveStatus`，口径照抄 H5：已处理>已过期>今日>临期(≤today+warn_days)>正常，必须用服务端 `today` 字符串、不能用设备本地日期）+ `data.js` 9 个 wrapper + `components/fnb/ocr_scan_layer/`（新组件，`<camera resolution="medium">` + `<cover-view>` 覆盖 UI，`wx.createCameraContext(this)` 组件级作用域，每 1.5s `takePhoto()` 抓一帧调后端 OCR，是**连续实时扫描**不是单张快照——与 H5 版用 `getUserMedia`+canvas 抓帧异构实现，但共用同一套后端 `FnbMaterial/OcrScanName` 识别逻辑）+ `pages/admin/fnb/mat_expire_list/` + `mat_expire_detail/`（列表/详情/编辑/OCR 全部原生页面）
+- 用户明确拍板：开放给**全体在职店员**，不做 title_level 分级门槛（不同于部分其它管理功能）
+- 入口：admin 导航「餐饮」分组新增「【餐饮】食材过期提醒」
+
+#### 二、食材标签打印（7 任务，plan 复用同一 `h5-peaceful-duckling.md`，后被完全改写）
+
+用户需求原话：「打印的内容是当前批次…附带个二维码…列表页/详情页增加标签打印按钮…标签尺寸为30\*20…**尽量和雪板标签打印复用**」。研究阶段一度被用户 `暂停` 中断（后台 Explore agent 被强制终止），用户确认「所有的任务都重新来」后按同一需求重新调研+实施。
+
+**复用策略**：`utils/ble_label_printer/tsc.js`（TSPL 命令生成、二维码由打印机固件原生渲染）+ `utils/util.js` 的通用蓝牙 Promise 与 `components/care/print_care_label.js` 完全同款、**一行未改**直接复用；`print_care_label.js` 组件本身（属性/`getCommand()`排版/自动选打印机业务规则）深度耦合养护数据结构无法直接复用，故新写一个同级组件 `components/fnb/print_food_label/`，只重写两小段业务特有逻辑：
+1. 「搜到就连、连上第一台就用」重试循环——`print_care_label.js:178-182` 里这段逻辑其实是**注释掉的死代码**，这次是真正写活它（`_tryConnect()` 递归尝试直到成功或列表耗尽）
+2. 全新的、小得多的标签排版（`getCommand()`）
+
+- **后端新增**：`PrinterController.GetAllPrinters`，全表查询（不按 shop 过滤——`FnbMaterialBatch` 本身不分店，BLE 扫描物理距离已是唯一有效筛选边界），包 `ApiResult` 信封；与已有 `GetPrinters`（未包信封，两个存量调用方依赖裸数组，不可改）、`GetPrinterByScene`（按店过滤，服务养护流程）三口并存不合并
+- **DPI 与二维码尺寸取舍**（AskUserQuestion 确认用户不了解真机 DPI）：拍板按 200dpi 保守假设设计，理由见已知遗留新增条；`cellWidth` 沿用养护标签已在用的密度（当时是 3，本会话后段又把养护标签这个值调到 4）
+- **尺寸迭代**：初版 30×20mm 实施完成后，用户追加「标签尺寸改为 60\*40，字体二维码随之放大」——所有坐标/字体/`cellWidth` 等比例 ×2（`TSS16.BF2`→`TSS32.BF2`、ANK 字体代码 `1`→`3`、QR `cellWidth` 3→6），字符数上限不变，只是单字符/单模块物理尺寸翻倍
+- **打印份数**（用户追加，同一句话连发 3 次疑似客户端问题按 1 次需求处理）：`copies` 字段默认 `'1'`，WXML `<input type="number">` 触发数字键盘，`_resolveCopies()` 做唯一校验点（非正整数兜底 1、上限 99 防误触多打），发现并使用 `tsc.js` 现成的 `setPrint(n)` 指令（份数由打印机固件重复出纸，不需要养护标签那套多份重发记账，详见已知遗留新增条）
+- **两个入口**：列表页 ⋯ 上下文菜单加「打印标签」行 + `van-popup`；详情页独立按钮（`opsShow` 门控，未保存批次没有 id 不能打印）
+- **深链**：详情页 `onLoad` 补 `options.q` 解析（`util.parseQuery`），支持扫食材标签二维码直接定位打开对应批次，格式与养护标签深链同一范式
+
+#### 三、追加：养护标签二维码放大（生产文件 `print_care_label.js` 直接改）
+
+用户看到食材标签放大后的二维码效果，追问「养护订单详情页打印小票的二维码尺寸是多少」（答疑：原 `cellWidth=3`，41 模块见方 ≈15.4mm），随即要求「cellwidth 调整到4，为了防止打印不下，二维码往左适当移动」。改动：`setQrcode` 的 `cellWidth` 3→4（放大），x 坐标 400→360（左移防出边）。⚠️ 未经真机验证是否与「其他：」/「注：」两个可选文本字段（同一 y 区间）重叠，详见已知遗留。
+
+#### 关键改动文件
+
+| 文件 | 改动 |
+|---|---|
+| [`Controllers/Fnb/FnbMaterialController.cs`](../SnowmeetApi/Controllers/Fnb/FnbMaterialController.cs) | `_requireStaff` 加小程序 session fallback 分支 |
+| [`Controllers/PrinterController.cs`](../SnowmeetApi/Controllers/PrinterController.cs) | 新增 `GetAllPrinters`（全表、包 ApiResult） |
+| `snowmeet_wechat_mini/utils/matExpire.js` | 新建：状态派生 `deriveStatus` 等日期/状态工具 |
+| `snowmeet_wechat_mini/utils/data.js` | 新增 9 个 wrapper（mat_expire 8 个 + `getAllPrintersPromise`） |
+| `snowmeet_wechat_mini/components/fnb/ocr_scan_layer/` | 新建：连续摄像头 OCR 扫描组件（4 文件） |
+| `snowmeet_wechat_mini/pages/admin/fnb/mat_expire_list/` | 新建：列表页（4 文件，含打印入口） |
+| `snowmeet_wechat_mini/pages/admin/fnb/mat_expire_detail/` | 新建：详情/编辑页（4 文件，含打印入口 + `options.q` 深链） |
+| `snowmeet_wechat_mini/pages/admin/admin.{js,wxml}` | 「餐饮」组新增 mat_expire 导航入口 |
+| `snowmeet_wechat_mini/app.json` | 注册两个新页面 |
+| `snowmeet_wechat_mini/components/fnb/print_food_label/` | 新建：食材标签打印组件（4 文件，60×40mm + 打印份数） |
+| [`components/care/print_care_label.js`](../snowmeet_wechat_mini/components/care/print_care_label.js) | `setQrcode` cellWidth 3→4、x 400→360 |
+
+#### 学到的小知识
+
+1. **DPI 是硬件固定属性，TSPL 坐标单位是「点」不是「毫米」**：不确定真机分辨率时，按更保守（更低）的 DPI 假设设计是唯一安全方向——错误后果不对称，偏低估只会让内容变小，偏高估会导致真机裁切出边，详见已知遗留
+2. **`tsc.js` 里 `setPrint(n)` 与 `setPagePrint()` 的关系**：后者只是前者 n=1 的特例，多份打印应优先用 `setPrint(n)` 交给打印机固件处理，不必模仿 `print_care_label.js` 更复杂的应用层多份重发逻辑
+3. **公共 TSPL/BLE 基础设施（`tsc.js`+`util.js`）与业务组件（`print_care_label.js`）复用粒度不同**：前者零耦合可以直接复用，后者深度耦合业务数据结构复用性差，正确的复用策略是「共享底层库、新写业务组件」而不是改造既有业务组件塞新参数
+4. **后台 agent 被用户中断后不可恢复，需重新调度**：`SendMessage` 到被 `暂停` 打断的 Explore agent 返回明确的「已停止不可恢复」提示，此时应直接重新 spawn 而非反复重试恢复
