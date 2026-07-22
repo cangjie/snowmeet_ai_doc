@@ -172,7 +172,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-21）
+## 当前状态（截至 2026-07-22）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -233,6 +233,12 @@ dotnet run
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 
 **下一步要做的**
+- **租赁次卡销售功能部署清单（7-22，全量新功能，两代码仓本地未提交）**：
+  - ① commit 两仓（SnowmeetApi：Product/Retail/PunchCard 模型加字段 + RentController 新增 6 接口 + OrderController 4 处改动；`snowmeet_wechat_mini`：rent_order_detail 卖卡 UI + 次卡销售展示 + 两个新页面 `pages/mine/punchcard/*` + 管理页 `pages/admin/rent/punchcard_products/*` + `new_rent_list` 零售筛选/角标）
+  - ② **生产库先跑 SQL 迁移再 publish**：[`sql/2026-07-22_punch_card_sale.sql`](sql/2026-07-22_punch_card_sale.sql)（`product.punch_total`、`retail.product_id`/`punch_card_id`、`punch_card.source_retail_id` 四个新列 + 三个外键），EF 加字段后所有相关查询默认 SELECT 该列，不先加列会让查询全挂（同 punch_card/customer_open_date 教训）
+  - ③ publish SnowmeetApi + 重编小程序
+  - ④ 真机/DevTools 端到端：退押金流程内嵌购买次卡（试算→扫码/现金/多退三种结算腿）+ 顾客自助购买（我的→我的次卡→购买次卡→通用结算页）+ 订单详情页「次卡销售」展示 + 订单列表「零」角标与筛选
+  - ⑤ 抽查生产库确认幂等（同一单不会重复核销/重复退款）
 - **mat_expire 小程序移植 + 食材标签打印部署清单（7-21，两代码仓本地全部未提交）**：
   - ① commit 两仓（SnowmeetApi：`_requireStaff` fallback + `PrinterController.GetAllPrinters`；`snowmeet_wechat_mini`：mat_expire 四组件/页面 + `print_food_label` + `data.js` 10 个 wrapper + `print_care_label.js` QR 调整）→ publish SnowmeetApi → 重编小程序
   - ② **公众平台「扫普通链接二维码打开小程序」新增一条规则**：`mini.snowmeet.top/mapp/fnb/mat_detail` → `pages/admin/fnb/mat_expire_detail/mat_expire_detail`（食材标签二维码用，同养护标签先例，体验版先填测试链接）
@@ -285,6 +291,9 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`retail.order_type` 是 DB `NOT NULL` 但 C# 模型默认 `null`（2026-07-22 踩）**：新建 `Retail` 行时若忘记显式设置 `order_type`，`SaveChangesAsync` 会抛 `Cannot insert the value NULL into column 'order_type'`。次卡销售功能的 3 处 `new Retail()`（`StartPunchCardSaleQr` 的 pending 行、`FinalizePunchCardSale` 的 cash/refund 分支、`OrderController.PlaceOrder` 的顾客自助购买分支）都补了 `order_type = "租赁附加"`。今后任何新建 `Retail` 行都要检查这个字段，不能假设它有合理默认值
+- **金额相减要 `Math.Round(x, 2)`，否则显示成科学计数法尾数（2026-07-22 踩）**：`priceDiff = product.sale_price - totalBenefit` 这类 `double` 直接相减，`0.03-0.02` 会算出 `0.00999999999999998` 直接显示给用户看。已在 `ComputePunchCardSaleCalc` 里给 `freedRentValue`/`refundableDepositBeforeCard`/`totalBenefit`/`priceDiff` 全部套 `Math.Round(x, 2)`。这类"试算/差价"场景（本质是多个金额字段做加减法后展示）都要留意
+- **"钱没到位、资产就不能创建"的状态机模式（2026-07-22，次卡销售功能定型）**：凡是"顾客要付钱/退钱才能拿到的东西"（次卡、会员卡、券等），落库顺序必须是：① 试算只读不写库；② 需要异步收款（扫码）时先建一个 `valid=0` 的 pending 记录 + 发起支付，此时不能创建最终资产；③ 只有在对应支付/退款**确认成功**之后，才在同一个事务里把 pending 记录翻成 `valid=1` 并创建资产（次卡销售是 `Retail.valid` 从 0→1 + 创建 `PunchCard`）。如果顾客最终没付/退款失败，什么都不需要清理——它就停留在 `valid=0`，不影响任何其它状态。这个模式可以直接复制给未来任何"先选购、后确认收款、收款成功才发货"的功能
 - **TSPL 标签坐标设计的 DPI 安全方向原则（2026-07-21）**：DPI 是打印机硬件固定属性，非软件可调；TSPL 所有坐标（含二维码 `cellWidth`）单位都是「点」，同一组点数最终物理多大完全取决于真机分辨率。不确定真实 DPI 时应按**更保守（更低）**的 DPI 假设设计（如 200dpi）——猜错方向的后果不对称：真机若实际分辨率更高，内容只会偏小、不会出边；反过来按更高 DPI 假设设计，真机若分辨率更低，坐标会被物理放大、直接超出标签边缘被裁。等真机测出真实 DPI 后如需要，整体等比例缩放坐标是一次性小改动，不是重写。食材标签（`print_food_label.js`）60×40mm 设计即按此原则采用 200dpi/480×320dots 画布
 - **`tsc.js` 的 `setPrint(n)` 是通用 N 份打印指令，`setPagePrint()` 只是其 n=1 特例（2026-07-21 发现）**：份数由打印机固件自己重复出纸，BLE 只需传一遍缓冲区命令，不需要像 `print_care_label.js` 那样为多份打印整份重发 BLE 数据、自己记账 `looptime`/`currentPrint`。新写打印份数需求直接用 `setPrint(n)` 即可，不必照搬养护标签那套更复杂的多份重发逻辑
 - **`print_care_label.js` 二维码放大后与相邻文本字段的潜在重叠（2026-07-21，未经真机验证）**：`setQrcode` 的 `cellWidth` 3→4、x 从 400 左移到 360（防止放大后在 75mm 标签宽度上出边）后，x=300 处的「其他：」/「注：」两个可选文本字段与二维码共享同一竖向区间（y≈150-190）。这两字段是否填、填多长都是运行时可变的，若实际内容较长，理论上可能与放大后的二维码左边缘重叠——下一批真机打印时需留意，若确实重叠再回来在「二维码稍微减小」和「压缩文本字段可用宽度」之间取舍
@@ -3360,3 +3369,39 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 2. **`tsc.js` 里 `setPrint(n)` 与 `setPagePrint()` 的关系**：后者只是前者 n=1 的特例，多份打印应优先用 `setPrint(n)` 交给打印机固件处理，不必模仿 `print_care_label.js` 更复杂的应用层多份重发逻辑
 3. **公共 TSPL/BLE 基础设施（`tsc.js`+`util.js`）与业务组件（`print_care_label.js`）复用粒度不同**：前者零耦合可以直接复用，后者深度耦合业务数据结构复用性差，正确的复用策略是「共享底层库、新写业务组件」而不是改造既有业务组件塞新参数
 4. **后台 agent 被用户中断后不可恢复，需重新调度**：`SendMessage` 到被 `暂停` 打断的 Explore agent 返回明确的「已停止不可恢复」提示，此时应直接重新 spawn 而非反复重试恢复
+
+### 2026-07-22 — 租赁次卡销售功能全量落地（plan 流程，前后端）+ 订单详情/列表联动展示
+
+全新功能：租赁次卡（`punch_card`）此前只能免费发放（`GrantPunchCard`），本次给它接上"卖钱"的完整链路——退押金时店员可推销购买、顾客也可自助购买。Plan Mode 三问澄清 + 一次关键用户纠正（试算/状态机语义）后落地。详见 plan 文件 `product-order-rental-snappy-sunset.md`（本机 `~/.claude/plans/`，未入库）。改动跨 `SnowmeetApi`（Product/Retail/PunchCard 三模型 + RentController 六接口 + OrderController 四处）+ `snowmeet_wechat_mini`（七个页面/组件，含三个全新页面）+ 一份 SQL 迁移，**两代码仓本地未提交**，需先跑 SQL 迁移再 publish + 重编。归档见 [`sessions/2026-07-22_punch_card_sale_feature.md`](sessions/2026-07-22_punch_card_sale_feature.md)。
+
+#### 一、业务规则（用户拍板，含一次关键纠正）
+- 财务公式：`totalBenefit = 核销前应退押金 + 立即核销省下的租金`；`priceDiff = 次卡价格 - totalBenefit`；`≤0` 多退、`>0` 需补差价
+- 渠道：退押金时"卖卡"是店员操作（title_level≥100）；"单独购买"是顾客自助（不经店员）
+- 补差价三种结算方式：扫码支付 / 现金手动确认 / **不支持储值扣款**（用户后来明确要求移除这一项，见下）
+- **【关键纠正】"钱没到位、什么都不算数"的状态机**：试算是纯只读；扫码这种异步结算，先建 `valid=0` 的 pending `Retail` 行 + 发起支付，此时不建 `PunchCard`、不核销；只有支付/退款确认成功后才在同一事务里翻 `valid=1` + 建卡 + 核销。顾客放弃/超时不需要任何清理。不选次卡时原有退押金流程完全不变
+- 身份核验：订单已核验（`wechat_unverified==true`）任意方式都行；未核验则要么顾客本人微信扫码支付、要么先扫码核验再用其它方式
+
+#### 二、后端实现（`SnowmeetApi`）
+- **模型加字段**：`Product.punch_total`（次卡总次数）、`Retail.product_id`/`punch_card_id`/`order_type`、`PunchCard.source_retail_id`
+- **`RentController.cs`** 提取共享逻辑 + 新增六接口：`BuildSkiRentPunchQueue`/`WriteOffSkiPunches`（从 `GetRentalPunchCardInfo`/`UseRentalPunchCard` 提取，顺带修了"按 rental 拼接排序"改成"全局按日期排序"的既存 bug）；`GetPunchCardProducts`（会话级，商品目录浏览）、`GetMyPunchCards`（顾客自己名下的卡）、`PreparePunchCardSale`（只读试算）、`StartPunchCardSaleQr`（创建 pending 无效 retail + 复用现成的 `Order/GetWepayPayment`/`GetAlipayMiniPayment`）、`FinalizePunchCardSale`（幂等守卫 + 身份核验 + 四种结算腿之一先落地 + 建卡/核销/回填全部同一事务）
+- **`OrderController.cs`**：抽出 `RefundCore`/`AllocateRefundAcrossPayments` 两个 `[NonAction]` 方法供 `RentController` 调用；`GetOrder`/`GetCommonOrders` 补上"租赁订单也要加载 `retails`"（此前从未加载）；`PlaceOrder` 的"零售"分支加价格服务端覆盖（顾客自助购买不能信任客户端传的价格）；`DealSuccessPaidOrder` 新增"零售"分支支付成功后自动发卡
+
+#### 三、前端实现（`snowmeet_wechat_mini`）
+- `rent_order_detail`：退押金卡片内嵌"购买次卡"入口 → 选卡/试算/结算三步弹窗 → 扫码腿的二维码轮询
+- 新建 `pages/mine/punchcard/{my_punchcards, punchcard_shop}`（顾客自助浏览+购买+我的次卡列表）+「我的」页新增入口
+- 新建 `pages/admin/rent/punchcard_products/`（店长≥200 管理次卡商品：名称/价格/次数/上下架/店铺，复用现成的 `Category/AddProduct`/`ModProduct`）
+- `data.js` 新增 7 个 promise 封装
+
+#### 四、真机反馈驱动的三轮修复
+1. **`priceDiff` 显示 `¥0.00999999999999998`**：`double` 直接相减的浮点尾数，`ComputePunchCardSaleCalc` 内全部结果套 `Math.Round(x,2)`（详见已知遗留）
+2. **用户明确要求"购买次卡不允许储值支付"**：前端删掉「储值扣款」按钮 + 后端 `FinalizePunchCardSale` 直接删除整个 `deposit` 结算分支（不信任客户端 method，服务端明确拒绝）
+3. **`StartPunchCardSaleQr` 500：`order_type` 不能为 NULL**：三处 `new Retail()` 都补 `order_type = "租赁附加"`（详见已知遗留）——包括顾客自助购买那条此前遗漏的路径
+
+#### 五、订单详情页 + 列表页联动展示（同一场会话内追加需求）
+- **订单详情页「次卡销售」展示**：调研发现"总计押金/总计租金/应退押金/实际应退"等核心租赁数字从不包含 `retails` 金额（这其实是对的——次卡售价是独立的零售消费，不该混进租金/押金口径），但完全没地方能看到这笔销售、"购买次卡多退"这类退款也会无声混进"已退金额"。修复：`GetOrder` 补 `.Include(r.product).Include(r.punchCard)`；`FinalizePunchCardSale` 把结算细节写进 `retail.memo`（"购买『XX』次卡…本单核销N次…扫码支付补差价¥X"），前端新增只读的「次卡销售」列表 + 支付信息卡片加"其中含购买次卡多退¥X"提示行
+- **订单列表「零」角标 + 筛选**：`Order` 新增 `[NotMapped] hasRetail` 计算属性；`GetCommonOrders`"租赁"分支 WHERE 子句加对称的 `hasRetail` 过滤（紧邻既有 `useCard` 判断）；列表页加"零售"三态筛选行（全部/包含/不含）+ 标签列新角标「零」（青色，与「质」标签同配色）
+
+📌 关键发现 / 教训：
+- **核心业务数字的口径边界要想清楚**：不是所有相关的钱都要塞进同一个汇总公式，"次卡销售"和"租金/押金"是两件独立的事，正确做法是分开展示 + 在容易混淆的地方（已退金额）做显式标注，而不是把两者硬揉进一个数字
+- **给"卖资产"类功能设计接口时，先划清"只读试算 / 异步待收款 / 已收款确认"三个阶段**，每个阶段允许写的库表范围完全不同，是避免"钱没到位却创建了资产"或"资产建了钱却没结算"的关键
+- **每次新建带 `NOT NULL` 列的实体，都要过一遍 DB 实际 schema**，不能只看 C# 模型的默认值——这是本仓库反复出现的坑（`punch_card`/`customer_open_date`/`order_type` 皆属此类）
