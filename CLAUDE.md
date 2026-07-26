@@ -231,12 +231,21 @@ dotnet run
   - 后端（已编译 0 错误，随下次部署生效）：`CareController.SaveCareRecept`（草稿 order valid=0 + cares valid=0；删除的 care **物理删行**——EffectCareOrder 不过滤 valid；careImages 按 id diff 增删；导航置空防 TrackGraph 异常）、`GetReceptingOrder` 加 include cares(+careImages.image)、`OrderController.PlaceCareOrder`（服务端权威定价照抄旧 PlaceOrder 养护分支 + care.valid=1 + GenerateOrderCode 先于 EffectCareOrder + Discount 记录（ticket_discount 金额已修对）+ 0 元单立即 EffectCareOrder + **summer 单无会员拦截**——EffectCareOrder 非雪季发券 (int)member_id 强转会炸）
   - 支付触发链路零改动：DealSuccessPaidOrder / EffectUnpaidOrder / PayWithDeposit 均已对 type=='养护' 调 EffectCareOrder
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
+- **次卡/季卡全链路（7-26）关键文件**：后端集中在 `Controllers/RentController.cs`（顾客自助：`CheckMyPunchCardPurchase`/`PlaceMyPunchCardOrder`/`GetMyPunchCardOrder`/`StartMyPunchCardPayment`；目录：`GetPunchCardProducts`(cardType=`all` 哨兵)/`GetPunchCardProduct`/`DeletePunchCardProduct`；明细与管理：`GetMyPunchCardUsages`/`GetPunchCardUsagesByStaff`/`GetPunchCardSalesByStaff`/`UpdatePunchCardEquipByStaff`；共享 helper `StripHtmlToPlainText`/`BuildPunchCardProductView`/`BuildPunchCardUsageView`）+ `CareController`（`IsSeasonCardUnbound`/`HasFullEquipInfo` + `EffectCareOrder` 季卡开卡）+ `MemberAdminController`（发卡预设改读商品目录、`GetMemberAssetsByStaff` 加券/季卡、`GetMemberCardsByStaff` 加 `usedToday`）+ `MiniAppUserController.ResolveOrCreateMemberByCell`。前端新增页 `pages/punchcard/punchcard_confirm`（顾客确认支付）、`pages/mine/punchcard_usage`（使用明细，`?staff=1` 双模式）、`pages/admin/rent/punchcard_sales`（卡类产品销售列表）
 - **次卡/季卡商品维护（7-25，代码完成待部署）**：后端 `Controllers/RentController.cs` 的 `ResolveCardCategoryCode`/`GetAllPunchCardProducts`/`GetPunchCardCategoryCode`；前端 `pages/admin/rent/punchcard_products/punchcard_products.{js,wxml,wxss}`（列表+筛选）+ 新增 `pages/admin/rent/punchcard_products/punchcard_product_detail/`（新建/编辑详情页，图片+富文本）+ `components/uploader/multi-uploader`（修了 `max-count` 绑定 bug）+ `utils/data.js`（`getAllPunchCardProductsPromise`/`getPunchCardCategoryCodePromise`/`getProductPromise`）
 - **次卡自助退款（7-25，代码完成，⚠️ 需先加列再部署）**：一次未核销过的卡，顾客在 `pages/mine/punchcard_usage` 自助退款，微信/支付宝原路退回；非微信支付宝、可退余额不足、赠送/存量无购买关联的卡一律显示原因并引导联系店员。后端 `RentController` 的 `EvaluatePunchCardRefund`（预判与执行共用一份口径）+ `RefundMyPunchCard`；`OrderController.RefundCore` 的 `staff` 参数改可空（顾客自助无经手店员）；已退款卡在 6 处核销入口全部排除、在 3 处列表里标灰显示不隐藏。DDL [`sql/2026-07-25_punch_card_add_is_refund.sql`](sql/2026-07-25_punch_card_add_is_refund.sql)
 - **订单生效补全会员姓名性别（7-26，纯后端，无库表变更）**：`SupplementMemberProfileFromOrder` 6-30 只挂了 `DealSuccessPaidOrder` 一条路径，另 4 条不经过支付回调的生效路径（旧版 `PlaceOrder` 0 元养护单 / `PlaceCareOrder` 无权益 0 元单 / `PayWithDeposit` 储值支付 / `WriteoffCareOrder` 养护核销）全都补不上，本次补齐 5 处
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
+  - ① **三条 DDL 已确认在生产库执行**（`product.usage_rules` / `product.care_project_count` / `punch_card.care_project_count`，2026-07-26 连库核对过），无新增 DDL 阻塞
+  - ② push SnowmeetApi 剩余 commit → publish SnowmeetApi → 重编小程序（前后端**必须同时上**：`cardType=all` 哨兵、手机号验证、季卡规则都是两侧配合的）
+  - ③ **公众平台无需新增规则**（本次没有新的扫码链接路径）
+  - ④ 端到端验证（顾客侧）：底部菜单「次卡」→ 购买页应显示 3 张卡（含 26-27雪季机打蜡季卡）→ 点购买 → **用没绑手机号的微信号**应弹授权、授权后自动进确认页 → 确认页能看到使用规则 → 微信支付 → 我的次卡出现新卡 → 点进去看核销记录
+  - ⑤ 端到端验证（店员侧）：养护开单选季卡 → 未开卡的应显示琥珀「即将开卡」提示 → 生效后查 `punch_card.equip_*` 已写入 + `core_data_mod_log` 有「季卡开卡绑定装备」→ **当天再开单该季卡应置灰「今日已用」**
+  - ⑥ 管理后台：admin →「【零售】卡类产品销售」列表（销售方式三色角标）→ 点条目进明细 → 季卡可改装备品牌/长度
+  - ⑦ ⚠️ **商品 718「修刃打蜡（双项）10次卡」收款门店为空**，顾客下单会被拒；且它是养护次卡、需确认「养护项目」选了双项。进编辑页补齐后再验
 - **次卡自助退款 + 店员侧次卡能力 + 订单生效补全会员资料 部署清单（7-25~26，两代码仓本地未提交）**：
   - ① **生产库先跑 [`sql/2026-07-25_punch_card_add_is_refund.sql`](sql/2026-07-25_punch_card_add_is_refund.sql)**（`punch_card.is_refund` BIT NOT NULL DEFAULT 0）**再 publish**——EF 加字段后所有 punch_card 查询默认 SELECT 该列，不先加列会让次卡相关查询全挂（同 `punch_card.total` 可空化 / `order_payment.customer_open_date` 教训）
   - ② publish SnowmeetApi（次卡退款全链路 + 6 处核销拦截 + 会员资料补全 4 处新调用点 + 店员侧三个新接口）+ 重编小程序
@@ -306,6 +315,16 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **ASP.NET Core 对「查询参数存在但值为空」的可选参数会回落到默认值（2026-07-26 踩）**：`?cardType=` 这种写法**不会**把 `""` 或 `null` 传进来，而是让参数变回方法签名上的默认值（`cardType = "次卡"`）。想表达「全部/不限」必须用**显式非空哨兵**（本次用 `all`，后端 `cardType.Trim().Equals("all", OrdinalIgnoreCase)` 识别），不能靠传空串。踩点：顾客购买页只显示次卡、季卡怎么建都不出现，而代码里 `IsNullOrWhiteSpace(cardType)` 判「全部」的分支根本执行不到。前后端两侧都要留注释，防止有人「顺手简化」回空串
+- **`wx.uploadFile` 的 success 对任何 HTTP 状态码都触发（2026-07-26 第二次踩，`components/uploader/multi-uploader.js`）**：与 2026-07-08 修 `data.js uploadFilePromise` 是同一族 bug。`multi-uploader` 不判 `res.statusCode`，把**错误响应体**（JSON/HTML）当文件路径拼进 URL 存进 `product_image.image_url` —— 上传界面看着成功、库里存的是垃圾地址、顾客端 `<image>` 只能渲染出空白横幅。已修：非 2xx 直接 toast 中止 + 返回值不是以 `/` 开头的站内路径也拒绝入列。**今后任何 `wx.uploadFile` 封装都必须判状态码 + 校验返回值形状**
+- **`mode="aspectFill"` 是裁剪、`widthFix` 才是完整显示（2026-07-26 踩）**：`aspectFill` = 填满容器 + 裁掉溢出，配上写死的容器高度就把图切成中间一条（曾误判成"图片加载失败"绕了两轮，实际图一直加载正常）。改 `widthFix` 时**容器必须同时去掉固定高度**，否则 widthFix 撑出来的高度被 `overflow:hidden` 截断，等于又变回裁剪。小方框缩略图用 `aspectFit`（整图缩进去不裁）
+- **`GetMemberBySessionKey` 在 session 存在但 `member_id` 为 null 时返回 null（2026-07-26 踩，修 `MiniAppUserController.UpdateWechatMemberCell`）**：自 2026-05-29 `MemberLogin` 不再建 stub 会员后，**没注册过的用户** `mini_session.member_id` 恒为 null。所有「新顾客第一次做某事」的接口都要处理这个分支——`UpdateWechatMemberCell` 后面用 `member.id` 拼 LINQ 条件，member 为 null 时 EF 在**求值查询参数**阶段抛 NRE，堆栈是 `ExpressionTreeFuncletizer` + `InvalidOperationException`，看着像 EF 内部错误、实则是自己的空引用。已加 `ResolveOrCreateMemberByCell` 兜底（语义照搬 `PaymentIdentityController._submitPhone`：按手机号找会员→找到就链 openid/unionid、找不到就建会员 + 回填 `mini_session.member_id`）。⚠️ `MemberController.VerifyCell:783` 有一模一样的隐患，只是当前无调用方走到
+- **`OrderController.PlaceOrder` 是 if/else 分流的（2026-07-26 踩）**：`if (staff != null && staff.title_level >= 100) order.staff_id = staff.id; else if (member != null && ...) order.member_id = member.id;` —— **下单人本身是店员时只写 staff_id、member_id 留空**，订单没有归属会员，后续「这单是不是我的」全判不了（表现为顾客自助购买确认页报「订单不存在」）。**不能改成「总是填 member_id」**：店员给散客开单时 member_id 本来就该空，填上会把散客单错记到店员名下。顾客自助场景要单开下单接口（本次新增 `Rent/PlaceMyPunchCardOrder`）。同一方法里 `CoreDataModLog` 的 `staff_id = staff.id` 也是写死的、顾客会话必 NRE，已改 `staff?.id`
+- **`punch_card_used` 是「每条 rental / 每件 care 一行」的粒度（2026-07-26）**：按订单展示核销记录必须 `GroupBy(order_id)` + `Sum(punch_count)`，否则一张多 rental 的订单会重复出现好几行。另：**同一批次内的重复占用查库查不出来**——季卡「每天限一次」时，同一订单多件装备选同一张卡，下单这一刻本单都还没落 `punch_card_used`，必须在循环里用集合（`seasonCardUsedInThisOrder`）累加才拦得住
+- **weui `mp-tabbar` 的 `tabIndex` 硬编码在各页面 data 里（2026-07-26 踩）**：底部菜单不是 app.json 原生 `tabBar`，而是 weui 组件 + `app.globalData.userTabBarItem` 数组。**往数组中间插项会让后面所有页面的高亮错位**（插「次卡」后「我的」必须从 1 改成 2）。增删项时要同步核对所有用了 `mp-tabbar` 的页面：index / mine / ski_pass_selector / ski_pass_reserve / punchcard_shop。已在 app.js 数组上方留注释
+- **`pages/index/index.js` 的「店员自动进后台」分支一直是坏的（2026-07-26 发现并删除）**：它跳 `/admin/admin`，而 app.json 注册的是 `pages/admin/admin` —— 路径不存在，`navigateTo` 必然失败，且失败后**不会**走 else 分支，**店员打开小程序其实一直卡在空白首页**。已删该分支改为所有人统一跳次卡页；店员进后台走「我的 → 我是管理员」（`wx:if="{{staff}}"`）
+- **`product.shop` 是「收款归属门店」不是「适用门店」（2026-07-26 用户澄清后返工）**：它决定 `order.shop` → `GetMchId` 选哪个微信商户号、`GenerateOrderCode` 取哪个门店前缀，也就是**这笔钱进谁的账**；卡买到手全店通用。因此 ① 顾客端目录**不得**按门店过滤 ② 顾客端**不展示**门店（展示成"适用门店"会让人以为只能在那家用）③ 后台必填。另：真实店名里「南山」「总部」「渔阳」「怀北」**都不带「店」字**，手输极易写错，商品维护页已改成从 `shop_list` 选择器选
+- **季卡的三条业务规则（2026-07-26 定型）**：① **单项/双项**——原靠卡名含「双项」判断，现改 `product/punch_card.care_project_count`（1=单项 修刃或热蜡 / 2=双项 修刃+热打蜡），发卡售卡时复制到卡、核销优先读字段，NULL 的历史卡回退卡名匹配 ② **开卡绑定装备**——季卡发出时 `equip_*` 为空，第一次真正用它养护时才把本次装备写进卡；**三项装备信息缺一项就不写**（写进残缺绑定 = 这张卡以后再也匹配不上任何装备，等于废掉）③ **每天限用一次**——季卡不限总次数，没这道闸等于无限免费，选卡列表按 `usedToday` 禁选 + `PlaceCareOrder` 服务端兜底
 - **「订单生效」不是一个点，而是散落 5 处的入口（2026-07-26 踩）**：`SupplementMemberProfileFromOrder`（订单生效后补全会员空姓名/性别）6-30 首版只挂了 `DealSuccessPaidOrder`，导致养护/储值/0 元单一律补不上。完整清单：① `DealSuccessPaidOrder`（微信/支付宝回调；`EffectUnpaidOrder` 的现金/挂账确认转调它）② 旧版 `PlaceOrder` 0 元养护单 place 即生效 ③ `PlaceCareOrder` 无权益 0 元单 ④ `PayWithDeposit` 储值支付 ⑤ `WriteoffCareOrder` 养护核销。**后 4 条压根不经过支付回调**。今后任何「订单生效后要做的事」都必须挂满这 5 处；锁定入口的方法是 `grep "EffectRentOrder("` + `grep "EffectCareOrder("` + `grep "dealed = 1"` 三条命令（`EffectRentOrder` 只有 1 个调用点在 DealSuccessPaidOrder 内，零售/雪票生效都在它的 switch 里）。⚠️ `PayWithDeposit` 的调用点要放在收尾处、不限业务类型——租赁「储值付租金」分支下面不调 Effect，挂在 `EffectCareOrder` 旁边会漏掉租赁
 - **`DbSet.Local` 治「同 id 实体实例撞键」（2026-07-26）**：调用方对 order 做 `Entry().State = Modified` 时，EF 会沿导航图把 `order.member` 一并 attach 进跟踪器；被调用的公共方法若再查一个同 id 的新 Member 实例并 attach，就抛 `another instance with the same key value is already being tracked`。干净解法是让公共方法自己 `_db.member.Local.Where(m => m.id == ...).FirstOrDefault()` 优先复用已跟踪实例、已跟踪时**不要**再显式设 `Modified`（靠变更跟踪自动识别），比让每个调用点各自 Detach 省心。全局 NoTracking 下 `Local` 通常为空，开销可忽略。与「EF `Remove()`/`Add()` 沿导航图附加实体」是同一族坑
 - **`punch_card.source_retail_id` 是 2026-07-22 才加的 → 存量卡一律不能自助退款（2026-07-25）**：7-22 之前发的卡（含店员 `GrantPunchCard` 手工发放、注册开卡礼包）都没有购买关联，`EvaluatePunchCardRefund` 一律判为「没有关联的线上支付记录」转人工。**其中可能有线下收过钱的**，所以文案不能武断说"是赠送的"。做任何「针对存量数据的新功能」前，先确认它依赖的字段从哪个版本开始有值
@@ -3466,3 +3485,59 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - **判断类逻辑做成"预判与执行共用一份"**，否则必然出现"页面给了按钮、点下去被拒"
 - **"某功能已挂上"的文档记载要 grep 验证**：CLAUDE.md 记 `SupplementMemberProfileFromOrder` 已挂两处，实际只有一处、而入口有 5 条。文档写"已完成"时最好把调用点清单一并列出
 - **同一件事有多个"完成入口"时先枚举清单再改**：靠 `grep "EffectRentOrder("` + `grep "EffectCareOrder("` + `grep "dealed = 1"` 才锁定 4 处遗漏；只读代码顺主流程走一定会漏旁路
+
+### 2026-07-26 — 次卡/季卡全链路：顾客自助购买闭环 + 养护季卡语义 + 卡销售管理（含 5 个既有 bug）
+
+接续 7-25「次卡/季卡商品维护」，把这条线从**后台商品维护**一路打通到**顾客自助购买 → 支付 → 发卡 → 核销 → 管理后台查账**。改动跨 `SnowmeetApi` + `snowmeet_wechat_mini`（用户分批 commit）。归档见 [`sessions/2026-07-26_punchcard_customer_flow_and_season_card.md`](sessions/2026-07-26_punchcard_customer_flow_and_season_card.md)。**本场首次用 `config.sqlServer` 直连生产库做只读排查**，三次一击定位根因（其中两次推翻了我自己的错误假设）。
+
+#### 一、修掉的既有 bug（3 个是线上 500）
+
+1. **`CategoryController.GetProduct` 对次卡商品必 500** —— 直接 `_db.category.Entry(product.category)` 没判空，而次卡/季卡商品按设计 `category_id = null`。三个调用方共用该 helper，`ModProduct` 也走它 → **保存编辑同样 500**，次卡商品「编辑」整条路不通
+2. **`UpdateWechatMemberCell` 对新顾客必 500** —— `GetMemberBySessionKey` 对「session 有 openid 但 member_id 为 null」的新顾客返回 null，后面 `member.id` 进 LINQ 表达式抛 NRE。买次卡的新顾客恰恰就是这种人（详见已知遗留）
+3. **`PlaceOrder` 的 `staff_id = staff.id`** —— 顾客会话 staff 为 null，方法开头已允许顾客分支、日志这里没跟上，改 `staff?.id`
+4. **`multi-uploader` 上传假成功** —— 不判 `statusCode`，错误响应体被当路径存进 `product_image.image_url`（详见已知遗留）
+5. **首页「店员自动进后台」分支路径写错** —— 一直失败且不 fallback，店员打开小程序其实卡在空白首页（详见已知遗留）
+
+#### 二、顾客自助购买闭环（本场最大块）
+
+用户明确：「顾客自行购买次卡，不应该使用店员开单的支付页面」。原来跳 `/pages/payment/settle`（店员收银页：二维码 + 现金/挂账/支付宝）。新链路全部新增：
+
+```
+punchcard_detail「立即购买」
+  → Rent/PlaceMyPunchCardOrder（顾客自助专用下单，订单必归属购买人）
+  → punchcard_confirm 确认页（新建：数量/金额/商品/**使用规则**）
+  → Rent/StartMyPunchCardPayment（建待支付单）
+  → Order/WechatPayByOrderPayment（复用顾客扫码支付那条现成的）
+  → wx.requestPayment → DealSuccessPaidOrder「零售」分支建 punch_card
+```
+
+- **必须验证手机号**：`PlaceMyPunchCardOrder` + `StartMyPunchCardPayment` 两道服务端门槛校验 `member.cell`；前端因 `getPhoneNumber` 只能由 button 直接触发，新增 `CheckMyPunchCardPurchase` 前置查询，没手机号时「立即购买」原地渲染成授权按钮、授权后自动接着下单
+- 支付参数形状照抄 `payment_entry._doWepay`（`package` 自己拼 `'prepay_id='`、`signType: 'MD5'`），不自创
+
+#### 三、商品与展示
+
+- **简介/图片/使用规则一律从 DB 读**：新增 `StripHtmlToPlainText` / `BuildPunchCardProductView` 两个共享 helper，下发 `content`/`intro`/`usageRules`/`imageUrl`/`bizType`/`cardType`/`isSeason`/`careProjectCount`。删掉 `punchcard_shop.js` 里硬编码的商品文案
+- **使用规则后台可编辑**：`product.usage_rules`（DDL 已执行），维护页第二个富文本编辑器，顾客端留空回退默认三条
+- **次卡商品软删除**：`DeletePunchCardProduct`（valid=0 + 留痕），连带给 `GetAllPunchCardProducts` 补 `valid == 1` 过滤（否则删完还在列表里）
+- **门店语义修正**（用户澄清后返工）：`product.shop` 是收款归属、不是使用限制 → 目录去掉门店过滤、顾客端不展示门店、后台改「收款门店」必填 + 换成 `shop_list` 选择器（详见已知遗留）
+
+#### 四、养护季卡三条业务规则
+
+单项/双项（`care_project_count`，DDL 已执行）、开卡绑定装备（首次使用写 `equip_*`）、每天限用一次（选卡禁选 + `PlaceCareOrder` 兜底）。详见已知遗留「季卡的三条业务规则」。
+
+#### 五、新增页面与入口
+
+- `pages/punchcard/punchcard_confirm`（顾客确认支付页）
+- `pages/mine/punchcard_usage`（次卡使用明细，**双模式**：顾客侧 / 店员侧 `?staff=1`，展示口径由服务端同一个 `BuildPunchCardUsageView` 组装）
+- `pages/admin/rent/punchcard_sales`（卡类产品销售列表，admin 菜单「零售」区入口）
+- 底部菜单加「次卡」+ 首页统一跳次卡页
+- 会员详情页次卡行可点进核销记录；「我的次卡」列表显示开卡日期
+- 接待页会员匹配改常驻提示条（缺姓名/性别时琥珀警示，补齐自动收敛）
+- 会员条资产 chip 扩展：加券/季卡，chip 改 JS 派生 + icon，**卡按当前业务线过滤**（避免养护开单看到租赁次卡以为能用）
+- **发卡预设改读商品目录**：`GetPunchCardPresets` 原从 `punch_card` DISTINCT 已发出的卡（历史遗留叫法全冒出来、新卡种发出第一张前不显示），改读次卡/季卡商品；`GrantPunchCard` 只收 `productId`，卡名/次数/业务类型服务端从商品取
+
+📌 关键发现 / 教训：
+- **直连生产库只读排查比反复猜快一个数量级**：三次一击定位（季卡商品其实存在→是我传空串的 bug、session 的 member_id 为空、会员只有一张季卡所以 chip 全空），前两次都推翻了我自己的错误假设
+- **ASP.NET Core 空值查询参数回落默认值**、**`aspectFill` 是裁剪**、**`wx.uploadFile` success 不判状态码**（均详见已知遗留）
+- **只置灰不给点击反馈会让人反复戳**：禁用项被点击时要 toast 说明原因
+- **「共享接口 + 双模式」优于「复制一个新页面」**：`punchcard_usage` 顾客/店员共用，服务端抽 `BuildPunchCardUsageView`，两侧只差鉴权和是否下发 refund，展示口径不会漂
