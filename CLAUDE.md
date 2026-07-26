@@ -172,7 +172,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-25）
+## 当前状态（截至 2026-07-26）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -232,8 +232,17 @@ dotnet run
   - 支付触发链路零改动：DealSuccessPaidOrder / EffectUnpaidOrder / PayWithDeposit 均已对 type=='养护' 调 EffectCareOrder
   - **7-8 联调修复批次（DevTools 实测暴露，已 commit+push：SnowmeetApi `c84a55b7` / mini `721c3bf6`）**：开单页默认店铺（shop_selector recept 场景开扫 beacon 前先落默认店 + fallback 链加万龙服务中心）；未选装备类型不调 SaveCareRecept（recept_new 守卫）；`Order.rentalStatus` NRE 修复（`&&`→`||`，养护单 rentals=null 序列化崩溃）+ `useCard` null 守卫；SaveCareRecept 删行改 `Entry().State=Deleted`（Remove 沿导航图撞键 500）+ 前端 careImage 按 image_id 回填服务端 id（消重复插行）；uploadFilePromise 非 2xx reject（假成功修复）+ 上传/显示域名 3 处曾暂切 mini.snowmeet.top（**2026-07-09 已回切 snowmeet.wanlonghuaxue.com**）；装备卡片录入中永不自动折叠；**新功能：历史装备弹窗**（会员选类型后列出养护过的同类型装备点选带入品牌/长度、modal 内可手动填新装备，后端新接口 `Care/GetMemberCaredEquipments` brand+scale 去重按时间倒序）
 - **次卡/季卡商品维护（7-25，代码完成待部署）**：后端 `Controllers/RentController.cs` 的 `ResolveCardCategoryCode`/`GetAllPunchCardProducts`/`GetPunchCardCategoryCode`；前端 `pages/admin/rent/punchcard_products/punchcard_products.{js,wxml,wxss}`（列表+筛选）+ 新增 `pages/admin/rent/punchcard_products/punchcard_product_detail/`（新建/编辑详情页，图片+富文本）+ `components/uploader/multi-uploader`（修了 `max-count` 绑定 bug）+ `utils/data.js`（`getAllPunchCardProductsPromise`/`getPunchCardCategoryCodePromise`/`getProductPromise`）
+- **次卡自助退款（7-25，代码完成，⚠️ 需先加列再部署）**：一次未核销过的卡，顾客在 `pages/mine/punchcard_usage` 自助退款，微信/支付宝原路退回；非微信支付宝、可退余额不足、赠送/存量无购买关联的卡一律显示原因并引导联系店员。后端 `RentController` 的 `EvaluatePunchCardRefund`（预判与执行共用一份口径）+ `RefundMyPunchCard`；`OrderController.RefundCore` 的 `staff` 参数改可空（顾客自助无经手店员）；已退款卡在 6 处核销入口全部排除、在 3 处列表里标灰显示不隐藏。DDL [`sql/2026-07-25_punch_card_add_is_refund.sql`](sql/2026-07-25_punch_card_add_is_refund.sql)
+- **订单生效补全会员姓名性别（7-26，纯后端，无库表变更）**：`SupplementMemberProfileFromOrder` 6-30 只挂了 `DealSuccessPaidOrder` 一条路径，另 4 条不经过支付回调的生效路径（旧版 `PlaceOrder` 0 元养护单 / `PlaceCareOrder` 无权益 0 元单 / `PayWithDeposit` 储值支付 / `WriteoffCareOrder` 养护核销）全都补不上，本次补齐 5 处
+- **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **次卡自助退款 + 店员侧次卡能力 + 订单生效补全会员资料 部署清单（7-25~26，两代码仓本地未提交）**：
+  - ① **生产库先跑 [`sql/2026-07-25_punch_card_add_is_refund.sql`](sql/2026-07-25_punch_card_add_is_refund.sql)**（`punch_card.is_refund` BIT NOT NULL DEFAULT 0）**再 publish**——EF 加字段后所有 punch_card 查询默认 SELECT 该列，不先加列会让次卡相关查询全挂（同 `punch_card.total` 可空化 / `order_payment.customer_open_date` 教训）
+  - ② publish SnowmeetApi（次卡退款全链路 + 6 处核销拦截 + 会员资料补全 4 处新调用点 + 店员侧三个新接口）+ 重编小程序
+  - ③ 真机验证退款：用**顾客自助买的卡**（我的次卡→购买次卡→微信支付）测完整链路——钱到账 + 卡变灰标「已退款」+ 租赁/养护核销入口都不再出现它 + 连点两次不重复退（幂等）
+  - ④ 真机验证拒绝路径：已核销过的卡无退款入口；7-22 之前的存量卡/赠送卡显示「没有关联的线上支付记录…请联系店员」；现金支付的卡同样转人工
+  - ⑤ 真机验证会员资料补全（**原先漏掉的三类养护单**）：0 元质保/招待单、储值支付养护单、0 元核销单，各开一单给「姓名性别为空」的会员，生效后查 `member` 姓名性别是否补上 + `core_data_mod_log` 有 scene=`订单生效补全会员资料`；另确认已有姓名的会员不被订单快照覆盖
 - **养护/租赁 次卡·季卡 商品维护 admin 功能部署清单（7-25，两代码仓本地未提交）**：原 `pages/admin/rent/punchcard_products`（原仅租赁次卡、弹层表单、无图片无简介）原地扩展为覆盖 养护/租赁 × 次卡/季卡 4 种组合，加图片上传（`multi-uploader`）+ 富文本简介（原生 `<editor>`），新增列表页筛选 + 独立详情维护页 `punchcard_product_detail`（新建/编辑双模式），视觉对齐 `mat_expire_detail` 的卡片式设计（非旧版 `mp-cells`）。admin 菜单入口按用户要求未动。计划见 `.claude/plans/admin-product-ticklish-meerkat.md`（本机路径，未跟 doc 仓同步）。
   - ① commit 两仓（SnowmeetApi：`RentController.cs` 的 `ResolveCardCategoryCode`（原 `ResolveNextCardCategoryCode` 泛化）+ `GetAllPunchCardProducts`/`GetPunchCardCategoryCode` 两接口加 bizType/cardType 参数；`snowmeet_wechat_mini`：`punchcard_products` 列表页改造 + 新增 `punchcard_product_detail` 详情页 + `multi-uploader` 组件 `max-count` 绑定 bug 修复 + `data.js` 3 处 wrapper）→ publish SnowmeetApi → 重编小程序
   - ② 无需额外 DDL——次卡/季卡商品复用既有 `product`/`product_image`/`category` 三张表，无新列
@@ -297,6 +306,10 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **「订单生效」不是一个点，而是散落 5 处的入口（2026-07-26 踩）**：`SupplementMemberProfileFromOrder`（订单生效后补全会员空姓名/性别）6-30 首版只挂了 `DealSuccessPaidOrder`，导致养护/储值/0 元单一律补不上。完整清单：① `DealSuccessPaidOrder`（微信/支付宝回调；`EffectUnpaidOrder` 的现金/挂账确认转调它）② 旧版 `PlaceOrder` 0 元养护单 place 即生效 ③ `PlaceCareOrder` 无权益 0 元单 ④ `PayWithDeposit` 储值支付 ⑤ `WriteoffCareOrder` 养护核销。**后 4 条压根不经过支付回调**。今后任何「订单生效后要做的事」都必须挂满这 5 处；锁定入口的方法是 `grep "EffectRentOrder("` + `grep "EffectCareOrder("` + `grep "dealed = 1"` 三条命令（`EffectRentOrder` 只有 1 个调用点在 DealSuccessPaidOrder 内，零售/雪票生效都在它的 switch 里）。⚠️ `PayWithDeposit` 的调用点要放在收尾处、不限业务类型——租赁「储值付租金」分支下面不调 Effect，挂在 `EffectCareOrder` 旁边会漏掉租赁
+- **`DbSet.Local` 治「同 id 实体实例撞键」（2026-07-26）**：调用方对 order 做 `Entry().State = Modified` 时，EF 会沿导航图把 `order.member` 一并 attach 进跟踪器；被调用的公共方法若再查一个同 id 的新 Member 实例并 attach，就抛 `another instance with the same key value is already being tracked`。干净解法是让公共方法自己 `_db.member.Local.Where(m => m.id == ...).FirstOrDefault()` 优先复用已跟踪实例、已跟踪时**不要**再显式设 `Modified`（靠变更跟踪自动识别），比让每个调用点各自 Detach 省心。全局 NoTracking 下 `Local` 通常为空，开销可忽略。与「EF `Remove()`/`Add()` 沿导航图附加实体」是同一族坑
+- **`punch_card.source_retail_id` 是 2026-07-22 才加的 → 存量卡一律不能自助退款（2026-07-25）**：7-22 之前发的卡（含店员 `GrantPunchCard` 手工发放、注册开卡礼包）都没有购买关联，`EvaluatePunchCardRefund` 一律判为「没有关联的线上支付记录」转人工。**其中可能有线下收过钱的**，所以文案不能武断说"是赠送的"。做任何「针对存量数据的新功能」前，先确认它依赖的字段从哪个版本开始有值
+- **按条件隐藏操作入口时，被隐藏的情况必须显示原因（2026-07-25 踩）**：次卡退款按钮原设计只在「可自助退」和「需联系店员」两种情况显示内容，其余（已使用过/赠送卡）整块留白 → 用户对着一张没用过的卡立刻追问"为什么没有退款按钮"。凡是"满足条件才给按钮"的界面，都要想清楚不满足时用户看到什么
 - **`category` 表两套体系不要混淆（2026-07-25 踩）**：`Category`（表 `category`，扁平，`biz_type`+`code`+`name`，无 parent_id）是 `Product`（通用商品目录，含次卡/季卡商品）用的分类表；`RentCategory`（`Rent/GetAllCategories`/`Rent/AddCategory`/`Rent/GetCategoryById` 那一套，`code` 用两位数字前缀拼接的层级树 + 每节点带押金/价格矩阵）是 `RentProduct`（`pages/admin/rent/settings/rent_product*`，物理租赁装备，brand/owner/barcode 字段）专用的另一套分类，两者字段/语义完全不同、互不相通。新功能如果要挂"分类"，先确认是挂哪一套
 - **次卡/季卡商品的 `category.code` 编码规则（2026-07-25，用户人工建库确认）**：两位数字对拼接——业务类型 租赁=`01`/养护=`02`，卡类型 次卡=`01`/季卡=`02`。已人工建好三条：`0101`=租赁次卡、`0201`=养护次卡、`0202`=养护季卡（均 `valid=1`）；`0102`=租赁季卡 尚未建，会在管理页首次新建该组合商品时由 `RentController.ResolveCardCategoryCode` 自动创建（同规则续号，不需要手工建）。**`category` 表 id 15/17/18 已作废**——是本功能开发过程中用旧版英文 token（`RENT_PUNCH`/`CARE_PUNCH`/`CARE_SEASON`）自动创建出的坏数据，用户已在生产库标记 `valid=0` 并手工建好上面 3 条正确的数字编码行；`ResolveCardCategoryCode` 已改用同款数字编码兜底，不会再产生英文 token 格式的行
 - **`multi-uploader` 组件 `image_count` prop 声明了但 wxml 没接（2026-07-25 踩，已修）**：`components/uploader/multi-uploader.wxml` 里 `max-count` 曾硬编码成 `"3"`，没有绑定到组件自己声明的 `image_count` 属性，导致调用方传 `image_count` 完全不生效。已改成 `max-count="{{image_count}}"`（默认值仍是 `"3"`，不影响 `rent_product.wxml` 等其它未传该 prop 的现有调用方）。今后任何页面要限制上传张数，记得这个 prop 现在真的生效了
@@ -3415,3 +3428,41 @@ brainstorming「追加租赁商品应有独立区域」→ 落地完整追加链
 - **核心业务数字的口径边界要想清楚**：不是所有相关的钱都要塞进同一个汇总公式，"次卡销售"和"租金/押金"是两件独立的事，正确做法是分开展示 + 在容易混淆的地方（已退金额）做显式标注，而不是把两者硬揉进一个数字
 - **给"卖资产"类功能设计接口时，先划清"只读试算 / 异步待收款 / 已收款确认"三个阶段**，每个阶段允许写的库表范围完全不同，是避免"钱没到位却创建了资产"或"资产建了钱却没结算"的关键
 - **每次新建带 `NOT NULL` 列的实体，都要过一遍 DB 实际 schema**，不能只看 C# 模型的默认值——这是本仓库反复出现的坑（`punch_card`/`customer_open_date`/`order_type` 皆属此类）
+
+### 2026-07-25（跨夜至 07-26） — 次卡自助退款（全栈 + 一列 DDL）+ 订单生效补全会员姓名性别（补齐 4 条漏掉的生效路径）
+
+接续 7-22 次卡销售、7-25 次卡/季卡商品维护。两件独立的事，改动跨 `SnowmeetApi` + `snowmeet_wechat_mini` + 一份 DDL，两代码仓本地未提交。归档见 [`sessions/2026-07-25_punch_card_refund_and_member_profile.md`](sessions/2026-07-25_punch_card_refund_and_member_profile.md)。
+
+#### 一、次卡自助退款
+
+用户拍板两点：微信/支付宝支付的**顾客自助退款**、否则提示联系店员；**凡付过钱的卡都能退**（含店员退押金时卖的卡）。
+
+- **关键洞察：「一次未使用过」天然排除了「撤销销售」的复杂度**。`FinalizePunchCardSale` 卖卡时若当场核销了次数，卡的 `punches > 0` 就不满足退款前置条件——恢复核销次数、恢复被免除的租金、反向调整押金退款这套逻辑根本不会触发。于是三条购卡路径可以共用一个退款口径：金额 = `retail.deal_price`（卡价），走现成的 `AllocateRefundAcrossPayments` + `RefundCore` 按订单支付记录分摊。这个口径在店员卖卡路径下财务也对——顾客为卡付出的价值恒等于卡价，无论形式是"少退押金"还是"额外补现金/扫码"，退卡就是把这份价值退回去
+- **DDL**：`punch_card` 加 `is_refund BIT NOT NULL DEFAULT 0`（[`sql/2026-07-25_punch_card_add_is_refund.sql`](sql/2026-07-25_punch_card_add_is_refund.sql)）。不用删行/valid=0——该表没有 valid 列，且销售记录、退款记录都要留痕，卡本身还要能在「我的次卡」里显示已退款状态
+- **`EvaluatePunchCardRefund`**（共享判定）：`is_refund` → 已使用过（`punches>0` **或** 存在 valid 的 `punch_card_used`，双重校验因两来源历史数据可能不一致）→ 无 `source_retail_id` → retail 缺失 → 金额 ≤0 → 订单缺失 → 可退余额不足 → 有非微信/支付宝支付腿，逐层给出面向顾客的拒绝原因。`GetMyPunchCardUsages`（只读预判）与 `RefundMyPunchCard`（真退款）调同一份，避免"页面给了按钮、点下去被拒"（同 `ComputePunchCardSaleCalc` 模式）
+- **`RefundMyPunchCard`**：解析会员本人 + 校验卡归属 + 幂等（已退直接返回成功）+ **先退款成功、再置 `is_refund`**（反过来会出现"卡废了钱没退"）+ retail.memo 追加退款说明 + `CoreDataModLog`
+- **`RefundCore` 的 `staff` 参数改可空**：顾客自助无经手店员，`payment_refund.staff_id` 留空、发起人记 `oper_member_id`（沿用 `StartMyPunchCardPayment` 顾客自助支付单 `staff_id=null` 先例）。既有两个调用方行为不变
+- **`retail` 行保留 `valid=1`**、只在 memo 追加退款说明：置 valid=0 会让订单详情的「次卡销售」和 `GetMyPunchCardOrder` 金额（都按 valid=1 过滤）里这笔销售凭空消失
+- **核销拦截 6 处**：`GetRentalPunchCardInfo`（列表过滤）/ `UseRentalPunchCard`（守卫）/ `CalcCareCharge`（定价忽略）/ `PlaceCareOrder`（清 care 卡引用）/ `EffectCareOrder`（核销守卫，防先下单后退卡的时序）/ `GetMemberAssetsByStaff` + `GetMemberCardsByStaff`（资产聚合与选卡列表排除）。`GetPunchCardPresets` 不改——它是卡种名字池、与卡实例无关
+- **显示侧标灰不隐藏**（`punchcard_usage` / `my_punchcards` / 店员侧 `member_detail`）：退过款的卡凭空消失，顾客会以为卡丢了、店员也可能把它当成可用余额报给顾客
+- **真机反馈「这个卡没有使用，为什么没有退款按钮？」**：那张卡开卡 7-04，而 `source_retail_id` 与次卡销售功能是 7-22 才落地的 → 它是店员手工发放的、系统里没有购买关联，规则上确实退不了；但**界面对"不能退"一律留白**才是让人困惑的根因，已改成一律显示原因。文案也从武断的"这张卡是赠送发放的"改为「没有关联的线上支付记录…请联系店员」（7-22 前手工发的卡里可能有线下收过钱的）
+
+#### 二、订单生效补全会员姓名性别
+
+需求："无论何种业务的订单，只要订单生效，且当前顾客的姓名性别为空，则开单时填写的姓名性别同步到 member 表"。
+
+- **排查**：`SupplementMemberProfileFromOrder`（6-30 写的）全项目只有 1 个调用点——`DealSuccessPaidOrder`。而**订单生效路径散落 5 处**，另 4 条压根不经过支付回调：旧版 `PlaceOrder` 0 元养护单 / `PlaceCareOrder` 无权益 0 元单 / `PayWithDeposit` 储值支付 / `WriteoffCareOrder` 养护核销。所以用户遇到的问题集中在养护/储值/0 元单，与"无论何种业务"的诉求正好对上（详见已知遗留新增条）
+- 4 处补上调用，方法头部写进 5 条路径清单 + 「今后新增任何订单生效入口都要补一次调用」。`PayWithDeposit` 的调用点放在收尾处、不限业务类型（租赁「储值付租金」分支下面不调 Effect，挂 `EffectCareOrder` 旁边会漏掉租赁）
+- **EF 跟踪坑**：`PayWithDeposit` 对 order 做 `Entry().State=Modified` 时 EF 沿导航图把 `order.member` 一并 attach，此后方法内查同 id 新 Member 实例再 attach 就撞键。改成让方法自己用 `_db.member.Local` 优先复用已跟踪实例（详见已知遗留新增条），5 个调用点都不必操心跟踪状态
+- 日志 scene 从「支付成功补全会员资料」改为「订单生效补全会员资料」，`manual_memo` 带订单号。行为不变：只填空不覆盖、散客单跳过、重复调用无副作用
+
+#### 三、会话期间用户并行扩展（部署要一起走）
+
+`BuildPunchCardUsageView`（顾客/店员共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度）+ `GetPunchCardSalesByStaff` 与新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表）；`punchcard_usage` 店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点、`my_punchcards` 补开卡日期。
+
+📌 关键发现 / 教训：
+- **前置条件能消灭复杂度，先找它再动手设计**：「一次未使用过」把整套撤销销售逻辑挡在门外。接需求时先问"什么情况下这个动作被禁止"，往往比先设计"怎么处理所有情况"省得多
+- **按条件隐藏操作入口时，被隐藏的情况必须显示原因**（详见已知遗留）
+- **判断类逻辑做成"预判与执行共用一份"**，否则必然出现"页面给了按钮、点下去被拒"
+- **"某功能已挂上"的文档记载要 grep 验证**：CLAUDE.md 记 `SupplementMemberProfileFromOrder` 已挂两处，实际只有一处、而入口有 5 条。文档写"已完成"时最好把调用点清单一并列出
+- **同一件事有多个"完成入口"时先枚举清单再改**：靠 `grep "EffectRentOrder("` + `grep "EffectCareOrder("` + `grep "dealed = 1"` 才锁定 4 处遗漏；只读代码顺主流程走一定会漏旁路
