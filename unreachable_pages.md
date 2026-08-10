@@ -1,116 +1,126 @@
-# 小程序页面可达性分析
+# 小程序页面 / 组件可达性分析
 
-> 生成日期：2026-05-14
-> 入口：`pages/index/index` + `pages/mine/mine`
-> 方法：静态分析 — 解析 app.json 拿到 117 个 pages，递归扫描每个 page + 其依赖组件的 `.js/.wxml/.json/.wxss` 中 `/pages/xxx` 字符串引用，从两个入口做 BFS
+> 生成日期：2026-07-27（**覆盖 2026-05-14 首版**）
+> 复现方式：`py snowmeet_ai_doc/scan_unreachable_pages.py`
+> 覆盖范围：`snowmeet_wechat_mini` 全部注册页面 + `components/` 下全部自定义组件
 
-## 总览
+## 结论
 
-| 类别 | 个数 | 含义 |
+| 指标 | 数量 |
+|---|---|
+| 注册页面 | **90**（主包 89 + 分包 1） |
+| 自定义组件 | **48** |
+| 有代码入口的页面 | 85 |
+| 无代码入口但**有意保留**的页面 | 5（见下） |
+| **孤儿页面** | **0** |
+| **孤儿组件** | **0** |
+
+2026-07-27 清理后已收敛。下次新增页面/组件后重跑脚本即可。
+
+---
+
+## 无代码入口、但必须保留的 5 个页面
+
+静态分析看不到它们的入口，**不代表它们是死的**——入口在代码之外。
+
+| 页面 | 入口性质 | 说明 |
 |---|---|---|
-| A. 完全可达 | 66 | 从 index/mine 经 BFS 能到 |
-| B. BFS 不可达但全局有引用 | 13 | 引用方可能是其它非可达页面、组件外字符串、动态拼接等。需人工 review |
-| C. 完全孤立 | 62 | 整个项目里除了自己目录，零引用。**高概率死代码**，但仍需考虑 QR 扫码 / 外部链接入口 |
+| `pages/order/payment_entry` | 扫码落地 | 顾客扫店员支付二维码。代码里解析 `options.q` |
+| `pages/order/identity_verify` | 扫码落地 | 储值付租金/次卡消费前的微信身份核验。解析 `options.q` |
+| `pages/mine/ticket/ticket_bind` | ⚠️ 待核实 | 绑定优惠券。用 `/core/` 旧接口，疑似扫券码入口，**删前务必去公众平台核对规则** |
+| `pages/register/reg` | ⚠️ 待核实 | 会员授权 + 「已和当前账户合并」提示。用到 `member-auth` 组件 |
+| `pages/register/out_reg` | ⚠️ 待核实 | 只有一条 msg + 返回按钮，疑似跳板页 |
 
-## A. 完全可达（不用看）
+**保留决定会往下传递**：`reg` 保留 → 它唯一使用的 `components/user_info/auth_cell` 也必须保留。脚本里的 `KEEP_PAGES` 就是为此存在——实测把 `reg` 当死页，`auth_cell` 立刻被误报成孤儿。
 
-66 个，略。
+---
 
-## B. BFS 不可达但全局有引用（13 个，先看）
+## 代码外入口：公众平台扫码规则
 
-引用数仅统计目录外的字符串匹配。
+「扫普通链接二维码打开小程序」的规则配在**微信公众平台后台**，不在代码里，任何静态分析都看不到。小程序侧生成的 `mapp/...` 链接如下，每一条背后都对应一条平台规则：
 
-| 页面 | 引用数 | 备注 |
+| 链接前缀 | 目标页面 | 生成位置 |
 |---|---|---|
-| `pages/admin/care/order_detail` | 3 | |
-| `pages/admin/fire/fire_order_detail` | 2 | |
-| `pages/admin/recept/recept_member_info` | 1 | 新版 reception/recept_new.js:111 临时复用旧页（待新版会员详情页完成） |
-| `pages/admin/reception/recept_entry` | 1 | 新版接待流程第一步 — 入口应是 index/mine 的某个按钮，但似乎只在内部链路被引用 |
-| `pages/admin/reception/recept_new` | 1 | 新版接待 — 由 reception/recept_entry 跳入 |
-| `pages/admin/reception/recept_package` | 1 | 新版接待 — 由 reception/recept_new 跳入 |
-| `pages/admin/rent/rent_details` | 2 | |
-| `pages/admin/retail/retail_order_detail` | 2 | |
-| `pages/mine/ticket/ticket_share` | 3 | 由 mine/ticket/ticket_detail 跳入 |
-| `pages/payment/pay_recept` | 1 | |
-| `pages/payment/settle/index` | 1 | 通用结算页 — 由新版 reception/recept_new 跳入 |
-| `pages/ski_pass/ski_pass_selector` | 1 | |
-| `pages/template/stitch/_5/index` | 3 | stitch 模板原型页，本身不是生产用页面 |
+| `mapp/order_payment` | `pages/order/payment_entry` | [order-payment/index.js:239](../snowmeet_wechat_mini/components/order-payment/index.js#L239)、[rent_order_detail.js:1483](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js#L1483) |
+| `mapp/order_verify` | `pages/order/identity_verify` | [order-payment/index.js:137](../snowmeet_wechat_mini/components/order-payment/index.js#L137)、[rent_order_detail.js:1350](../snowmeet_wechat_mini/pages/admin/rent/rent_order_detail/rent_order_detail.js#L1350) |
+| `mapp/admin/care/care_order_detail/care_order_detail` | 养护订单详情 | [print_care_label.js:298](../snowmeet_wechat_mini/components/care/print_care_label.js#L298) 养护标签二维码 |
+| `mapp/fnb/mat_detail` | `pages/admin/fnb/mat_expire_detail` | [print_food_label.js:26](../snowmeet_wechat_mini/components/fnb/print_food_label/print_food_label.js#L26) 食材标签二维码 |
+| `mapp/order/payment_entry`（旧） | 旧版支付落地 | [components/payment/payment.js:160](../snowmeet_wechat_mini/components/payment/payment.js#L160) |
+| `mapp/order/order_entry/`（旧） | 旧版订单入口 | [components/payment/payment.js:85](../snowmeet_wechat_mini/components/payment/payment.js#L85) |
 
-**B 类共同特点：** 这条链路本身是活的（新版接待 + 通用结算 = 现在主力开发的流程），只是 BFS 起点是 index/mine 还没接通新流程的入口。你需要看的不是该不该删，而是 **该不该补 index/mine 上对应入口**。
+**已打印出去的旧标签、旧二维码指向哪些页面，只有平台规则列表说了算。删任何页面前先去核对。**
 
-## C. 完全孤立（62 个，高概率死代码）
+---
 
-下面这些页面在整个项目中除自己目录外，**零引用**。但其中一部分是 **QR 扫码 / 外部链接** 的落地页（无法被静态分析覆盖），需要人工区分：
+## 判定口径（改脚本前先读）
 
-### C-1：已知 / 怀疑是 QR 扫码 / 外部链接落地页（**慎删**）
+### 页面可达
+把每个活文件里的**所有字符串字面量**取出来，按三种方式尝试解析成注册页面路径，**精确命中**才算入口：
 
-| 页面 | 我的判断 |
+1. 绝对：`'/pages/admin/member/member_list'`
+2. 相对本文件目录：`admin.js` 里的 `'rent/new_rent_list'` → `pages/admin/rent/new_rent_list`
+3. 截断 query：`'recept_member_info?memberId=' + x` → `recept_member_info`
+
+两种更简单的做法都试过，都不行：
+
+- **只搜全路径 → 漏判**。本项目大量相对跳转，[admin.js:154](../snowmeet_wechat_mini/pages/admin/admin.js#L154) 还是 `path = 'rent/new_rent_list'` 先赋值再 `navigateTo`。首版报告说「62 个完全孤立」就是栽在这里
+- **只搜 basename → 太松**。名字在注释里出现一次就被当成"被调用"
+
+### 组件可达
+被某个活文件的 `usingComponents` 注册，**且它的标签真的出现在那个文件的 wxml 里**。全局注册（app.json）的组件：标签出现在任意活 wxml 里即可。
+
+**只看注册会漏掉一大批"注册了从来不用"的死组件**——2026-07-27 删的 5 个组件全是这种：`usingComponents` 里挂着，wxml 里零使用，JS 里也没有 `selectComponent`。
+
+### 迭代到不动点
+删掉的东西可能让别的东西变孤儿（`pay_additional` 删掉 → `pay_method` 组件变孤儿），所以反复算到没有新增为止。
+
+---
+
+## 已知陷阱
+
+**微信开发者工具的「未打包 / 无依赖」列表 ≠ 可删清单。**
+
+那个面板里混着 `package.json`、`package-lock.json`、`project.private.config.json`，以及整个 `miniprogram_npm/@vant/weapp/*`。删掉它们的后果：
+
+- `package.json` 没了就构建不了 npm
+- `miniprogram_npm/` 是「构建 npm」的产物，下次构建全量长回来，删了白删
+- **「未打包」的意思正是「已经没进上传包」**，删了一个字节的包体积都省不下来
+- vant 组件之间有传递依赖，而这些二级依赖**没有任何页面直接注册**：`van-calendar`→`toast`、`van-tree-select`→`sidebar`/`sidebar-item`、`van-uploader`→`loading`、`van-tabs`→`info`/`sticky`。按列表逐个删会砍掉在用组件的依赖，且**要真机跑到那个页面才报错**
+
+顺带记一笔：`weui-miniprogram/*`（`mp-cells` / `mp-cell` / `mp-tabbar`）既不在 `miniprogram_npm/` 也不在 `node_modules/`，它由 [app.json](../snowmeet_wechat_mini/app.json) 的 `"useExtendedLib": { "weui": true }` 提供。写检查脚本时如果只查 npm 目录，会把 30+ 个文件误报成"悬空注册"。
+
+---
+
+## 2026-07-27 清理记录
+
+### 删除的页面（6）
+
+| 页面 | 判据 |
 |---|---|
-| `pages/order/payment_entry` | **顾客扫码支付落地页**，员工生成的二维码 URL 指向这里。你刚改造过的页面 — **不能删** |
-| `pages/tickets/get_ticket_from_channel` | 渠道领票落地页（带 `getPhoneNumber` 入口），多半是 H5 / 推广链接进来 |
-| `pages/tickets/me_pick` | 票务自取页 |
-| `pages/tickets/tickets_get` | 票务领取页 |
-| `pages/register/staff_check_in` | 员工签到，可能是 staff_reg_qrcode 生成的二维码落地点 |
-| `pages/register/out_reg` | 外部注册页 |
-| `pages/register/reg` | 注册页 |
-| `pages/admin/staff_reg` | 员工注册 — 跟 staff_reg_qrcode 配套 |
-| `pages/logs/logs` | 微信小程序模板默认调试日志页，**留着无妨** |
+| `pages/admin/rent/set_award` | 零入口；`/core/` 旧接口，写已停用的 `rent_list` 表 |
+| `pages/admin/rent/pay_additional` | 零入口；旧版追加支付，已被 `rent_append` + 订单详情追加区取代 |
+| `pages/admin/rent/rent_item_change` | 零入口；旧版租赁物更换，新版详情页已内建更换弹窗 |
+| `pages/admin/printer/gprinter/print_task` | 零入口；旧打印任务页 |
+| `pages/blt/beacon_scan` | 零入口；蓝牙 Beacon 扫描调试页（2026-05-30 建） |
+| `pages/admin/background/set_session_key` | 零入口；调试用手动设 sessionKey |
 
-### C-2：业务子页（疑似从某 list 页动态跳入但被 BFS 漏掉，需查父页 JS）
+连带清理：`app.json` 6 行注册、`project.config.json` 与 `project.private.config.json` 各一个指向已删页面的自定义编译启动页。
 
-| 页面 | 疑似父页 |
+### 删除的组件（5）
+
+| 组件 | 判据 |
 |---|---|
-| `pages/admin/deposit/deposit_charge` | deposit/deposit_balance? |
-| `pages/admin/deposit/deposit_detail` | deposit/deposit_list? |
-| `pages/admin/fd/fd_cart` | fd/fd_category_prod_list? |
-| `pages/admin/fd/fd_order_confirm` | fd_cart? |
-| `pages/admin/fd/fd_order_detail` | fd/fd_order_list? |
-| `pages/admin/retail/retail_order_list` | admin/admin 列表项? |
-| `pages/admin/sale/order_detail` | sale/shop_sale_entry? |
-| `pages/admin/sale/shop_sale` / `shop_sale_entry` / `mod_mi7_order_no` | sale 模块 |
-| `pages/admin/scan/scan` | 通用扫码工具页? |
-| `pages/admin/ski_pass/common_skipass_detail` | common_skipass_list? |
-| `pages/admin/ski_pass/nanshan_refund_detail` | nanshan_refund? |
-| `pages/admin/ski_pass/nanshan_reserve_detail` | nanshan_reserve? |
-| `pages/admin/ski_pass/nanshan_verify` | nanshan_pick_card_scan? |
-| `pages/admin/staff/staff_detail` | staff/staff_list? |
-| `pages/admin/ticket/ticket_unuse_list` | admin/admin? |
-| `pages/admin/unipay/unipay_detail` | unipay/unipay? |
-| `pages/admin/unipay/unipay_list` | unipay 模块 |
-| `pages/admin/rent/new_rent_list` | admin/admin? |
-| `pages/admin/rent/pay_additional` | rent_details? |
-| `pages/admin/rent/rent_item_change` | rent_details? |
-| `pages/admin/rent/rent_list_by_cell` | 业务工具页 |
-| `pages/admin/rent/rent_report` | 报表 |
-| `pages/admin/rent/set_award` | 设置奖励 |
-| `pages/admin/rent/settings/rent_product` | rent_product_list? |
-| `pages/ski_pass/nanshan_overtime_reserve` | ski_pass_selector? |
-| `pages/ski_pass/ski_pass_reserve` | ski_pass_selector? |
-| `pages/ski_pass/skipass_detail` / `skipass_detail_new` | my_skipasses? |
+| `components/auth/` | 5 个页面注册了但**没有任何 wxml 用到 `<auth>` 标签** |
+| `components/rent/cart_list_pay` | 同上（注册方 `rent_recept.json`） |
+| `components/ticket_selector/ticket_selector` | 同上（注册方 `recept_member_info.json`） |
+| `components/user_info/user_info` | 同上（注册方 `recept_member_info.json`） |
+| `components/pay_method/` | 级联孤儿：唯一使用方 `pay_additional` 被删后无人引用 |
 
-### C-3：旧版残留 / stitch 模板（**可优先考虑删**）
+### 同目录下**保留**的组件（别误删）
 
-| 页面 | 备注 |
-|---|---|
-| `pages/admin/recept/recept_new` | **旧版接待主页**，新版在 `pages/admin/reception/recept_new`。CLAUDE.md 已写"新版替换旧版" |
-| `pages/admin/printer/gprinter/print_task` | 打印任务页 |
-| `pages/admin/printer/gprinter/ticket` | 票据打印 |
-| `pages/admin/background/set_session_key` | 调试用 |
-| `pages/blt/open_lock` | 蓝牙开锁页 — 项目方向已变? |
-| `pages/claude/index` / `tickets` | 早期 claude 系列实验页 |
-| `pages/experience/pay_temp` | 临时支付页 |
-| `pages/mine/maintain/bind_maintain_order` / `order_detail` / `task` | mine/maintain 系列（mine/maintain/order_list 是可达的） |
-| `pages/mine/my_maintain/my_maintain` / `my_maintain_detail` | mine 旧版养护 |
-| `pages/mine/skipass/my_skipass` | 单数版（`my_skipasses` 复数版可达） |
-| `pages/mine/ticket/ticket_bind` / `ticket_detail` | mine 票务子页（list 可达，但 detail/bind 静态无引用 — 可能动态跳） |
-| `pages/order/order_entry` | 订单入口 — 跟 payment_entry 类似可能是扫码落地 |
-| `pages/payment/pay_hub` / `rent_pay_add` / `uni_pay` | payment 子包多个页面 |
-| `pages/rent/bind_rent_order` | 租赁绑定 |
-| `pages/shop_sale/order_info` / `shop_landing` | shop_sale 子包 |
+- `components/ticket_selector/ticket_list` ← 旧版养护开单 [care_recept.json:4](../snowmeet_wechat_mini/components/care/care_recept.json#L4) 在用
+- `components/user_info/member_info` ← app.json 全局注册 `member-info`
+- `components/user_info/auth_cell` ← app.json 全局注册 `member-auth`，`reg` 页在用
+- `pages/admin/printer/gprinter/ticket` ← [ticket_template_list.js:125](../snowmeet_wechat_mini/pages/admin/ticket/ticket_template_list.js#L125) 会跳过去（票据打印链路）
 
-## 建议下一步
-
-1. 先把 **C-3 旧版残留** 类目删（已确认无 BFS 路径 + 全局零引用）
-2. **C-1 慎删**：人工排查是否还有 QR 扫码 / 外部链接指向（看后端 / 老二维码）
-3. **C-2 业务子页**：怀疑还活，需要打开父页 .js 看动态 url 拼接逻辑
-4. **B 类**：补 index/mine 入口而不是删
+> 清理过程中曾用 `git rm -r pages/admin/printer/gprinter` 删整个目录，把同目录的活页面 `ticket.*` 一起删了，已还原。**按目录批量删之前先确认目录里没有别的活文件。**
