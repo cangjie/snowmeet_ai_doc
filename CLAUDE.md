@@ -10,10 +10,17 @@
 - 本次主要任务为汇总项目近期问题处理、功能迭代与归档上下文，未额外改动业务代码。
 - 后续如继续开发，可直接从当前项目上下文、业务模块文档与已归档会话摘要继续切入。
 
+## 2026-08-12 会话归档
+- 全新功能：优惠券（ticket）转赠给微信好友，硬编码先支持模板 12/16。改动横跨 `SnowmeetApi`/`snowmeet_wechat_mini`/`SnowmeetOfficialAccount` 三个仓（后者本场首次拉进本地工作区）。三仓均本地未提交，待用户按节奏部署。
+- 核心难点是"转赠前必须强制关注公众号"这条规则的核验，经历三轮迭代：场景值防伪造（绑定单次分享而非券本身）→ 服务端在公众号事件回调里直接自动接受（不再靠小程序轮询触发）→ 发现 `member.following_wechat` 是比反查 `oa_receive` 事件日志更直接可靠的关注状态真源。
+- 顺带完成：旧版接待页面（`pages/admin/recept/` 5 页 + 10 个孤儿 component，60 个文件）确认无用后整体退役；"我的优惠券"页面加编码展示、三 tab（未使用/已使用/已分享）、已分享历史记录（含"来回转赠"边界情况的归属判断）、list/detail 权限判断统一。
+- 详见 [`sessions/2026-08-12_ticket_gift_transfer.md`](sessions/2026-08-12_ticket_gift_transfer.md)。
+
 ## 项目概览
-滑雪场管理系统，包含两个子项目：
+滑雪场管理系统，包含三个子项目：
 - `snowmeet_wechat_mini/` — 微信小程序客户端（原生小程序 + JS）
 - `SnowmeetApi/` — 后端 API 服务（ASP.NET Core 9.0 + C# + SQL Server）
+- `SnowmeetOfficialAccount/` — 微信**公众号**后台服务（ASP.NET Core 7.0 + C#，独立项目，2026-08-12 加入本仓库所在目录）
 
 ---
 
@@ -32,17 +39,30 @@
 - 第三方：微信支付 TenpayV3、支付宝 SDK、腾讯云 OCR、NPOI（Excel）、QRCoder、ImageSharp
 - API 文档：Swagger UI（`/swagger`）
 
+**公众号后台 (SnowmeetOfficialAccount)**
+- ASP.NET Core 7.0 / C#（比 SnowmeetApi 旧一个大版本，独立 csproj，不与 SnowmeetApi 共享代码）
+- ORM：Entity Framework Core 7.0.11，`AppDBContext`（SqlServer 主库 + Sqlite 包引用但当前 `Startup.cs` 只注册了 SqlServer provider）
+- 第三方：Swashbuckle（Swagger）、ThoughtWorks.QRCode（二维码，`ThoughtWorks.QRCode.dll` 本地 DLL 引用非 NuGet 包）、System.Drawing.Common
+- API 文档：Swagger UI（`/swagger`，仅 `env.IsDevelopment()` 开启）
+- 路由：`api/[controller]/[Action]`
+
 ---
 
 ## 启动命令
 
 **客户端：** 用微信开发者工具打开 `snowmeet_wechat_mini/` 目录
 
-**服务端：**
+**服务端 (SnowmeetApi)：**
 ```bash
 cd SnowmeetApi
 dotnet run
 # Swagger: https://localhost:5000/swagger
+```
+
+**公众号后台 (SnowmeetOfficialAccount)：**
+```bash
+cd SnowmeetOfficialAccount
+dotnet run
 ```
 
 ---
@@ -55,14 +75,26 @@ dotnet run
 - `components/` — 24 个组件族
 - `utils/util.js` — 公共工具函数
 
-**服务端核心路径：**
+**服务端核心路径 (SnowmeetApi)：**
 - `Controllers/` — 39 个 Controller（Order、Rent、SkiPass、Member 等）
 - `Models/` — 206+ 数据模型
 - `Data/ApplicationDBContext.cs` — EF DbContext
 - `Util.cs` — 全局工具方法
 - `wwwroot/` — 静态管理后台页面
 
-**API 路由规则：**
+**公众号后台核心路径 (SnowmeetOfficialAccount)：**
+- `Program.cs` / `Startup.cs` — 入口 + 管道配置（`ConfigureServices` 里手动读 `config.sqlServer` 文件拼连接串，同 SnowmeetApi 的约定）
+- `AppDBContext.cs` — EF DbContext（**根目录下**，不是 `Data/` 子目录，注意与 SnowmeetApi 的 `Data/ApplicationDBContext.cs` 区分）
+- `Controllers/OfficialAccountApi.cs` — 公众号消息收发主入口（`PushMessage` 服务器校验、`SendTextMessage`/`SendServiceMessage` 客服消息推送），依赖 `Models/OAPostData.cs`/`OARecevie.cs`/`OASent.cs`
+- `Controllers/MemberController.cs` — 会员相关（供 OfficialAccountApi 内部 `new MemberController(...)` 复用，非独立业务入口）
+- `Controllers/{EfTestController,QRCodeTestController}.cs` — 测试用途
+- `Models/` — `Member`/`MemberSocialAccount`/`MiniUser`/`Ticket`/`TicketTemplate`/`ShopSaleInteract`/`Settings`/`User` 等
+- `wwwroot/` — 含公众号平台域名校验文件（`MP_verify_*.txt`）
+- `Util.cs` — 全局工具方法（与 SnowmeetApi 的 `Util.cs` 是两份独立代码，不共享）
+
+**⚠️ SnowmeetOfficialAccount 与 SnowmeetApi 共用同一个生产数据库、但各自维护独立的 EF 模型**：`config.sqlServer` 指向同一台 `100.28.143.19` / 库 `snowmeet_new`（与 CLAUDE.md 已记录的 SnowmeetApi 生产库一致）。`member`/`member_social_account` 等表两边都能直接读写，但两套 C# 模型字段/取值逻辑不保证一致（例如这里的 `Member.is_merge` 是 `int` 默认 0，SnowmeetApi 侧用法可能不同，改动前先对照两边模型，不要假设字段语义互通）。`member_social_account.type` 在这里新增见到 `wechat_oa_openid`（公众号 openid，区别于小程序侧的 `wechat_mini_openid`）。**改会员相关逻辑时要意识到这是同一份生产数据，两个项目都可能同时读写，涉及会员合并等既有不变量（如"会员注销前必先合并资产"）时需两边一起核对。**
+
+**API 路由规则 (SnowmeetApi)：**
 - 新接口：`/api/[controller]/[action]`
 - 旧接口：`/core/[controller]/[action]`
 
@@ -74,6 +106,7 @@ dotnet run
 - 全部异步（`async Task` / `await`）
 - 客户端使用 `getApp().globalData` 管理全局状态
 - 支付相关：微信支付 + 支付宝双通道
+- SnowmeetOfficialAccount 目前代码量小、功能待补充；后续在此项目开发时优先延续 SnowmeetApi 已验证的约定（`config.sqlServer` 连接串模式、Controller 直写业务逻辑等），除非该项目有自己的既定风格
 
 ---
 
@@ -2425,7 +2458,8 @@ scp /Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/AlipayCertificate/2
 - **写死的旧域名一律不动**（用户拍板）：[data.js:543](../snowmeet_wechat_mini/utils/data.js#L543) 上传接口 + ~13 处图片显示前缀 + 静态图 + `uploadDomain` CDN 全留 `snowmeet.wanlonghuaxue.com`，只改 `requestPrefix`/`domainName`
 
 #### 三、活跃页面里用 FirstUI 的清单（纯盘点，无改码）
-- wxml 含 `<fui-` 的 16 页：14 活 / 2 死。活 = 餐饮 fd 模块 8 页（[admin.js](../snowmeet_wechat_mini/pages/admin/admin.js) 的 `nav` 动态分发跳入，正是当初静态 BFS 误判为 C-2 的原因）+ new_rent_list/rent_details/retail_order_list/care_order_list/fire_care_list + order_entry(扫码落地)；死 = `admin/recept/recept_new`（旧版接待、无运行时入口）+ `printer/gprinter/print_task`
+- wxml 含 `<fui-` 的 16 页：当时盘点 14 活 / 2 死，死 = `admin/recept/recept_new`（旧版接待、无运行时入口）+ `printer/gprinter/print_task`。**此条已过时（2026-08-12 更正）**：`recept_new` 当时的"无运行时入口"判断是错的——它其实是首页几个入口指向的活跃默认路径，"新版"接待流程当时反而才是未真正接入的分支；2026-08-12 会话里用户确认旧版彻底不用后已连同 4 个兄弟页面、10 个孤儿 component 一起删除（详见 [`sessions/2026-08-12_ticket_gift_transfer.md`](sessions/2026-08-12_ticket_gift_transfer.md) 第 4 节），现在活 = 13 页、死 = 仅 `printer/gprinter/print_task`
+- 活 = 餐饮 fd 模块 8 页（[admin.js](../snowmeet_wechat_mini/pages/admin/admin.js) 的 `nav` 动态分发跳入，正是当初静态 BFS 误判为 C-2 的原因）+ new_rent_list/rent_details/retail_order_list/care_order_list/fire_care_list + order_entry(扫码落地)
 - 新流程页（reception/settle/payment_entry）按约定都没用 fui；fui 存量主体在餐饮 fd 模块
 
 #### 四、「微信扫码后店员端仍显示『等待扫码』」长排查（paymentId 42601/42602/42603；未会话内闭环）
@@ -3551,3 +3585,34 @@ punchcard_detail「立即购买」
 - **ASP.NET Core 空值查询参数回落默认值**、**`aspectFill` 是裁剪**、**`wx.uploadFile` success 不判状态码**（均详见已知遗留）
 - **只置灰不给点击反馈会让人反复戳**：禁用项被点击时要 toast 说明原因
 - **「共享接口 + 双模式」优于「复制一个新页面」**：`punchcard_usage` 顾客/店员共用，服务端抽 `BuildPunchCardUsageView`，两侧只差鉴权和是否下发 refund，展示口径不会漂
+
+### 2026-08-12 — 优惠券转赠功能全栈实现 + 关注核验三轮迭代 + 旧接待页退役 + 已分享历史
+
+全新功能：优惠券可转赠给微信好友，硬编码先支持模板 12（免费打蜡券）/16（老顾客优惠券）。改动横跨 `SnowmeetApi` + `snowmeet_wechat_mini` + `SnowmeetOfficialAccount`（本场首次拉进本地工作区）三个仓，均本地未提交/未部署。归档见 [`sessions/2026-08-12_ticket_gift_transfer.md`](sessions/2026-08-12_ticket_gift_transfer.md)。
+
+#### 一、转赠主体
+
+`TicketController` 新增 `SetTicketToShare`/`AcceptTicket`/`CancelShare`，按 `member_id`（不是 `open_id`，很多券这字段是空的）校验归属 + 白名单 + 状态。小程序端 `ticket_list`/`ticket_detail` 加分享/撤回按钮（复用原生 `open-type="share"` 卡片机制），新增落地页 `ticket_share`。顺带修了两个既有 bug：`ticket_share.js` 没解开 `ApiResult` 包装直接读裸对象、`ticket_detail.js` 的 `onShareAppMessage` 分享配置在异步请求完成前就同步 return 掉了。
+
+#### 二、"转赠前必须关注公众号"：三轮迭代（本场最大块）
+
+1. **场景值防复用**：微信临时二维码的 scene 最初绑定券的静态 `code`，同一张券换收件人转赠会复用上一个人的历史扫码/关注记录——2026-08-12 真实事故（用户实测复现）。修复：`Ticket.transfer_scene` = `code + shared_time.Ticks`，绑定"这一次分享"而不是券本身。
+2. **服务端自动接受**：用户要求"扫码关注后应自动接受，这个逻辑应该在服务端实现"。`SnowmeetOfficialAccount` 的 `DealEventKeyAction` 新增 `ticket_gift` 场景分支 → 直接调 `SnowmeetApi` 新增的 `AcceptTicketByOaFollow`（用 `oaOpenId` 定位接受人，因为触发点是公众号服务器回调、没有小程序会话）。`AcceptTicket` 拆成 `AcceptTicketCore` 共享逻辑 + session/oaOpenId 两个入口。小程序端删掉客户端 `_autoAccept`，轮询改成盯"券状态是否变化"而非自己发起接受。
+3. **发现真源字段**：本地手动解决一次 `SnowmeetOfficialAccount` git merge 冲突时，合并进来的完整版代码里第一次看到 `SetFollowingStatus`——每次收到关注/取关事件都会同步维护 `member.following_wechat`。这是比反查 `oa_receive` 事件日志更直接可靠的关注状态真源，`IsCurrentlyFollowingOA` 随即简化为直接读这个字段。**这次 merge 也顺带暴露一个真实 bug**：冲突合并漏掉了新加的 `case "ticket":` 分发，方法体还在但成了死代码，靠针对新增符号 grep 调用点才发现。
+
+接受成功后，`NotifyAcceptedByOA` 通过公众号客服消息给接受人推"您已经接受了 XXX 优惠券，点击查看"（内嵌 `<a data-miniprogram-appid="" data-miniprogram-path="">` 跳小程序，本仓库标准写法），新增 `SnowmeetOfficialAccount` 端点 `SendTextMessageByOpenId` 直接按 openid 发送，不走原有 `SendTextMessage` 的 `unionId → user`（死表）反查。
+
+#### 三、旧版接待页面退役
+
+排查 `pages/admin/recept/recept_new`/`rent_recepting_list` 是否只剩老版系统在用，**结果推翻了用户自己的假设**——这两个老页面当时其实是首页入口指向的活跃默认路径，"新版"反而是未真正接入的分支。用户拍板首页改指新版、旧版删除；追问依赖链发现 `recept_member_info`/旧 `recept_entry` 内建的 QR+WebSocket 身份验证流程都挂在待删页面上，用 `AskUserQuestion` 征求意见后用户明确"一并退役"。最终删除 60 个文件（5 页 + 10 个孤儿 component），同步清理 `app.json`/`admin.wxml`/`admin.js`/`project.config.json`。fui 组件盘点那条旧记录（本文件 2026-06-12 条目）已标注过时更正。
+
+#### 四、"我的优惠券"页面：编码展示 + 三 tab + 已分享历史
+
+编码 3 位一节横线展示；tab 从"未使用/已使用"扩到"未使用/已使用/已分享"。新增 `GetMySharedTickets`：合并"当前持有、分享中"+ "曾经转赠出去、已被接受"（从 `ticket_log` 反查 sender 是我的成功转赠记录）两部分。**用户指出一个边界情况**：转赠出去又被对方转赠回来、我又接受了，这张券不该再挂在我的已分享历史里——修正判断标准为"这张券最新一条转赠成功记录的 sender 是不是我"，不是"我有没有转赠成功过"，同一张券反复转手只认最后一次。list/detail 两页原来各自一份状态判断代码、detail 页不知道"已分享→对方已接受"这种状态，抽成共用模块 `ticket_helper.js` 统一权限判断，list 页导航到 detail 时把 `tab` 带过去。
+
+📌 关键发现 / 教训：
+- **扫码关注场景值必须绑定"这一次交互"，不能绑定实体静态标识**，否则复用无关历史事件——这是真实事故，不是理论风险
+- **服务端维护的状态字段优于从事件日志反查**：找到 `following_wechat` 这类"真源字段"比自己发明推断逻辑更值得优先排查
+- **多入口的一致权限判断要抽共用模块**，不能让 list 页和 detail 页各写一份，否则容易漏掉某一侧
+- **涉及多方转手的资产，历史归属要按"最新一次动作方向"判断**，不能只看"有没有发生过"
+- **本地手动解决 git 冲突后要主动复查**：`dotnet build` 能验证语法但验证不了"逻辑分支有没有被合并丢掉"，需针对新增符号单独 grep 调用点
