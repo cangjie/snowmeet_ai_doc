@@ -152,6 +152,20 @@
 - 对方名下已有 3 张同款券时，领取被拒且文案清晰
 - 拒绝订阅授权后，转赠照常完成，只是没有通知
 
+## 连带修复：`GetMyTickets` 过期过滤写反（实施中发现，已确认一并修）
+
+`TicketController.GetMyTickets` 对 `used == 0` 的过滤原本是：
+
+```csharp
+tickets.Where(t => t.expire_date == null || ((DateTime)t.expire_date).Date <= DateTime.Now.Date)
+```
+
+`<=` 保留的恰好是**已过期**的券。生产库实测（`valid=1` 且未核销共 11205 张）：无到期日 1892 张（显示，正确）、已过期 9125 张（显示，**错误**）、未过期且有到期日 188 张（隐藏，**错误**）。
+
+**这会让本功能直接失效**：回赠券的到期日是未来的雪季末，正好落在被隐藏的那一类——用户收到「已回赠您一张同款券」的通知，进券包却找不到。
+
+改为 `TicketTransferRules.IsNotExpired`（`expire_date == null || expire_date.Date >= now.Date`，当天到期的当天仍显示）。副作用是 9125 张过期废券从顾客的「未使用」列表消失——本来就不该显示。
+
 ## 部署注意
 
 - 无库表变更，不需要 DDL
