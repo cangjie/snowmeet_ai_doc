@@ -127,6 +127,22 @@
 
 **一次性订阅**：一次授权只能发一条消息，用户每转赠一张券都要重新授权。这是微信的机制，不做额外处理。
 
+### 用户勾了「总是保持以上选择，不再询问」
+
+订阅弹窗底部有这个勾选框。勾上再点取消，微信就把该模板的选择**永久记住**：之后每次调
+`wx.requestSubscribeMessage` 都直接返回 `reject` 且**不再弹窗**（勾着点允许同理，以后自动同意也不弹）。
+代码绕不过去，唯一恢复途径是用户自己去小程序设置里改。
+
+处理方式是**检测 + 引导**，不是重试：
+
+- `requestSubscribeMessage` 结果不是 `accept` 时，用 `wx.getSetting({withSubscriptions: true})` 查 `subscriptionsSetting`
+- 判定见 `ticket_helper.isSubscribePermanentlyBlocked`：`mainSwitch === false`（订阅总开关被关）
+  或 `itemSettings[模板] === 'reject'` 才算被永久拒绝
+- ⚠️ `itemSettings` **只包含用户勾过「总是保持」的模板**。某模板不在里面 ≠ 被拒绝，
+  只是以后每次还会正常弹窗——两种情况不能混
+- 被永久拒绝时，在转赠确认弹层里显示一行提示 + 「去开启」，点击走 `wx.openSetting({withSubscriptions: true})`
+  （同样需要点击手势触发）。**不阻断转赠**，只是告诉用户收不到通知
+
 ## 可观测
 
 发送结果落**现有** `template_message` 表（`ServiceMessageController` 在用）：`from` 写小程序 appid、`template_id` 写模板 ID、`keywords` 写 data 的 JSON、`ret_message` 写微信返回体。
