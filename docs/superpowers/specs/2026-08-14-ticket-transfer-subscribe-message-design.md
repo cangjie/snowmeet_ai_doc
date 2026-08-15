@@ -203,6 +203,28 @@ tickets.Where(t => t.expire_date == null || ((DateTime)t.expire_date).Date <= Da
 
 **这类 bug 单元测试抓不到**（是数据加载姿势问题，不是纯逻辑），只能靠真机端到端验证。
 
+## 实施中踩到：access_token 失效要强制刷新重试
+
+首次真机验证（2026-08-15 16:35，券 193596120）：回赠券正常生成、订阅消息也发出去了，
+但微信返回 `{"errcode":42001,"errmsg":"access_token expired"}`。
+
+`MiniAppHelperController.GetAccessToken()` 用本地文件 `access_token.official_account` 缓存，
+只按「拿到超过 1 小时」判断新鲜度。但同一个 appid 被多方获取时，**后取的会让先取的失效**，
+而缓存这边不知情、继续拿着已经作废的 token 用。本项目正好有多个获取方：
+两台服务器（mini.snowmeet.top / snowmeet.wanlonghuaxue.com）各自部署、各自维护缓存文件，
+另有 legacy `weixin.snowmeet.top/get_token.aspx`。
+
+处理：`GetAccessToken` 加可选参数 `forceRefresh`（删掉缓存文件重新取，默认 false、其它调用方零影响）；
+`SubscribeMessageHelper.Send` 收到 token 类错误就强制刷新重试一次。
+
+**要跟业务错误区分开**——见 `IsTokenInvalidResponse`：只有 `40001`（凭证无效）/
+`40014`（token 非法）/ `42001`（token 过期）才重试；`43101`（用户没订阅额度）、
+`47003`（参数不符模板）这类重试多少次都一样，不能重试。非 JSON 响应（网关吐 HTML 错误页）
+一律不重试且不抛异常。
+
+留痕的 `remark` 会标成「小程序订阅消息(token失效已重试)」，便于回头判断这个碰撞多不多。
+如果发现频繁重试，根治要把 token 获取收敛到单一来源（集中式缓存），本次不做。
+
 ## 部署注意
 
 - 无库表变更，不需要 DDL
