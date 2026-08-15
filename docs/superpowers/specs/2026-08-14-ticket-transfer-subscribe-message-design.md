@@ -182,6 +182,22 @@ tickets.Where(t => t.expire_date == null || ((DateTime)t.expire_date).Date <= Da
 
 改为 `TicketTransferRules.IsNotExpired`（`expire_date == null || expire_date.Date >= now.Date`，当天到期的当天仍显示）。副作用是 9125 张过期废券从顾客的「未使用」列表消失——本来就不该显示。
 
+## 实施中踩到：`sender` 必须带 MSA 加载
+
+`AcceptTicketCore` 里原本是 `sender = _context.member.FindAsync(ticket.member_id)`。
+`Member.wechatMiniOpenId` 是遍历 `memberSocialAccounts` 算出来的计算属性，而 `FindAsync`
+不加载导航属性、项目也没开延迟加载 —— 这样拿到的 `sender.wechatMiniOpenId` **恒为空**。
+
+原来只用它写 `ticket_log`，有 `?? ticket.open_id` 兜底所以一直没暴露（2026-08-15 实测：
+券 193596120 的接受日志里 `sender_open_id` 落的就是兜底值，跟该会员真实 openid 对不上）。
+但回赠要靠这个 openid 发券和发订阅消息，取不到就会静默跳过、功能等于没上线。
+
+已改为 `MemberController.GetWholeMemberById`（带 `Include(memberSocialAccounts)`）。
+副带好处：`ticket_log.sender_open_id` 从此记的是分享人真实 openid 而不是券上可能过期的
+`open_id`，「已分享」列表按 sender 反查也更准。
+
+**这类 bug 单元测试抓不到**（是数据加载姿势问题，不是纯逻辑），只能靠真机端到端验证。
+
 ## 部署注意
 
 - 无库表变更，不需要 DDL
