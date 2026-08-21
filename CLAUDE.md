@@ -16,6 +16,12 @@
 - 顺带完成：旧版接待页面（`pages/admin/recept/` 5 页 + 10 个孤儿 component，60 个文件）确认无用后整体退役；"我的优惠券"页面加编码展示、三 tab（未使用/已使用/已分享）、已分享历史记录（含"来回转赠"边界情况的归属判断）、list/detail 权限判断统一。
 - 详见 [`sessions/2026-08-12_ticket_gift_transfer.md`](sessions/2026-08-12_ticket_gift_transfer.md)。
 
+## 2026-08-21 会话归档
+- 本次会话聚焦微信小程序 BLE 标签打印栈，确认食品/养护标签的打印能力复用 `snowmeet_wechat_mini/utils/ble_label_printer/` 下的 `tsc.js`、`encoding.js` 与 `encoding-indexes.js`，重点在 TSPL 生成与 GB18030 字符集映射。
+- 当前检查范围集中在 `components/fnb/print_food_label/print_food_label.js` 与 `components/care/print_care_label.js` 的连接/打印调用链，以及 `encoding-indexes.js` 这类底层编码表是否与实际打印内容匹配；本次未涉及跨仓业务提交，仍处于调试与归档上下文阶段。
+- 结论：项目的标签打印依赖是固定的底层实现，后续继续排查时应先核对 `tsc.js` 生成的命令串、BLE 设备名筛选逻辑和编码表是否和实际设备固件一致，再决定是否改动前端调用或底层库。
+- 相关文件：[`snowmeet_wechat_mini/utils/ble_label_printer/tsc.js`](../snowmeet_wechat_mini/utils/ble_label_printer/tsc.js)、[`snowmeet_wechat_mini/utils/ble_label_printer/encoding.js`](../snowmeet_wechat_mini/utils/ble_label_printer/encoding.js)、[`snowmeet_wechat_mini/utils/ble_label_printer/encoding-indexes.js`](../snowmeet_wechat_mini/utils/ble_label_printer/encoding-indexes.js)。
+
 ## 项目概览
 滑雪场管理系统，包含三个子项目：
 - `snowmeet_wechat_mini/` — 微信小程序客户端（原生小程序 + JS）
@@ -215,7 +221,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-07-26）
+## 当前状态（截至 2026-08-21）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
