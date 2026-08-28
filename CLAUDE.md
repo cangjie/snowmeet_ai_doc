@@ -221,11 +221,13 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-08-21）
+## 当前状态（截至 2026-08-28）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
 **2026-06-28 补充**：`rent_product.status` 已接入租赁生命周期与搜索弹窗联动；发放写 `租赁中`、归还写 `正常`、非空且非 `正常` 的搜索项浅灰禁选；未归还列表手机号按订单明细同源的 `customerCell` / member MSA `cell` 口径回填。
+
+**2026-08-28 补充**：优惠券模板新增海报上传与二维码布局（`cover_upload_id`、参考画布 `1080×1440`、`qr_x/y/width/height`）。群分享创建动态或静态二维码批次后，`TicketPosterController` 生成带二维码的海报并下载；动态码默认，静态码仅模板维护权限（店长及以上）可选。**海报合成必须保留上传原图的尺寸与比例**，仅把二维码的位置按横纵坐标比例映射、尺寸统一按横向比例缩放，以保证二维码为正方形；若线上仍见海报被拉伸，先确认 `mini.snowmeet.top` 已发布最新 API。
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
@@ -3686,3 +3688,16 @@ punchcard_detail「立即购买」
 - **同名不同义最危险**：南山的门店名与雪场名恰好相同，掩盖了"拿门店比雪场"的 bug 好几年，直到崇礼旗舰店卖万龙雪票才暴露
 - **跨仓的同一套规则必须单点**：公众号仓自己实现发券，结果有效期写死、限领只对一个模板生效。改成 HTTP 调主服务后规则只有一份
 - **用户中途改数据要随时复查**：本次会话期间用户多次直接改库（商品改名、hide 翻转、分类新增），我一度拿着旧快照下了相反的结论。凡是基于数据的判断，动手前重查一次
+
+### 2026-08-28：优惠券扫码领取结果 + 动态海报群分享
+
+- 修复顾客领取页二维码未启用长按菜单：`ticket_claim.wxml` 加 `show-menu-by-longpress`。
+- `ticket_claim` 发现关注公众号后自动调用领取接口；已关注用户重新打开领取页同样自动领取。
+- 公众号 `ticket_share_*` 事件改为调用 SnowmeetApi 自动领取接口；好友批次一次性领取，群批次按用户和当天去重。
+- 公众号领取成功发 `miniprogrampage` 客服卡片并跳「我的优惠券」；失败仅发原因文本，不含跳转链接。
+- `ticket_template` 新增 `cover_upload_id`、海报参考宽高和二维码坐标/尺寸字段；用户已取得幂等 DDL。
+- 新增 `TicketPosterController.Generate`：下载 `mini.snowmeet.top` 上的模板原图与公众号场景二维码，叠加后保存动态海报。
+- 模板编辑页支持上传海报、拖拽/手输二维码位置尺寸、群分享选择动态/静态码、自动下载海报；已移除独立的固定二维码 UI。
+- 动态海报经过三轮比例修正：禁止拉伸原图；位置按原图横纵比例换算；二维码宽高统一按横向比例换算，确保正方形。
+- 验证：SnowmeetApi 多次 `dotnet build --no-restore` 成功；SnowmeetOfficialAccount 构建成功；`TicketShareRulesTests` 15/15 通过；小程序 JS/WXML diagnostics 与 `git diff --check` 均通过。
+- **待部署/真机确认**：SnowmeetApi、SnowmeetOfficialAccount 与小程序需同步发布。重点确认线上运行的 API 已含“保留原图比例”修复，并验证相册写入授权、微信群/朋友圈分享和扫码领取闭环。
