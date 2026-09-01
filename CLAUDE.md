@@ -22,6 +22,12 @@
 - 结论：项目的标签打印依赖是固定的底层实现，后续继续排查时应先核对 `tsc.js` 生成的命令串、BLE 设备名筛选逻辑和编码表是否和实际设备固件一致，再决定是否改动前端调用或底层库。
 - 相关文件：[`snowmeet_wechat_mini/utils/ble_label_printer/tsc.js`](../snowmeet_wechat_mini/utils/ble_label_printer/tsc.js)、[`snowmeet_wechat_mini/utils/ble_label_printer/encoding.js`](../snowmeet_wechat_mini/utils/ble_label_printer/encoding.js)、[`snowmeet_wechat_mini/utils/ble_label_printer/encoding-indexes.js`](../snowmeet_wechat_mini/utils/ble_label_printer/encoding-indexes.js)。
 
+## 2026-09-01 会话归档
+- 优惠券分享线四条主线：① 模板编辑页把「分享海报 / 分享小程序卡片 / 分享记录」合成一张标题为「分享」的可折叠卡片并移到页面底部；② 分享记录改造（方式只分卡片/海报两类、加日期筛选默认最近一周、显示分享人并放开到全店）；③ 顾客券详情页未验证手机号时整页遮罩强制授权；④ 养护开单页扫码用券（扫券详情页二维码 → 切开单顾客 → 自动选中该券）。
+- 为做成 ④，**券详情页二维码从公众号带参码换成"内容即券码"的普通码**——公众号码里编码的是微信短链，小程序扫不出券码。代价（用户已确认）：公众号 `ScanTicket`（微信扫一扫 → 回消息带开单链接）那条路失效。**小程序与顾客侧必须同版本发布**，否则新旧扫码互不认。
+- 顺带修掉三个既有 bug：`DescribeShareType` 漏判 qrcode 类型、`date-range-picker` 的 activeShortcut 假高亮（影响 5 个调用方）、列表放开后 `canRevoke` 未收紧会显示必定报错的撤回按钮。
+- 详见 [`sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md`](sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md)。
+
 ## 项目概览
 滑雪场管理系统，包含三个子项目：
 - `snowmeet_wechat_mini/` — 微信小程序客户端（原生小程序 + JS）
@@ -221,7 +227,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-08-28）
+## 当前状态（截至 2026-09-01）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -3701,3 +3707,42 @@ punchcard_detail「立即购买」
 - 动态海报经过三轮比例修正：禁止拉伸原图；位置按原图横纵比例换算；二维码宽高统一按横向比例换算，确保正方形。
 - 验证：SnowmeetApi 多次 `dotnet build --no-restore` 成功；SnowmeetOfficialAccount 构建成功；`TicketShareRulesTests` 15/15 通过；小程序 JS/WXML diagnostics 与 `git diff --check` 均通过。
 - **待部署/真机确认**：SnowmeetApi、SnowmeetOfficialAccount 与小程序需同步发布。重点确认线上运行的 API 已含“保留原图比例”修复，并验证相册写入授权、微信群/朋友圈分享和扫码领取闭环。
+
+### 2026-09-01：优惠券「分享」折叠卡 + 分享记录三项改造 + 券详情页强制授权手机号 + 扫码用券
+
+四条主线，前后端都动；业务代码用户已分次 commit + push。归档见 [`sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md`](sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md)。
+
+#### 一、模板编辑页「分享」区重构（纯 UI）
+
+「分享海报 / 分享小程序卡片（原「分享发券」）/ 分享记录」三块合成一张标题为「分享」的 card，各自点标题开合（非互斥手风琴，默认全收起），整块移到页面最底部——但**放在「保存」按钮之上**，因为海报封面和二维码坐标是要落库的表单字段。「生成群分享海报」按钮连同动/静态码 chip 一起搬进海报子区（chip 只服务这颗按钮）。新位置补 `wx:if="{{sharable == 1 && id > 0}}"`，不满足时显灰字提示（原来零反馈）。
+
+#### 二、分享记录三项改造
+
+- **方式只分两类**：`TicketShareRules.DescribeShareType` → personal=「小程序卡片」，group/qrcode=「海报」。**修既有 bug**：原判断只 `== ShareGroup`，qrcode（静态码批次）落进 else 显示成「分享给好友」，实际发的是海报。测试补 qrcode 用例，15 → 16
+- **日期筛选**：`GetShareBatches` 加 `startDate`/`endDate`（按 create_date，两端含当天，照搬 `TicketAdminController.BuildFilteredQuery`）；前端默认「今天往前 6 天 ~ 今天」，用 `date-range-picker` range 模式
+- **显示分享人 + 放开全店**：接口**改名 `GetMyShareBatches` → `GetShareBatches`**（去掉 `staff_id == staff.id` 过滤后「My」不再成立），返回 `staffName`/`staffId`/`isMine`；**`canRevoke` 同步收紧为 `valid==1 && staff_id==staff.id`**——`RevokeShareBatch` 服务端本就只允许撤自己的，不收紧会让别人的行显示必定报错的按钮。用户拍板：能进页面的人都能看全店记录，不加二级门槛
+
+⚠️ **口径出入（未处理）**：CLAUDE.md 原记「静态码仅店长及以上可选」，但模板编辑页准入本身就是 `title_level ≥ 200`，实际**没有第二道门槛**。若本意是更高一档需另外落地。
+
+#### 三、顾客券详情页强制授权手机号
+
+`pages/mine/ticket/ticket_detail` 未验证手机号时整页遮罩（`z-index:200`，`catchtap`+`catchtouchmove` 吃穿透，点不掉），卡片里 `open-type="getPhoneNumber"` 按钮 + 「返回」出口（微信不接受完全堵死的页面；深链无上一页时兜底 `redirectTo` 到「我的优惠券」）。判断用 `globalData.member.cell`，**不新增接口**。入库走 `MiniAppUser/UpdateWechatMemberCell`（次卡购买页那条），内部 `ResolveOrCreateMemberByCell`：按 cell 查到会员就归并 + 链 openid/unionid，查不到才建（`source='小程序手机号验证'`），回填 `mini_session.member_id`。**授权成功后重跑 `_checkCell()` 而非直接放行**——后端可能返回不带 cell 的 member。局限：该接口返回裸 Member 非 `ApiResult` 信封，失败时前端拿不到具体原因，只能给通用 toast。
+
+#### 四、扫码用券（养护开单页）
+
+- **前置改动**：券详情页二维码从公众号带参码（`QR_STR_SCENE`，scene=`oper_ticket_code_{code}`）换成 `MediaHelper/GetQRCode?qrCodeText={code}` 的普通码。公众号码里编码的是 weixin.qq.com 短链，**券码不在二维码内容里**，`wx.scanCode` 还原不出来
+- **代价（用户确认接受）**：公众号 `case "oper"` → `ScanTicket` 那条路失效——店员用微信扫一扫扫券、公众号回一条带 `{ticket.miniapp_recept_path}?ticketCode=` 跳小程序链接的消息。**这条路本来就等价实现了需求**，只是绕公众号
+- **流程**：扫码 → `TicketAdmin/GetTicketDetailByStaff` 查持有者 → 无持有者中止 / 同人直接选 / 他人二次确认后切人 → `getMemberTicketsPromise(memberId,'养护',true)` 取券 → `_applyTicketSelection`
+- **`_applyTicketSelection` 从 `onTicketSelectorEvent` 抽出**，手选与扫码共用同一段代码
+- **券可用性校验用「在不在该会员可用券列表里」**：过期/已用/作废/非养护线统一表现为不在列表里，不在前端复刻服务端券状态机
+- 切人连带：清掉其他 care 上旧顾客的券（否则拿别人的券抵扣）+ 姓名/手机号/性别一起换（顶部会员条按 `customer.cell` 反查，只换 memberId 条上还挂着原顾客）
+- **修竞态**：切人后立即取价时组件 `memberId` property 还没被父页回传，会拿旧会员 id 调 `CalcCareCharge`；组件内先 `setData({memberId})` 顶上
+- **发布顺序**：小程序与顾客侧必须同版本发，否则新旧扫码互不认，中间有空窗
+
+📌 关键发现 / 教训：
+- **微信公众号带参二维码不能被第三方扫码还原 scene**：只有微信客户端扫码才解析 scene 触发公众号事件。做"扫码识别"需求前先确认目标二维码的类型，别假设它含明文
+- **组件 property 在父页 setData 回传前不可靠**：子组件触发父页改 property，紧接着的逻辑仍读旧值。跨组件切状态要组件内先顶上
+- **用「可用列表」当校验，别在前端复刻服务端状态机**：自己解释一遍券状态迟早和服务端对不上
+- **接口语义变了就改名**：`GetMyShareBatches` 去掉"只看自己"后名字就在说谎。全仓一个调用方时改名成本几乎为零
+- **放开列表范围必须同步收紧行级操作权限**：服务端有校验不等于前端可以不管，否则用户看到的是一颗必定报错的按钮
+- **控件默认高亮要和调用方传入的初值对账**：`activeShortcut` 写死 'today' 而调用方传"最近一周"，UI 说的和查的不是一回事，5 个页面一起错了很久
