@@ -28,6 +28,13 @@
 - 顺带修掉三个既有 bug：`DescribeShareType` 漏判 qrcode 类型、`date-range-picker` 的 activeShortcut 假高亮（影响 5 个调用方）、列表放开后 `canRevoke` 未收紧会显示必定报错的撤回按钮。
 - 详见 [`sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md`](sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md)。
 
+## 2026-09-06 会话归档
+- 新建独立项目 **reqai**（`/Users/cangjie/source/snowmeet/reqai/`，GitHub `cangjie/snowmeet_reqai`）：需求收集与分析系统，碎片化需求进、带引用的冲突判定/开发建议/FSD 出。与三个业务仓平级但独立，**不属于本仓库**。19 次提交、217 个测试，已部署到 https://snowmeet.goldenma.xyz 。
+- 语料三层：`snowmeet_ai_doc`（为什么）+ 业务笔记（业务规则）+ **三个业务代码仓与生产库 schema**（现在是什么）。共 2,055 块 / 156 万 token。**决策以代码和库为准，文档只答「为什么」；两者不一致时以代码为准且必须单列上报。**
+- 部署在 `44.207.251.65`（AWS us-east-1），**同机已有 `ari.goldenma.xyz`，全程避开其端口与配置**，验收时 ari 始终 200。
+- 对本仓库的影响：reqai 会定期 `git pull` 本仓库作为语料。**它对本仓库只读**，不会写入任何文件。
+- 详见 [`sessions/2026-09-02_reqai_build_and_deploy.md`](sessions/2026-09-02_reqai_build_and_deploy.md)。
+
 ## 项目概览
 滑雪场管理系统，包含三个子项目：
 - `snowmeet_wechat_mini/` — 微信小程序客户端（原生小程序 + JS）
@@ -227,7 +234,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-09-01）
+## 当前状态（截至 2026-09-06）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -3746,3 +3753,31 @@ punchcard_detail「立即购买」
 - **接口语义变了就改名**：`GetMyShareBatches` 去掉"只看自己"后名字就在说谎。全仓一个调用方时改名成本几乎为零
 - **放开列表范围必须同步收紧行级操作权限**：服务端有校验不等于前端可以不管，否则用户看到的是一颗必定报错的按钮
 - **控件默认高亮要和调用方传入的初值对账**：`activeShortcut` 写死 'today' 而调用方传"最近一周"，UI 说的和查的不是一回事，5 个页面一起错了很久
+
+### 2026-09-06：需求分析系统 reqai 建成并部署（跨 09-02 ~ 09-06）
+
+**这是一个独立于本仓库的新项目**，代码在 `/Users/cangjie/source/snowmeet/reqai/`
+（GitHub `cangjie/snowmeet_reqai`，私有）。本条只记与本仓库相关的部分与通用教训。
+
+- **本仓库被作为语料源**：reqai 定期 `git pull` 本仓库并切分索引（`CLAUDE.md` 拆成
+  context_core / current_state / 93 条 devlog；`sessions/` 整篇或按 `## N.` 切；
+  specs/plans 按标题切）。**reqai 对本仓库只读**，有测试保证它不执行任何 git 写命令。
+- **发现本仓库是「开发史」而非「业务规则库」**：记的是「某天改了什么、因为什么」，
+  回答不了「现在这个字段叫什么」。所以 reqai 另外索引了三个业务代码仓和生产库 schema，
+  并定下权威顺序：**问「现在是什么」以代码和库为准，问「为什么」才看文档**。
+- **生产库只导 schema 不开跨境直连**：需求分析要的是表结构和枚举取值，不是行数据；
+  行数据是 PII，跨境有合规成本。`reqai/tools/dump_schema.py` 在能连库的位置只读导出，
+  109 张表。顺带确认：**全库只有 3 个声明式外键**，表关系靠 `xxx_id` 命名约定维系。
+- 📌 **`usage` 是 MySQL 保留字**：手写 DDL 里必须加反引号，SQLite 接受但 MySQL 8.4
+  直接 ERROR 1064。应用侧不受影响（SQLAlchemy 会自动加引号），**只有手写迁移会踩**。
+  本仓库 `sql/` 下的手写 DDL 将来若用到 `usage` / `key` / `rank` 等列名同理。
+- 📌 **systemd 的 EnvironmentFile 不剥行内注释**：`FOO=0.6  # 说明` 会让值变成
+  带注释的字符串。以后写 systemd 配置注释必须单独成行。
+- 📌 **GitHub deploy key 只对单个仓有效**：服务器上 `cangjie/ari` 那把 key 能 clone
+  公开仓（`snowmeet_ai_doc` / `SnowmeetApi` / `snowmeet_wechat_mini` /
+  `SnowmeetOfficialAccount` 都是公开的），但碰不到私有仓。跨仓要用账号级 SSH key。
+- 📌 **MySQL root 未必是 auth_socket**：`44.207.251.65` 上 root 用
+  `caching_sha2_password`，`sudo mysql` 连不上；Ubuntu 标准维护账号
+  `/etc/mysql/debian.cnf` 可用。
+- ⏰ **证书 2026-12-05 到期且需手动续期**（TrustAsia，非 certbot）。
+  可与 `ari.goldenma.xyz` 那张（11-19 到期）一起记提醒。
