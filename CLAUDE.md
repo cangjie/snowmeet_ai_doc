@@ -1,5 +1,9 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-09-08 会话归档
+- 本机独立仓统一由 `/Users/cangjie/Projects/snowmeet/snowmeet_reqai` 改名为 `/Users/cangjie/Projects/snowmeet/reqai`；Git remote 与未提交改动均保留，`start-work` 已改为按新路径核查。
+- **重要遗留**：管理员帮助/租赁查询的 reqai 线上修复曾以 `scp` 直接写入 `/home/ubuntu/reqai/backend/` 后重启服务，尚未提交到 `cangjie/snowmeet_reqai`。下次必须先审阅、commit、push 本机 `reqai` 改动，再让服务器按 Git 对齐，否则将来 pull 或重建会覆盖线上代码。详见 [`sessions/2026-09-08_reqai_path_and_git_deployment.md`](sessions/2026-09-08_reqai_path_and_git_deployment.md)。
+
 ## 2026-09-07 会话归档
 - 新增小程序管理员后台 AI 帮助系统：`admin-page-help` 全局组件已挂到全部 66 个 `pages/admin/**/*.wxml`；按当前 route 取页面说明、支持追问，悬浮圆形入口可拖动且限于屏幕内。帮助回答只面向操作人员讲功能/规则/步骤/常见错误，前端不展示代码、字段、接口和文件路径。
 - 小程序只调 SnowmeetApi；`AdminAiController` 用 `sessionKey` 推导权威 staff（帮助/追问 `title_level>=200`），再以私有 `SNOWMEET_SERVICE_TOKEN` 调美国 reqai。SQL Server `admin_ai_request_log` 和 reqai 的 `admin_page_help_cache`/`snowmeet_help_invocations` 已部署；完整记录调用、模型/effort、响应、用量、耗时和错误，但不存密钥/Cookie。
@@ -35,7 +39,7 @@
 - 详见 [`sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md`](sessions/2026-09-01_ticket_share_ui_and_scan_to_use.md)。
 
 ## 2026-09-06 会话归档
-- 新建独立项目 **reqai**（`/Users/cangjie/source/snowmeet/reqai/`，GitHub `cangjie/snowmeet_reqai`）：需求收集与分析系统，碎片化需求进、带引用的冲突判定/开发建议/FSD 出。与三个业务仓平级但独立，**不属于本仓库**。19 次提交、217 个测试，已部署到 https://snowmeet.goldenma.xyz 。
+- 新建独立项目 **reqai**（本机路径 `/Users/cangjie/Projects/snowmeet/reqai/`，GitHub `cangjie/snowmeet_reqai`）：需求收集与分析系统，碎片化需求进、带引用的冲突判定/开发建议/FSD 出。与三个业务仓平级但独立，**不属于本仓库**。19 次提交、217 个测试，已部署到 https://snowmeet.goldenma.xyz 。
 - 语料三层：`snowmeet_ai_doc`（为什么）+ 业务笔记（业务规则）+ **三个业务代码仓与生产库 schema**（现在是什么）。共 2,055 块 / 156 万 token。**决策以代码和库为准，文档只答「为什么」；两者不一致时以代码为准且必须单列上报。**
 - 部署在 `44.207.251.65`（AWS us-east-1），**同机已有 `ari.goldenma.xyz`，全程避开其端口与配置**，验收时 ari 始终 200。
 - 对本仓库的影响：reqai 会定期 `git pull` 本仓库作为语料。**它对本仓库只读**，不会写入任何文件。
@@ -3764,7 +3768,7 @@ punchcard_detail「立即购买」
 
 ### 2026-09-06：需求分析系统 reqai 建成并部署（跨 09-02 ~ 09-06）
 
-**这是一个独立于本仓库的新项目**，代码在 `/Users/cangjie/source/snowmeet/reqai/`
+**这是一个独立于本仓库的新项目**，代码在 `/Users/cangjie/Projects/snowmeet/reqai/`
 （GitHub `cangjie/snowmeet_reqai`，私有）。本条只记与本仓库相关的部分与通用教训。
 
 - **本仓库被作为语料源**：reqai 定期 `git pull` 本仓库并切分索引（`CLAUDE.md` 拆成

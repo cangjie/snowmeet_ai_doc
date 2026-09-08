@@ -28,7 +28,7 @@ Beginning a work session on a complex project requires full context. This skill 
    - `SnowmeetApi`
    - `snowmeet_wechat_mini`
    - `SnowmeetOfficialAccount`
-   - `reqai`（记录路径为 `/Users/cangjie/source/snowmeet/reqai/`，GitHub 为 `cangjie/snowmeet_reqai`）
+   - `reqai`（本机路径为 `/Users/cangjie/Projects/snowmeet/reqai/`，GitHub 为 `cangjie/snowmeet_reqai`）
    对每个可访问仓库检查分支、工作区是否干净、HEAD 短 hash、最近提交和相对远端的 ahead/behind；`reqai` 路径不存在或未挂载时必须明确报告，不能略过。
 
 4. **Format** as a scannable overview — use the exact structure from CLAUDE.md, include emojis (✅🚧⏳) to show status at a glance, and callout any blockers in bold
