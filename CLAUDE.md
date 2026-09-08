@@ -1,5 +1,11 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-09-07 会话归档
+- 新增小程序管理员后台 AI 帮助系统：`admin-page-help` 全局组件已挂到全部 66 个 `pages/admin/**/*.wxml`；按当前 route 取页面说明、支持追问，悬浮圆形入口可拖动且限于屏幕内。帮助回答只面向操作人员讲功能/规则/步骤/常见错误，前端不展示代码、字段、接口和文件路径。
+- 小程序只调 SnowmeetApi；`AdminAiController` 用 `sessionKey` 推导权威 staff（帮助/追问 `title_level>=200`），再以私有 `SNOWMEET_SERVICE_TOKEN` 调美国 reqai。SQL Server `admin_ai_request_log` 和 reqai 的 `admin_page_help_cache`/`snowmeet_help_invocations` 已部署；完整记录调用、模型/effort、响应、用量、耗时和错误，但不存密钥/Cookie。
+- reqai 已部署在 `44.207.251.65`，schema=5，`page-help`/`rent-query-intent` 均可用；修复首次 502 根因：`build_context()` 漏传必填 `pinned`。每次重启均验证同机 `ari.goldenma.xyz` 为 200。
+- 自然语言查询首版仅开放 `pages/admin/rent/new_rent_list`：reqai 只解析日期/门店/状态等白名单条件，SnowmeetApi 二次校验并复用既有租赁查询，返回最多 200 单的汇总分析；**尚待小程序实际发起一条 `rent_query` 验收记录**。详见 [`sessions/2026-09-07_admin_page_help_and_query.md`](sessions/2026-09-07_admin_page_help_and_query.md)。
+
 ## 2026-08-05 会话归档
 - 本次会话完成 end-work 归档流程，确认当前 memory 中已有用户偏好与会话上下文记录。
 - 本次未进行代码修改、部署或测试，当前主要是完成上下文整理与归档。
@@ -234,13 +240,15 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-09-06）
+## 当前状态（截至 2026-09-08）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
 **2026-06-28 补充**：`rent_product.status` 已接入租赁生命周期与搜索弹窗联动；发放写 `租赁中`、归还写 `正常`、非空且非 `正常` 的搜索项浅灰禁选；未归还列表手机号按订单明细同源的 `customerCell` / member MSA `cell` 口径回填。
 
 **2026-08-28 补充**：优惠券模板新增海报上传与二维码布局（`cover_upload_id`、参考画布 `1080×1440`、`qr_x/y/width/height`）。群分享创建动态或静态二维码批次后，`TicketPosterController` 生成带二维码的海报并下载；动态码默认，静态码仅模板维护权限（店长及以上）可选。**海报合成必须保留上传原图的尺寸与比例**，仅把二维码的位置按横纵坐标比例映射、尺寸统一按横向比例缩放，以保证二维码为正方形；若线上仍见海报被拉伸，先确认 `mini.snowmeet.top` 已发布最新 API。
+
+**2026-09-07 补充**：管理员后台全页 AI 帮助已可用（66 页统一入口、帮助/追问均经 SnowmeetApi 审计代理到 reqai）；页面帮助只输出操作功能和业务规则，不泄露内部代码/路径。租赁订单列表额外支持自然语言条件查询与确定性汇总，模型不得产 SQL 或读业务明细；其他业务页面的自然语言数据查询尚未实施。帮助图标支持拖动，**触摸事件只 `catchtouchmove`，不可用 `catchtouchstart/end`，否则微信会阻断 tap 合成，图标拖动后无法点击**。
 
 **关键文件**
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
