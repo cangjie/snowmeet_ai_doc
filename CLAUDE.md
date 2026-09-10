@@ -244,7 +244,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-09-08）
+## 当前状态（截至 2026-09-10）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -254,7 +254,10 @@ dotnet run
 
 **2026-09-07 补充**：管理员后台全页 AI 帮助已可用（66 页统一入口、帮助/追问均经 SnowmeetApi 审计代理到 reqai）；页面帮助只输出操作功能和业务规则，不泄露内部代码/路径。租赁订单列表额外支持自然语言条件查询与确定性汇总，模型不得产 SQL 或读业务明细；其他业务页面的自然语言数据查询尚未实施。帮助图标支持拖动，**触摸事件只 `catchtouchmove`，不可用 `catchtouchstart/end`，否则微信会阻断 tap 合成，图标拖动后无法点击**。
 
+**2026-09-10 补充**：管理员帮助系统的结构化查询协议已完成并合并到四个当前分支：reqai `main@95354a3`、SnowmeetApi `ai@1d5b854`、小程序 `ai@2c09f385`、文档 `main@b70e855`。用户提问租赁订单时，SnowmeetApi 执行只读查询并返回文字答复、完整查询上下文与固定租赁列表跳转指令；小程序显示答复并跳转到应用完整筛选条件的租赁订单页，后续可继续用自然语言修改或回顾条件。reqai 线上部署未完成：文件曾上传至 `/home/ubuntu/reqai/deploy-backups/admin-assistant-v1/`，但连续 SSH 超时导致未安装、未重启服务。
+
 **关键文件**
+- 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
 - 页面（未归还租赁物列表，2026-06-22 重做）：`pages/admin/rent/unreturned`（品类 section→顾客分组→租赁物卡片 + 模糊搜索 + 汇总；点卡片带 `rentItemId` 深链跳订单明细并展开目标 rental/折叠其余）
 - 页面（租赁订单详情新版）：`pages/admin/rent/rent_order_detail`（订单信息紧凑双列、支付信息四格摘要+可折叠明细、租赁信息新样式分组卡；租金明细按天行=超时费列 + 点行弹窗改 租金/超时费/减免，走 `Rent/UpdateRentalDayChargesByStaff`；showcase「招待」格可点设/撤招待，走 `Rent/SetRentalEntertainByStaff`；深链 `rentItemId` 进入只展开目标 rental）
@@ -314,6 +317,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **管理员帮助结构化查询交接**：① Claude 从四个已合并当前分支继续；② reqai 重新连接 `44.207.251.65` 后安装已上传的两个新文件、给 `backend/app/main.py` 路由列表加入 `admin_assistant`、重启 `reqai.service` 并检查 `/api/service/admin-assistant/{plan,finalize}`；③ SnowmeetApi 与小程序尚未部署，按业务节奏另行发布；④ 在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
   - ① **三条 DDL 已确认在生产库执行**（`product.usage_rules` / `product.care_project_count` / `punch_card.care_project_count`，2026-07-26 连库核对过），无新增 DDL 阻塞
   - ② push SnowmeetApi 剩余 commit → publish SnowmeetApi → 重编小程序（前后端**必须同时上**：`cardType=all` 哨兵、手机号验证、季卡规则都是两侧配合的）
@@ -391,6 +395,7 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **需求范围熔断（2026-09-10）**：本次管理员帮助任务中，代理把审查提出的手机号/凭据极端脱敏持续升级为发布阻塞，造成多轮无谓实现、测试与审查。以后超出用户明确目标的非功能改造不得自行实施；超过一轮修复或预计增加 15 分钟时必须先让用户拍板。用户明确命令“合并/部署/结束”时只执行该动作，不追加检查或设计。
 - **ASP.NET Core 对「查询参数存在但值为空」的可选参数会回落到默认值（2026-07-26 踩）**：`?cardType=` 这种写法**不会**把 `""` 或 `null` 传进来，而是让参数变回方法签名上的默认值（`cardType = "次卡"`）。想表达「全部/不限」必须用**显式非空哨兵**（本次用 `all`，后端 `cardType.Trim().Equals("all", OrdinalIgnoreCase)` 识别），不能靠传空串。踩点：顾客购买页只显示次卡、季卡怎么建都不出现，而代码里 `IsNullOrWhiteSpace(cardType)` 判「全部」的分支根本执行不到。前后端两侧都要留注释，防止有人「顺手简化」回空串
 - **`wx.uploadFile` 的 success 对任何 HTTP 状态码都触发（2026-07-26 第二次踩，`components/uploader/multi-uploader.js`）**：与 2026-07-08 修 `data.js uploadFilePromise` 是同一族 bug。`multi-uploader` 不判 `res.statusCode`，把**错误响应体**（JSON/HTML）当文件路径拼进 URL 存进 `product_image.image_url` —— 上传界面看着成功、库里存的是垃圾地址、顾客端 `<image>` 只能渲染出空白横幅。已修：非 2xx 直接 toast 中止 + 返回值不是以 `/` 开头的站内路径也拒绝入列。**今后任何 `wx.uploadFile` 封装都必须判状态码 + 校验返回值形状**
 - **`mode="aspectFill"` 是裁剪、`widthFix` 才是完整显示（2026-07-26 踩）**：`aspectFill` = 填满容器 + 裁掉溢出，配上写死的容器高度就把图切成中间一条（曾误判成"图片加载失败"绕了两轮，实际图一直加载正常）。改 `widthFix` 时**容器必须同时去掉固定高度**，否则 widthFix 撑出来的高度被 `overflow:hidden` 截断，等于又变回裁剪。小方框缩略图用 `aspectFit`（整图缩进去不裁）
@@ -3793,3 +3798,12 @@ punchcard_detail「立即购买」
   `/etc/mysql/debian.cnf` 可用。
 - ⏰ **证书 2026-12-05 到期且需手动续期**（TrustAsia，非 certbot）。
   可与 `ari.goldenma.xyz` 那张（11-19 到期）一起记提醒。
+
+### 2026-09-10：管理员帮助结构化租赁查询
+
+- ✅ reqai、SnowmeetApi、小程序和文档功能分支已分别合并到当前分支。
+- ✅ 支持租赁订单自然语言查询、文字汇总、固定页面跳转和多轮条件回顾/patch。
+- ✅ 合并后验证：reqai 聚焦 21/21、SnowmeetApi 303/303、小程序 36/36。
+- ⚠️ reqai 生产部署未完成：文件已上传备份目录，SSH 后续持续超时，服务未重启。
+- 📌 过程教训：不得把超出用户目标的非功能审查自动升级为阻塞；超范围工作先确认。
+- 详细归档：[`sessions/2026-09-10_admin-assistant-command-protocol.md`](sessions/2026-09-10_admin-assistant-command-protocol.md)。
