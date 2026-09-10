@@ -85,6 +85,8 @@ curl -k -sS -X POST "https://localhost:5001/api/AdminAi/AskAdminAssistantByStaff
 
 回滚只关闭 `AdminAssistant:StructuredProtocolEnabled`。不回滚数据库，不恢复客户端关键词分流；统一接口会经服务端 legacy adapter 保持 v1 外层响应。本次未 push、未部署、未改动生产配置。
 
+上述顺序只是上线时的操作指引，不构成部署授权。用户已授权未来对 **reqai** 进行自主 SSH / 部署，但该授权明确递延到本地验证和最终审查通过之后；本次未使用该授权。SnowmeetApi 和小程序没有自主 push 或部署授权，二者的任何 push、部署或生产配置变更都必须取得用户另行明确指示。
+
 ## 差异与工作区检查
 
 对三个实施范围分别执行 `git diff --check <base>..<head>`，均无输出。验证前后的实现 worktree 状态：reqai 和 SnowmeetApi 干净；mini-program 只有既有、未暂存且未触碰的 `node_modules/@vant/weapp/package.json` 修改（41 insertions、73 deletions）。实现差异路径仅覆盖计划列出的协议模型/路由、API 编排/审计/测试/默认配置，以及小程序统一帮助流、固定 action executor、租赁列表和测试；未发现计划外的实施源码改动。
