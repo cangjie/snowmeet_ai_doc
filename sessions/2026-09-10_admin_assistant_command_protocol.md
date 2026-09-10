@@ -6,9 +6,9 @@
 
 | 仓库 | 验证 worktree | 基线 → 验证提交 |
 | --- | --- | --- |
-| reqai | `/Users/cangjie/Projects/snowmeet/reqai/.worktrees/admin-assistant-v1` | `3b16043` → `801c5fe` |
-| SnowmeetApi | `/Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/.worktrees/admin-assistant-v1` | `bb905b9` → `cfcfcc5` |
-| snowmeet_wechat_mini | `/Users/cangjie/Projects/snowmeet/snowmeet_ai/snowmeet_wechat_mini/.worktrees/admin-assistant-v1` | `6fa472fe` → `c7631885` |
+| reqai | `/Users/cangjie/Projects/snowmeet/reqai/.worktrees/admin-assistant-v1` | `3b16043` → `b286c34` |
+| SnowmeetApi | `/Users/cangjie/Projects/snowmeet/snowmeet_ai/SnowmeetApi/.worktrees/admin-assistant-v1` | `bb905b9` → `f08ea3a` |
+| snowmeet_wechat_mini | `/Users/cangjie/Projects/snowmeet/snowmeet_ai/snowmeet_wechat_mini/.worktrees/admin-assistant-v1` | `6fa472fe` → `4f624113` |
 
 按任务说明执行的主检出版本命令及其逐字输出如下；三个主检出仍在实施前基线，故不能把这些输出误作已验证构建：
 
@@ -21,7 +21,7 @@ $ git -C /Users/cangjie/Projects/snowmeet/snowmeet_ai/snowmeet_wechat_mini rev-p
 6fa472fe
 ```
 
-实际 worktree 的 `rev-parse --short HEAD` 输出依次为 `801c5fe`、`cfcfcc5`、`c7631885`。
+最终审查修复后的实际 worktree `rev-parse --short HEAD` 输出依次为 `b286c34`、`f08ea3a`、`4f624113`。
 
 ## 自动测试
 
@@ -29,21 +29,21 @@ $ git -C /Users/cangjie/Projects/snowmeet/snowmeet_ai/snowmeet_wechat_mini rev-p
 
 | 仓库 | 全量命令 | 实际结果 |
 | --- | --- | --- |
-| reqai | `backend/.venv/bin/pytest -q` | `222 passed, 13 failed, 1 skipped, 77 warnings in 13.11s`。13 个失败与记录的基线一致：`backend/tests/test_files.py` 的 5 个旧 `/Users/cangjie/source/snowmeet` 文件根路径测试，以及 `backend/tests/test_models_r7.py` 的 8 个旧 `o4-mini` / `gpt-4.1` 白名单测试；未出现新的失败类别。 |
-| SnowmeetApi | `dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj` | 命令成功完成；为取得可复现的安静汇总，随后运行 `dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj --no-restore --verbosity quiet`，输出 `Failed: 0, Passed: 286, Skipped: 0, Total: 286`。现有 NuGet 漏洞警告仍出现。 |
-| snowmeet_wechat_mini | `npm test` | `tests 22`、`pass 22`、`fail 0`、`skipped 0`。 |
+| reqai | `backend/.venv/bin/pytest -q` | `225 passed, 13 failed, 1 skipped, 77 warnings in 9.71s`。13 个失败与记录的基线一致：`backend/tests/test_files.py` 的 5 个旧 `/Users/cangjie/source/snowmeet` 文件根路径测试，以及 `backend/tests/test_models_r7.py` 的 8 个旧 `o4-mini` / `gpt-4.1` 白名单测试；未出现新的失败类别。 |
+| SnowmeetApi | `dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj` | 命令成功完成；为取得可复现的安静汇总，随后运行 `dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj --no-restore --verbosity quiet`，输出 `Failed: 0, Passed: 300, Skipped: 0, Total: 300`。现有 NuGet 漏洞警告仍出现。 |
+| snowmeet_wechat_mini | `npm test` | `tests 25`、`pass 25`、`fail 0`、`skipped 0`。 |
 
 额外的协议聚焦测试：
 
 ```text
 $ backend/.venv/bin/pytest backend/tests/test_admin_assistant_protocol.py backend/tests/test_admin_assistant_router.py backend/tests/test_service_auth.py -q
-18 passed, 2 warnings in 3.82s
+21 passed, 2 warnings in 3.00s
 
 $ dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj --filter AdminAssistant --no-restore --verbosity quiet
-Failed: 0, Passed: 34, Skipped: 0, Total: 34
+Failed: 0, Passed: 48, Skipped: 0, Total: 48
 
 $ node --test tests/admin_page_help_component.test.js tests/new_rent_list_ai_state.test.js tests/admin_ai_query.test.js tests/admin_assistant.test.js
-tests 19; pass 19; fail 0
+tests 21; pass 21; fail 0
 ```
 
 ## 验收结论
@@ -61,8 +61,10 @@ tests 19; pass 19; fail 0
 | 未知 action | reqai 与 API 协议测试拒绝 `refund.execute`；小程序测试对未知 action 保留服务端文字、不跳转并显示升级提示。 | 自动化通过 |
 | 三个 `group_by` | reqai `test_only_one_action_and_two_groups_are_allowed` 拒绝三个 group；API 解析器限制为最多两个且聚焦 API 套件通过。 | 自动化通过；未通过真实 HTTP stub 发送该 payload |
 | 完整结果不受 200 限制 | `RentalOrderAssistantSummaryTests.汇总不截断200单并可按状态门店分组` 对 250 行断言 `order_count=250`、金额和四组结果。 | 自动化通过 |
-| 开关关闭兼容 | 配置文件默认 `AdminAssistant:StructuredProtocolEnabled=false`。`AdminAssistantLegacyAdapterTests` 断言查询先走 legacy intent、不会调用 structured plan，并转换为 v1 `show_results`；普通帮助只在 unsupported intent 后走 legacy page-help，仍返回 v1 文字。 | 自动化通过 |
-| 审计与敏感数据边界 | API in-memory SQLite 测试断言成功/失败均写 `admin_assistant` 审计；拒绝 service token、Cookie、openid、订单、姓名、完整手机号和内部错误，手机号审计只保留后四位。reqai 协议/路由测试拒绝 finalize 的订单行和嵌套私有字段，并验证 LLM 失败记录 invocation `error`。 | 自动化通过；没有检查真实本地表的最近记录 |
+| 开关关闭兼容 | 未配置时 `GetValue<bool>` 为 false。`AdminAssistantLegacyAdapterTests` 断言查询先走 legacy intent、不会调用 structured plan，并转换为 v1 `show_results`；普通帮助只在 unsupported intent 后走 legacy page-help，仍返回 v1 文字。 | 自动化通过 |
+| 严格 merged context 与 request binder | `合并会复制全部十一项条件` 覆盖 replace / patch 的全部 11 个字段；`执行器前拒绝客户端上下文保留的非法条件` 确认恶意保留 context 在执行前被拒绝。`AdminAssistantEndpointIntegrationTests` 的 `TestServer` cases 拒绝 malformed、null、大小写变体、重复属性和未知嵌套字段，并返回统一 HTTP 400 envelope。 | 自动化通过 |
+| 有效 v1 HTTP 400 / 502 失败 envelope | 小程序组件测试断言有效 v1 的 400 和 502 envelope 均显示服务端安全 `reply`、保留 `trace_id`、不执行 action 且不显示原始敏感错误；502 可重试、400 不可重试。 | 自动化通过 |
+| 审计与敏感数据边界 | API in-memory SQLite / captured reqai client 测试覆盖 finalize payload、成功/失败审计和自由文本：完整手机号只保留后四位，service token、Cookie、openid、payment、authorization、订单、姓名与内部错误均被剔除。reqai 路由测试覆盖 plan/finalize prompt 与 invocation audit 中的手机号和敏感文本掩码，并验证 LLM 失败记录 invocation `error`。 | 自动化通过；没有检查真实本地表或生产日志 |
 
 未执行的人工/本地验收：运行环境未设置 `ADMIN_ASSISTANT_TEST_SESSION`，因此没有执行以下会暴露本地测试会话所需的命令，也没有启动本地服务、修改本地开关、发出 curl，或检查真实 `admin_ai_request_log` / `snowmeet_help_invocations` 最近两条记录：
 
@@ -89,4 +91,4 @@ curl -k -sS -X POST "https://localhost:5001/api/AdminAi/AskAdminAssistantByStaff
 
 ## 差异与工作区检查
 
-对三个实施范围分别执行 `git diff --check <base>..<head>`，均无输出。验证前后的实现 worktree 状态：reqai 和 SnowmeetApi 干净；mini-program 只有既有、未暂存且未触碰的 `node_modules/@vant/weapp/package.json` 修改（41 insertions、73 deletions）。实现差异路径仅覆盖计划列出的协议模型/路由、API 编排/审计/测试/默认配置，以及小程序统一帮助流、固定 action executor、租赁列表和测试；未发现计划外的实施源码改动。
+对三个实施范围分别执行 `git diff --check <base>..<head>`，均无输出。最终审查修复覆盖 reqai prompt/invocation 脱敏、SnowmeetApi binder/合并状态/finalize 与审计边界，以及小程序失败 envelope 与认证会话清理。验证后的实现 worktree 状态：reqai 和 SnowmeetApi 干净；mini-program 只有既有、未暂存且未触碰的 `node_modules/@vant/weapp/package.json` 修改（41 insertions、73 deletions）。
