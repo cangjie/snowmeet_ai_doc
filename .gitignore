@@ -12,3 +12,5 @@ __pycache__/
 
 # Claude Code local machine settings (machine-local, do not share)
 .claude/settings.local.json
+.worktrees/
+.superpowers/
