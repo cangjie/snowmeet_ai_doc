@@ -254,7 +254,9 @@ dotnet run
 
 **2026-09-07 补充**：管理员后台全页 AI 帮助已可用（66 页统一入口、帮助/追问均经 SnowmeetApi 审计代理到 reqai）；页面帮助只输出操作功能和业务规则，不泄露内部代码/路径。租赁订单列表额外支持自然语言条件查询与确定性汇总，模型不得产 SQL 或读业务明细；其他业务页面的自然语言数据查询尚未实施。帮助图标支持拖动，**触摸事件只 `catchtouchmove`，不可用 `catchtouchstart/end`，否则微信会阻断 tap 合成，图标拖动后无法点击**。
 
-**2026-09-10 补充**：管理员帮助系统的结构化查询协议已完成并合并到四个当前分支：reqai `main@95354a3`、SnowmeetApi `ai@1d5b854`、小程序 `ai@2c09f385`、文档 `main@b70e855`。用户提问租赁订单时，SnowmeetApi 执行只读查询并返回文字答复、完整查询上下文与固定租赁列表跳转指令；小程序显示答复并跳转到应用完整筛选条件的租赁订单页，后续可继续用自然语言修改或回顾条件。reqai 线上部署未完成：文件曾上传至 `/home/ubuntu/reqai/deploy-backups/admin-assistant-v1/`，但连续 SSH 超时导致未安装、未重启服务。
+**2026-09-10 补充**：管理员帮助系统的结构化查询协议已完成并合并到四个当前分支：reqai `main@95354a3`、SnowmeetApi `ai@1d5b854`、小程序 `ai@2c09f385`、文档 `main@b70e855`。用户提问租赁订单时，SnowmeetApi 执行只读查询并返回文字答复、完整查询上下文与固定租赁列表跳转指令；小程序显示答复并跳转到应用完整筛选条件的租赁订单页，后续可继续用自然语言修改或回顾条件。~~reqai 线上部署未完成~~ —— **2026-09-12 核实：这句话是错的**。上线前实际连服务器核对，reqai 早已部署到位：`/home/ubuntu/reqai` 的 git HEAD 就在 `95354a3`、tracked 文件全干净、`reqai.service` 已于 09-11 02:21 UTC 重启、`/api/service/admin-assistant/{plan,finalize}` 返回 401（已注册，不是 404）。当时应是 SSH 超时后没复核就把「我没做完」写成了「线上没有」。**今后写部署状态前必须实际连一次服务器核实。**
+
+**2026-09-12 补充**：管理员帮助的**停止能力**已上线。小程序侧加载中把「发送」换成「停止」，中止在途 `RequestTask` 并留重试入口（`ai@df1506e7`，**尚未发布**，要在开发者工具重编上传后店员才用得上）；reqai 侧让服务端真的提前收工（`main@c5ab3ef`，已部署并重启）。SnowmeetApi 未改动——它的 `CancellationToken` 参数自动绑定 `HttpContext.RequestAborted`，取消本来就会往下传。生产实测：正常调用 17.0s 记 `done`；3 秒掐断的两次（直连与走 nginx）均在 **4.0s** 记 `stopped`，`ari.goldenma.xyz` 全程 200。审计表留了 `smoke-live-001`/`stop-direct`/`stop-nginx` 三条记录作为上线证据。另：给生产 venv 装了 `pytest`（pyproject 已声明的 dev 依赖，服务不 import）。
 
 **关键文件**
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
@@ -317,7 +319,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- **管理员帮助结构化查询交接**：① Claude 从四个已合并当前分支继续；② reqai 重新连接 `44.207.251.65` 后安装已上传的两个新文件、给 `backend/app/main.py` 路由列表加入 `admin_assistant`、重启 `reqai.service` 并检查 `/api/service/admin-assistant/{plan,finalize}`；③ SnowmeetApi 与小程序尚未部署，按业务节奏另行发布；④ 在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
+- **管理员帮助结构化查询交接**：① **reqai 线上已部署并验证完毕，无剩余阻塞**（`main@c5ab3ef`，详见 2026-09-12 补充）；② SnowmeetApi 无改动、也无待发布内容；③ **小程序仍未发布**——停止按钮（`ai@df1506e7`）要在开发者工具里重编/上传，店员才用得上；④ **仍未做**：在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”，以及真机点「停止」确认面板立刻可用。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
   - ① **三条 DDL 已确认在生产库执行**（`product.usage_rules` / `product.care_project_count` / `punch_card.care_project_count`，2026-07-26 连库核对过），无新增 DDL 阻塞
   - ② push SnowmeetApi 剩余 commit → publish SnowmeetApi → 重编小程序（前后端**必须同时上**：`cardType=all` 哨兵、手机号验证、季卡规则都是两侧配合的）
@@ -395,6 +397,8 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`request.is_disconnected()` 只能在 anyio 管辖的任务里调用（2026-09-12 踩，reqai）**：它靠「进入一个已取消的 `anyio.CancelScope`，让 `receive()` 立刻返回」来做非阻塞探测，这机制只对 anyio 结构化并发范围内的任务有效。把它丢进 `asyncio.ensure_future()` 起的裸 watcher task 里轮询会**直接死锁**——管理员助手 router 的每个请求都卡住，整个测试文件超时。症状极具迷惑性：没报错、没堆栈，`pytest -q` 连部分输出都不打（被 capture 攒着），看起来只是「跑得慢」。**定位方法留档**：`timeout -s ABRT 45 .venv/bin/python -X faulthandler -m pytest ...`，SIGABRT 会让 faulthandler 打出所有线程栈，一眼看到事件循环空转在 `selectors.select`。正解是**在处理函数自己的任务里轮询**（`asyncio.wait({task}, timeout=...)` 循环，每轮查一次断连），不要另起 task。见 `backend/app/routers/admin_assistant.py` 的 `_run_until_client_leaves`。
+- **`run_in_threadpool` 里的调用没法提前收工（2026-09-12，reqai）**：Python 线程不可取消——调用方早就走了，线程里的模型调用还会算到底，钱照烧、算力照占。凡是「要能中途停」的上游调用都必须走异步客户端（本次新增 `llm.acomplete_json`，用已有的 `AsyncOpenAI`），被 asyncio 取消时 httpx 才会真的断开上游连接。另外 **uvicorn 不会因为客户端断开就自动取消处理函数**，必须自己轮询。整条取消链是：小程序 `RequestTask.abort()` → nginx（`proxy_ignore_client_abort` 默认 off，会一并断上游）→ Kestrel `RequestAborted`（ASP.NET Core 把 action 上的 `CancellationToken` 参数自动绑定到它）→ `HttpClient.SendAsync` 取消 → reqai 轮询到断连 → 取消 LLM 调用。**排查时发现只有最后一环是断的，前面几环本来就通**，所以不要一上来就假设要改协议。
 - **需求范围熔断（2026-09-10）**：本次管理员帮助任务中，代理把审查提出的手机号/凭据极端脱敏持续升级为发布阻塞，造成多轮无谓实现、测试与审查。以后超出用户明确目标的非功能改造不得自行实施；超过一轮修复或预计增加 15 分钟时必须先让用户拍板。用户明确命令“合并/部署/结束”时只执行该动作，不追加检查或设计。
 - **ASP.NET Core 对「查询参数存在但值为空」的可选参数会回落到默认值（2026-07-26 踩）**：`?cardType=` 这种写法**不会**把 `""` 或 `null` 传进来，而是让参数变回方法签名上的默认值（`cardType = "次卡"`）。想表达「全部/不限」必须用**显式非空哨兵**（本次用 `all`，后端 `cardType.Trim().Equals("all", OrdinalIgnoreCase)` 识别），不能靠传空串。踩点：顾客购买页只显示次卡、季卡怎么建都不出现，而代码里 `IsNullOrWhiteSpace(cardType)` 判「全部」的分支根本执行不到。前后端两侧都要留注释，防止有人「顺手简化」回空串
 - **`wx.uploadFile` 的 success 对任何 HTTP 状态码都触发（2026-07-26 第二次踩，`components/uploader/multi-uploader.js`）**：与 2026-07-08 修 `data.js uploadFilePromise` 是同一族 bug。`multi-uploader` 不判 `res.statusCode`，把**错误响应体**（JSON/HTML）当文件路径拼进 URL 存进 `product_image.image_url` —— 上传界面看着成功、库里存的是垃圾地址、顾客端 `<image>` 只能渲染出空白横幅。已修：非 2xx 直接 toast 中止 + 返回值不是以 `/` 开头的站内路径也拒绝入列。**今后任何 `wx.uploadFile` 封装都必须判状态码 + 校验返回值形状**
