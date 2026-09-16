@@ -45,6 +45,14 @@
 - 对本仓库的影响：reqai 会定期 `git pull` 本仓库作为语料。**它对本仓库只读**，不会写入任何文件。
 - 详见 [`sessions/2026-09-02_reqai_build_and_deploy.md`](sessions/2026-09-02_reqai_build_and_deploy.md)。
 
+## 2026-09-10 ~ 09-11 会话归档
+- reqai 管理员助手 v1 **已部署上线**：装文件 → `main.py` 挂载 → 重启，`/api/service/admin-assistant/{plan,finalize}` 返回 401（已注册）。随后做了 **Git 对齐**，服务器从 `527b466` `reset --hard` 到 `95354a3`，backend 未提交改动归零——09-08 欠的「scp 直改没进 Git」那笔债清了，以后部署就是 `git pull && systemctl restart`。
+- 对齐前逐文件比对过：45 个「未提交文件」里 53 个与本机一致、4 个是服务器落后、1 个（`backend/app/query_intent.py`）是**误放的孤儿副本、无人引用**，没有任何线上独有代码。
+- 按用户指令轮换了 OpenAI key，并把模型从 `gpt-5.6-sol` 换成 **`gpt-5.6-luna`**（env 的 `CHAT_MODEL`/`UTILITY_MODEL` + DB 全局默认三处一起改）。**模型设置是全局的，reqai 自己的需求分析对话也一起切成了 luna。**
+- ⚠️ 顺带发现 **reqai 的模型价格表与官方定价严重不符**（sol 低估 50–80 倍），导致预算保护一直形同虚设，**尚未修正**。
+- ⚠️ 全天 SSH 反复超时的真因是**本机网络间歇拦截出站 22 端口**（github.com:22 同样不通、443 正常），不是服务器问题——此前归档里「服务器 SSH 不稳」是误判。
+- 详见 [`sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md`](sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md)。
+
 ## 项目概览
 滑雪场管理系统，包含三个子项目：
 - `snowmeet_wechat_mini/` — 微信小程序客户端（原生小程序 + JS）
@@ -244,7 +252,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-09-10）
+## 当前状态（截至 2026-09-12）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -257,6 +265,8 @@ dotnet run
 **2026-09-10 补充**：管理员帮助系统的结构化查询协议已完成并合并到四个当前分支：reqai `main@95354a3`、SnowmeetApi `ai@1d5b854`、小程序 `ai@2c09f385`、文档 `main@b70e855`。用户提问租赁订单时，SnowmeetApi 执行只读查询并返回文字答复、完整查询上下文与固定租赁列表跳转指令；小程序显示答复并跳转到应用完整筛选条件的租赁订单页，后续可继续用自然语言修改或回顾条件。~~reqai 线上部署未完成~~ —— **2026-09-12 核实：这句话是错的**。上线前实际连服务器核对，reqai 早已部署到位：`/home/ubuntu/reqai` 的 git HEAD 就在 `95354a3`、tracked 文件全干净、`reqai.service` 已于 09-11 02:21 UTC 重启、`/api/service/admin-assistant/{plan,finalize}` 返回 401（已注册，不是 404）。当时应是 SSH 超时后没复核就把「我没做完」写成了「线上没有」。**今后写部署状态前必须实际连一次服务器核实。**
 
 **2026-09-12 补充**：管理员帮助的**停止能力**已上线。小程序侧加载中把「发送」换成「停止」，中止在途 `RequestTask` 并留重试入口（`ai@df1506e7`，**尚未发布**，要在开发者工具重编上传后店员才用得上）；reqai 侧让服务端真的提前收工（`main@c5ab3ef`，已部署并重启）。SnowmeetApi 未改动——它的 `CancellationToken` 参数自动绑定 `HttpContext.RequestAborted`，取消本来就会往下传。生产实测：正常调用 17.0s 记 `done`；3 秒掐断的两次（直连与走 nginx）均在 **4.0s** 记 `stopped`，`ari.goldenma.xyz` 全程 200。审计表留了 `smoke-live-001`/`stop-direct`/`stop-nginx` 三条记录作为上线证据。另：给生产 venv 装了 `pytest`（pyproject 已声明的 dev 依赖，服务不 import）。
+
+**2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
@@ -319,6 +329,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **reqai 两条待办（2026-09-11 留）**：① **修 `MODEL_WHITELIST` 价格表**（见「已知遗留」首条，预算保护当前不准，建议优先）；② **给门店字段加枚举 + 模糊匹配 + 澄清文案**（自然语言按门店筛目前大概率失败且报错无用）；③ 待用户决定：要不要把帮助系统的模型与 reqai 主对话分开（现在共用一个全局默认，已一起切到 luna）；④ **下次上机第一件事**：核实 09-12 重新部署（`main@c5ab3ef`）之后 luna 设置是否仍生效——env 与 DB 都在 git 之外理应不受影响，但 09-11 收尾时 SSH 不通没能复核
 - **管理员帮助结构化查询交接**：① **reqai 线上已部署并验证完毕，无剩余阻塞**（`main@c5ab3ef`，详见 2026-09-12 补充）；② SnowmeetApi 无改动、也无待发布内容；③ **小程序仍未发布**——停止按钮（`ai@df1506e7`）要在开发者工具里重编/上传，店员才用得上；④ **仍未做**：在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”，以及真机点「停止」确认面板立刻可用。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
   - ① **三条 DDL 已确认在生产库执行**（`product.usage_rules` / `product.care_project_count` / `punch_card.care_project_count`，2026-07-26 连库核对过），无新增 DDL 阻塞
@@ -397,6 +408,9 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **reqai 的模型价格表是错的，预算保护因此失效（2026-09-11 发现，未修）**：`backend/app/config.py` 的 `MODEL_WHITELIST` 写着 sol `$0.05/$0.40`、terra `$0.25/$2.00`、luna `$1.25/$10.00`，而 OpenAI 官方价是 sol **$4.00/$20.00**、terra $2.00/$12.00、luna **$0.20/$1.20** —— sol 低估 50–80 倍、luna 高估 6–8 倍，顺序都反了。这张表直接喂给 `llm.py` 的 `DAILY_USD_CAP` 判断和管理后台「今日花费」：**用 sol 那段时间账面花费只有实际的 1/50~1/80，每日预算保护形同虚设**；切 luna 后误差反向，真实花费到上限 1/7 左右就会被拦。修的时候要标注价格来源日期（sol 的 $4/$20 是 8 月 21 日起的临时降价，原价 $5/$30）。**教训：硬编码的外部价格不参与任何测试，错了没人发现，却决定着预算保护是否生效。**
+- **管理员自然语言查询里「门店」是唯一没有约束的字段（2026-09-10 审查发现，未修）**：`rent_status` 是 9 值 Literal 枚举、`cell_suffix` 有正则，唯独 `shop` 是自由字符串，**planner 的 prompt 里也没给门店清单**，模型只能从用户原话抄；而 `RentalOrderQueryExecutor` 是 `shop.name == 输入` **精确相等**，对不上就抛「租赁门店不支持」，前端统一显示「暂时无法获得回答」+ 重试按钮——用户看不到真因、重试永远失败。用户说「万龙店」而库里是「万龙服务中心」就会触发。2026-08 刚把 `product.shop` 自由文本退役改 `shop_id`，这条新链路又退回了按名字匹配。修法：门店清单进 prompt 当枚举 + 执行器加包含匹配兜底 + 匹配不上时把可选门店列进澄清 reply。另：11 个字段里**没有金额区间**，「金额超过 1000 的订单」表达不了。
+- **本机网络会间歇拦截出站 22 端口（2026-09-10/11 两天反复踩）**：`ssh` 到 reqai 服务器和 `github.com` 会同时超时，而两者 443 始终正常，`nc -z host 22` 直接不通，一度持续 10 分钟以上。**此前归档里记的「服务器 SSH 不稳」是误判，服务器一直是好的。** 排查先用 `nc -z -w 8 github.com 22` 对照，同样不通就是本地网络，别狂刷重试；绕过办法是切手机热点/VPN，git 走 SSH 可用 `ssh.github.com:443`，急着重启服务可让用户从 AWS 控制台 EC2 Instance Connect 执行。
 - **`request.is_disconnected()` 只能在 anyio 管辖的任务里调用（2026-09-12 踩，reqai）**：它靠「进入一个已取消的 `anyio.CancelScope`，让 `receive()` 立刻返回」来做非阻塞探测，这机制只对 anyio 结构化并发范围内的任务有效。把它丢进 `asyncio.ensure_future()` 起的裸 watcher task 里轮询会**直接死锁**——管理员助手 router 的每个请求都卡住，整个测试文件超时。症状极具迷惑性：没报错、没堆栈，`pytest -q` 连部分输出都不打（被 capture 攒着），看起来只是「跑得慢」。**定位方法留档**：`timeout -s ABRT 45 .venv/bin/python -X faulthandler -m pytest ...`，SIGABRT 会让 faulthandler 打出所有线程栈，一眼看到事件循环空转在 `selectors.select`。正解是**在处理函数自己的任务里轮询**（`asyncio.wait({task}, timeout=...)` 循环，每轮查一次断连），不要另起 task。见 `backend/app/routers/admin_assistant.py` 的 `_run_until_client_leaves`。
 - **`run_in_threadpool` 里的调用没法提前收工（2026-09-12，reqai）**：Python 线程不可取消——调用方早就走了，线程里的模型调用还会算到底，钱照烧、算力照占。凡是「要能中途停」的上游调用都必须走异步客户端（本次新增 `llm.acomplete_json`，用已有的 `AsyncOpenAI`），被 asyncio 取消时 httpx 才会真的断开上游连接。另外 **uvicorn 不会因为客户端断开就自动取消处理函数**，必须自己轮询。整条取消链是：小程序 `RequestTask.abort()` → nginx（`proxy_ignore_client_abort` 默认 off，会一并断上游）→ Kestrel `RequestAborted`（ASP.NET Core 把 action 上的 `CancellationToken` 参数自动绑定到它）→ `HttpClient.SendAsync` 取消 → reqai 轮询到断连 → 取消 LLM 调用。**排查时发现只有最后一环是断的，前面几环本来就通**，所以不要一上来就假设要改协议。
 - **需求范围熔断（2026-09-10）**：本次管理员帮助任务中，代理把审查提出的手机号/凭据极端脱敏持续升级为发布阻塞，造成多轮无谓实现、测试与审查。以后超出用户明确目标的非功能改造不得自行实施；超过一轮修复或预计增加 15 分钟时必须先让用户拍板。用户明确命令“合并/部署/结束”时只执行该动作，不追加检查或设计。
@@ -3811,3 +3825,29 @@ punchcard_detail「立即购买」
 - ⚠️ reqai 生产部署未完成：文件已上传备份目录，SSH 后续持续超时，服务未重启。
 - 📌 过程教训：不得把超出用户目标的非功能审查自动升级为阻塞；超范围工作先确认。
 - 详细归档：[`sessions/2026-09-10_admin-assistant-command-protocol.md`](sessions/2026-09-10_admin-assistant-command-protocol.md)。
+
+### 2026-09-10 ~ 09-11：reqai 部署上线 + Git 对齐 + OpenAI key 轮换 + 模型切 luna
+
+本场**没有改任何仓库代码**，全部是生产环境动作。归档见 [`sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md`](sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md)。
+
+#### 一、部署与 Git 对齐
+
+昨天上传到 `deploy-backups/admin-assistant-v1/` 的两个文件 **MD5 与本机 `95354a3` 逐字节一致**，不用重传。走渐进路径：装文件但不挂载 → 用服务自己的 venv 验证 `IMPORT_OK routes=2` → 才改 `main.py` 重启。验证 plan/finalize 401（已注册非 404）、page-help 401（既有功能没坏）、ari 200。
+
+随后清 09-08 的债：逐文件比对 58 vs 60 个代码文件 —— 53 个一致、4 个是**服务器落后本机**（且都是 `.example` 模板/依赖声明）、1 个 `backend/app/query_intent.py` 是 `routers/query_intent.py` 的**误放副本**（开头逐行相同，时间戳差 5 分钟，`grep` 确认无人引用，`_mount_frontend()` 只扫 `app.routers.*` 从未加载过）。确认零风险后备份 + `reset --hard origin/main`（`527b466`→`95354a3`）+ 删孤儿，backend 未提交改动归零，旧的 `rent-query-intent` 端点仍 401 活着。
+
+#### 二、key 轮换与模型切换
+
+key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读**运行中进程实际加载的值**，再用它直连 OpenAI `models.list()`。模型切 luna 要改三处（`CHAT_MODEL`、`UTILITY_MODEL`、DB `app_settings.model_defaults`），漏掉 `UTILITY_MODEL` 的话每次提问仍会用旧模型跑一次检索前改写。
+
+#### 三、对下午那场的复盘（用户要求量化）
+
+41 commit / 4 仓 / 5400 行。按 commit 归类 + 时钟时间归属：加固脱敏占新增行 33%、时钟时间 29%、commit 数 48%，**结论约 30% 是浪费**。时间分布比总量更说明问题：18:21 全链路已贯通，之后 78 分钟全在 fix，`AdminAiController.cs` 被反复改四次都是同一类问题。
+
+📌 关键发现 / 教训：
+- **「已推送」「已部署」都要实地核实**：本地 `origin/*` 是缓存（start-work 报的 ahead 数几分钟后就过期，用 `git ls-remote` 才查到真远端）；部署状态更要连服务器看——09-12 那场会话正是因此纠正了本仓「reqai 线上未部署」的错误记录
+- **对生产做 reset 前逐文件比对内容，而不是只看 `git status` 的条数**：45 个「未提交文件」听着吓人，真正的风险是零
+- **改生产配置走渐进路径**：先装文件不挂载 → import 验证 → 再挂载重启，任一步失败都不影响在跑的服务
+- **验证要看运行中的进程而不是配置文件**：`/proc/<pid>/environ` 才能证明服务真的加载了新值
+- **硬编码的外部价格会悄悄失效**（见「已知遗留」首条）：不参与任何测试，错了没人发现，却决定预算保护是否生效
+- **SSH 连不上先拿第三方主机对照**（`nc -z github.com 22`），别默认是目标服务器的问题——这个误判已经写进过两次归档
