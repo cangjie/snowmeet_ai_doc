@@ -1,5 +1,24 @@
 # Snowmeet AI — 项目上下文
 
+## 当前状态（截至 2026-09-22）：食材管理服务端待独立审查
+- 用户已执行 [其他表建表 SQL（VARCHAR 版）](sql/2026-09-22_fnb_inventory_other_tables.sql)；线上只读核对确认 17 张新表、2 个视图和基础单位已落库。旧[完整 SQL 审阅稿](sql/2026-09-21_fnb_inventory_schema_review.sql)已停用，不再执行。旧效期批次与提醒日志已按用户要求清空；本次集成测试仅写入自动删除的隔离 SQL Server 数据库。
+- `SnowmeetApi` 本地已实现食材档案、效期/入库、库存流水、开封/制作/报损、配方、手动厨房单与出餐、盘点和报表 API；兼容现有小程序与企业微信员工会话。旧批次写入口已加库存兼容保护。实现和接口见 [API 契约](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)，代码仓**尚未提交或部署**。
+- 用户决定先让员工直接选本站餐饮菜品和数量建立厨房单；`order`/`fd_order` 自动同步、平台门店/SKU 映射及外卖采集接口均后置。建表脚本里的平台相关空表暂留但本轮 API 不使用。`order_source`/`source_order_no` 的旧独立脚本和 `CK_order_source_pair` 处理不属于本轮新表脚本。
+- 验证：常规测试 318 项通过，6 项 SQL Server 专项测试在独立库全部通过且测试库已删除；报损重复请求号误指其他批次的问题已按先失败后通过的回归测试修复。仍需 Claude 独立审查鉴权、并发重试、成本权限和旧接口绕行，并以真实员工会话做端到端 HTTP 验收；尚未做线上发布或多请求并发压测。
+- **小程序客户端由用户安排 Claude 开发并审查服务端代码，本助手不再开发小程序。** 企业微信 H5 是后续目标；服务端先提供共用 API。保质期计算、旧提醒/OCR 与标签数据已纳入服务端，实际蓝牙打印仍由客户端实现及真机验证。
+
+## 2026-09-21 外卖订单获取方案（记录备用）
+- **用户明确要求获取美团订单，自动获取是目标。** 本次记录的备选路线为：官方 API 优先，网页采集待验证，手机截图上传 OCR 用于补录；截图上传仍需人工，不能单独满足自动获取要求。
+- 美团与饿了么／淘宝闪购均有商家订单 API。美团餐饮品牌直接接入存在门店量、订单量等准入条件；非接单绑定可在取得对应授权后订阅部分订单消息，后续先核查现有收银系统与门店授权。
+- 网页采集仅确认存在技术路径：有效登录的商家浏览器 → 插件或浏览器自动化读取订单 → SnowmeetApi。**尚未用真实商家账号验证，不能视为已具备稳定、无人值守的同步能力。** 需核查明细完整性、漏单、取消／退款、登录失效及平台适用规则。
+- 用户要求先记录、以后备用，本次未开发采集程序或接入真实订单。详细结论、限制和官方来源见 [外卖订单同步与网页采集评估](sessions/2026-09-21_fnb-takeaway-order-acquisition.md)。
+
+## 2026-09-21 食材管理实施顺序（用户已确认）
+- **先在微信小程序端实现，最终需要在企业微信 H5 端实现。** 企业微信端是明确的后续交付目标；后续开发按此顺序推进。
+- SnowmeetApi 从第一阶段就兼容小程序与企业微信员工会话，两端共用业务规则和数据。沿用现有食材模块的员工登录与鉴权，将保质期计算、OCR、标签打印、到期提醒融合进新系统；原食材过期提醒作为新系统的一项子功能。
+- **企业微信 H5 可以通过官方 JS-SDK 调用 BLE 蓝牙。** 后续复用现有标签排版与 TSPL 指令，适配企业微信的 JS-SDK 鉴权及蓝牙通信；现有打印机尚未完成企业微信真机验证。员工 OAuth 登录已实现，JS-SDK 签名接入仍需开发；提醒发送接口已实现，线上定时任务本次未核实。
+- 这是 2026-09-21 的原始实施决策；2026-09-22 的开发状态以上方「当前状态」为准。材料为用户提供的 `mat.zip` 原型与 `mat.pptx` 功能说明，详见 [食材管理平台与实施顺序记录](sessions/2026-09-21_fnb-platform-sequence.md)。
+
 ## 2026-09-08 会话归档
 - 本机独立仓统一由 `/Users/cangjie/Projects/snowmeet/snowmeet_reqai` 改名为 `/Users/cangjie/Projects/snowmeet/reqai`；Git remote 与未提交改动均保留，`start-work` 已改为按新路径核查。
 - **重要遗留**：管理员帮助/租赁查询的 reqai 线上修复曾以 `scp` 直接写入 `/home/ubuntu/reqai/backend/` 后重启服务，尚未提交到 `cangjie/snowmeet_reqai`。下次必须先审阅、commit、push 本机 `reqai` 改动，再让服务器按 Git 对齐，否则将来 pull 或重建会覆盖线上代码。详见 [`sessions/2026-09-08_reqai_path_and_git_deployment.md`](sessions/2026-09-08_reqai_path_and_git_deployment.md)。
@@ -252,7 +271,7 @@ dotnet run
 
 ---
 
-## 当前状态（截至 2026-09-12）
+## 租赁开单历史状态（截至 2026-09-12）
 
 **已可走通**：录入订单 → 选店 → 进入租赁开单 → 添加套餐（按品类筛选 + 万龙系店铺默认「立即租赁」+ 雪服/护具等非编码品类默认勾选「无编码」+ 创建时 startTime 默认当前时分）→ 购物车展示（rental 折叠态紧凑单行；展开态两层标题 + 跑马灯；rental 级 + rentItem 级双层完整性 chip；不完整时套餐名变红）→ 卡片展开编辑详情（套餐备注 + 起租日期 van-calendar 弹窗 + 今/明高亮快捷按钮 + 起租时间 picker；选租赁模式自动联动起租日期/时间：立即/先租后取=今天+当前时分、延时=明天+00:00；无编码/不需要 disabled 联动 + 不需要时整卡灰显）→ 装备编码录入（点编码区开搜索 modal，按品类模糊搜索租赁物，单选确认后回填 code/name/category_id/rent_product_id/class_name + 重复编码校验；扫码仍然可用）→ 押金/租金点击 tap 弹 `wx.showModal` 二次确认编辑（押金净额显示 = `realGuaranty − guaranty_discount`，下方购物车栏「押金 ¥净额 已减免 -¥xxx」）→ 套餐选模式时未自选 item 跟随 + 内部模式不一致显示 ⚠ → 左划删除 → 底部 4 个快捷入口横向紧凑按钮 + 单行结算条（件数徽章 + 押金 + 已减免 + 租金 + 去结算按钮，全部 rental 完整才允许点击）→ 点「去结算」先 await `saveRentReceptOrder` 落盘最新编辑、再调 `Order/PlaceRentOrder/{id}` 让服务端 `GenerateOrderCode` 生成 `WL_ZL_yyMMdd_xxxxx` 正式订单号 + `valid=1` + 写 Guaranty，返回的 order 回填 `this.data.order` → 跳 `/pages/payment/settle/index?orderId=...` → 结算页订单卡显示 `order.code || order.id` + 三选一支付方式（微信扫码 / 支付宝 mock / 其他确认收款）→ **顾客扫支付二维码进入 `pages/order/payment_entry`：轻量化纯 CSS 卡片版（订单信息 / 租赁内容折叠 / 金额 / 微信支付按钮），租赁明细只列 编码/名称/品类，押金 + 日租金同行各 300rpx 列宽** → 小程序客户端所有 `wx.request` 的 `POST` 请求在全局请求层统一对 payload 内 URL 编码中文执行 `urldecode`（含嵌套对象/数组）。每次结构变更/字段失焦自动 `Rent/SaveRentRecept` 同步后端，起租日期/时间通过 `start_date` (ISO datetime) 真持久化。→ **顾客扫码 payment_entry 落地后增加支付前身份验证**：onShow 调 `PaymentIdentity/CheckPayerIdentity` 拉 5 状态 → 未绑手机号弹一键授权 / 订单已匹配别人弹「正常支付（订单转归我）」「替人代付（订单仍归原会员）」二选一 modal / 订单未匹配会员则确认「订单将归我」→ `ConfirmPayIdentity` 立即落库 `Order.member_id` / `OrderPayment.member_id` / `is_proxy_pay` / `wechat_unverified`（支付宝支付一律置 `wechat_unverified=true`）→ status 转 `direct` 后才显示原微信支付按钮。**支付宝手机号解密目前是 stub**（待支付宝小程序对接）。
 
@@ -269,6 +288,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
 - 页面（未归还租赁物列表，2026-06-22 重做）：`pages/admin/rent/unreturned`（品类 section→顾客分组→租赁物卡片 + 模糊搜索 + 汇总；点卡片带 `rentItemId` 深链跳订单明细并展开目标 rental/折叠其余）
@@ -329,6 +349,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **食材管理交接（2026-09-22）**：Claude 独立审查本地未提交的 SnowmeetApi 服务端改动，重点核验真实员工会话 HTTP、权限/成本隐藏、并发和旧批次写入保护；用户安排 Claude 开发小程序。服务端通过审查与实测后再按用户部署节奏提交、发布，企业微信 H5 后续实现。见 [API 契约](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
 - **reqai 两条待办（2026-09-11 留）**：① **修 `MODEL_WHITELIST` 价格表**（见「已知遗留」首条，预算保护当前不准，建议优先）；② **给门店字段加枚举 + 模糊匹配 + 澄清文案**（自然语言按门店筛目前大概率失败且报错无用）；③ 待用户决定：要不要把帮助系统的模型与 reqai 主对话分开（现在共用一个全局默认，已一起切到 luna）；④ **下次上机第一件事**：核实 09-12 重新部署（`main@c5ab3ef`）之后 luna 设置是否仍生效——env 与 DB 都在 git 之外理应不受影响，但 09-11 收尾时 SSH 不通没能复核
 - **管理员帮助结构化查询交接**：① **reqai 线上已部署并验证完毕，无剩余阻塞**（`main@c5ab3ef`，详见 2026-09-12 补充）；② SnowmeetApi 无改动、也无待发布内容；③ **小程序仍未发布**——停止按钮（`ai@df1506e7`）要在开发者工具里重编/上传，店员才用得上；④ **仍未做**：在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”，以及真机点「停止」确认面板立刻可用。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
@@ -3851,3 +3872,10 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - **验证要看运行中的进程而不是配置文件**：`/proc/<pid>/environ` 才能证明服务真的加载了新值
 - **硬编码的外部价格会悄悄失效**（见「已知遗留」首条）：不参与任何测试，错了没人发现，却决定预算保护是否生效
 - **SSH 连不上先拿第三方主机对照**（`nc -z github.com 22`），别默认是目标服务器的问题——这个误判已经写进过两次归档
+
+### 2026-09-22：食材管理服务端交接
+
+- ✅ 17 张新表与 2 个视图经线上只读核对；SnowmeetApi 服务端覆盖食材档案、库存过账、配方、手动厨房单、出餐、盘点和报表。
+- ✅ 常规测试 318 项、SQL Server 隔离集成测试 6 项通过；测试库自动删除。报损重复请求号错指批次的回归用例先失败后通过。
+- 🚧 业务代码仅本地未提交、未部署；真实员工会话 HTTP 冒烟和多请求并发压测尚未做。Claude 将独立审查服务端并负责小程序客户端，本助手不再开发小程序。
+- 📌 本轮不使用平台门店/SKU 映射；用户先选本站菜品直接录入厨房单。详细经过见 [`sessions/2026-09-22_fnb-inventory-api-verification.md`](sessions/2026-09-22_fnb-inventory-api-verification.md)。
