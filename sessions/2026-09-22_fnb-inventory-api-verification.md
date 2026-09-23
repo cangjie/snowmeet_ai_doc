@@ -22,7 +22,7 @@
 
 - `dotnet test SnowmeetApi.sln --no-restore --no-build --verbosity quiet`：318 项通过，6 项 SQL Server 专项按设计跳过。
 - `python3 SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`：独立 SQL Server 临时库的 6 项全部通过，测试库已自动删除。运行器只从 `snowmeet_new` 读取旧表结构，不向业务库写测试数据。
-- 两仓 `git diff --check` 均通过。服务端代码仍在 SnowmeetApi 工作区，**未提交、未发布**；未做真实员工会话的端到端 HTTP 验收或多请求并发压测。测试通过不能替代 Claude 的独立审查。
+- 两仓 `git diff --check` 均通过。测试时服务端代码仍在工作区；end-work 收尾核对发现 SnowmeetApi `ai@9ee8fd9` 已与远端一致，含食材服务端提交 `d40a9d0`，且 `d40a9d0..9ee8fd9` 未改本轮食材代码或测试文件。**线上部署尚未核实**；未做真实员工会话的端到端 HTTP 验收或多请求并发压测。测试通过不能替代 Claude 的独立审查。
 - 本场只做服务端。小程序由用户安排 Claude 实现；企业微信 H5 及蓝牙真机适配在后续阶段。
 
 ## 关键改动文件
@@ -39,6 +39,6 @@
 
 ## 下次开工
 
-1. Claude 先独立审查 SnowmeetApi 未提交改动，重点检查鉴权、成本权限、并发重试、旧效期入口和 API 契约与代码的一致性。
-2. 用真实员工会话完成 SQL Server 业务环境的端到端 HTTP 冒烟；审查通过后按用户部署节奏提交和发布服务端。
+1. Claude 先独立审查 SnowmeetApi `ai@9ee8fd9` 中的食材服务端改动，重点检查鉴权、成本权限、并发重试、旧效期入口和 API 契约与代码的一致性。
+2. 用真实员工会话完成 SQL Server 业务环境的端到端 HTTP 冒烟；审查通过后按用户部署节奏发布服务端，并核实实际线上版本。
 3. 小程序由 Claude 按 [API 契约](../docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md) 接入；订单自动同步、平台采集及企业微信 H5 暂不在本轮。
