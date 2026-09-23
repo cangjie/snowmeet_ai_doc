@@ -43,7 +43,7 @@ export ODBCSYSINI=/opt/homebrew/etc
 
 依赖 sibling 目录 `../export_rent_order/export_rent_orders.py`（import 复用 `SHOP_PREFIX / REFUND_COND / DEFAULT_CONN / write_sheet`，单点真理）。**三个 skill 目录的 sibling 关系不可破坏**，否则 ImportError。
 
-## 调用方式（两脚本工作流，顺序不可换）
+## 调用方式（多脚本工作流，顺序不可换）
 
 ```bash
 cd snowmeet_ai_doc/skills/export_care_order_fiscal_year
@@ -57,12 +57,24 @@ py add_payment_detail_sheet_to_fy_xlsx.py \
    --xlsx snowmeet_ai_doc/wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx \
    --main-sheet 年度养护
 
-# 3) 只读对账校验（复用，sheet 名不变零改动）
+# 3) 追加「年度养护明细」（订单级 × care 一对多 + 7 个工序执行人，含合并单元格）
+py add_care_detail_merged_sheet.py \
+   --xlsx snowmeet_ai_doc/wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx \
+   --shop 万龙服务中心
+
+# 4) 追加「年度养护日报明细」（订单级 × 养护日报表 19 字段，含合并单元格）
+py add_care_daily_report_sheet.py \
+   --xlsx snowmeet_ai_doc/wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx \
+   --shop 万龙服务中心
+
+# 5) 只读对账校验（复用，sheet 名不变零改动）
 py verify_payment_reconcile.py \
    --xlsx snowmeet_ai_doc/wanlong_service_care_orders_fy_2025-05-01_2026-04-30.xlsx
 ```
 
-> ⚠️ **两脚本依赖**：每次重跑第 1 步会重建整个 xlsx，必须紧接着重跑第 2 步，否则「支付明细/支付流水」两 sheet 丢失（与租赁财年版同坑）。
+> ⚠️ **脚本依赖**：第 1 步是 `Workbook()` 整本重建，每次重跑会一次抹掉「支付明细/支付流水/年度养护明细/年度养护日报明细」四个 sheet，必须紧接着把第 2~4 步全部重跑（与租赁财年版同坑）。第 2~4 步各自幂等，可单独重跑。
+>
+> 本机（Intel Mac）只注册了 `ODBC Driver 13 for SQL Server`，第 3、4 步需额外传 `--conn` 覆盖脚本内写死的 Driver 18；第 3 步的 `add_care_detail_merged_sheet.py` 目前**没有** `--conn` 参数，需要时得先改脚本。
 
 参数（同租赁财年版）：
 
@@ -106,7 +118,7 @@ py verify_payment_reconcile.py \
 1. **ImportError: export_rent_orders** → sibling 目录 `../export_rent_order/export_rent_orders.py` 缺失/被移动。
 2. **`pyodbc.drivers()` 无 Driver 18** → 未装 ODBC Driver 18（Windows）/ macOS 未 `export ODBCSYSINI`。
 3. **`python` 无输出 exit 49** → 本机 Windows，用 `py` 启动器（python/python3 是 Store 空壳）。
-4. **「支付明细/支付流水」不见了** → 重跑第 1 步后没重跑第 2 步（两脚本依赖）。
+4. **「支付明细/支付流水/年度养护明细/年度养护日报明细」不见了** → 重跑第 1 步后没重跑第 2~4 步（脚本依赖）。
 5. **verify 报 GBK UnicodeEncodeError** → 已修（脚本头加 `sys.stdout.reconfigure('utf-8')`）。
 6. **xlsx 写入 PermissionError** → 文件被 Excel/WPS 打开，关掉再跑。
 7. **某订单金额存疑** → pyodbc 只读直查 `[order]`/`care`/`care_task`/`order_payment` 按 code 核对。
@@ -116,7 +128,7 @@ py verify_payment_reconcile.py \
 - [`SKILL.md`](SKILL.md)（本文档）
 - [`export_care_orders_fy.py`](export_care_orders_fy.py) — 主导出脚本（仿租赁财年版，care 特化 SQL + derive_care_status + 服务项目派生）
 
-复用（非本目录）：`../../add_payment_detail_sheet_to_fy_xlsx.py`（加了 `--main-sheet`）、`../../verify_payment_reconcile.py`（加了 utf-8 头）、`../export_rent_order/export_rent_orders.py`（单点真理 import）。
+复用（非本目录）：`../../add_payment_detail_sheet_to_fy_xlsx.py`（加了 `--main-sheet`）、`../../add_care_detail_merged_sheet.py`（「年度养护明细」）、`../../add_care_daily_report_sheet.py`（「年度养护日报明细」）、`../../verify_payment_reconcile.py`（加了 utf-8 头）、`../export_rent_order/export_rent_orders.py`（单点真理 import）。
 
 ## 变更记录
 
