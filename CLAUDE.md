@@ -1,11 +1,21 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-22）：食材管理服务端待独立审查
-- 用户已执行 [其他表建表 SQL（VARCHAR 版）](sql/2026-09-22_fnb_inventory_other_tables.sql)；线上只读核对确认 17 张新表、2 个视图和基础单位已落库。旧[完整 SQL 审阅稿](sql/2026-09-21_fnb_inventory_schema_review.sql)已停用，不再执行。旧效期批次与提醒日志已按用户要求清空；本次集成测试仅写入自动删除的隔离 SQL Server 数据库。
-- `SnowmeetApi` 已实现食材档案、效期/入库、库存流水、开封/制作/报损、配方、手动厨房单与出餐、盘点和报表 API；兼容现有小程序与企业微信员工会话。旧批次写入口已加库存兼容保护。实现和接口见 [API 契约](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。end-work 时核对 `ai@9ee8fd9` 已与远端一致，含食材服务端提交 `d40a9d0`；**尚未核实线上部署**。
-- 用户决定先让员工直接选本站餐饮菜品和数量建立厨房单；`order`/`fd_order` 自动同步、平台门店/SKU 映射及外卖采集接口均后置。建表脚本里的平台相关空表暂留但本轮 API 不使用。`order_source`/`source_order_no` 的旧独立脚本和 `CK_order_source_pair` 处理不属于本轮新表脚本。
-- 验证：常规测试 318 项通过，6 项 SQL Server 专项测试在独立库全部通过且测试库已删除；报损重复请求号误指其他批次的问题已按先失败后通过的回归测试修复。`d40a9d0..9ee8fd9` 未改食材服务端及测试文件；仍需 Claude 独立审查鉴权、并发重试、成本权限和旧接口绕行，并以真实员工会话做端到端 HTTP 验收；尚未核实线上发布或做多请求并发压测。
-- **小程序客户端由用户安排 Claude 开发并审查服务端代码，本助手不再开发小程序。** 企业微信 H5 是后续目标；服务端先提供共用 API。保质期计算、旧提醒/OCR 与标签数据已纳入服务端，实际蓝牙打印仍由客户端实现及真机验证。
+## 当前状态（截至 2026-09-23）：食材管理小程序已完成，待数据修正 + 部署 + 人工测试
+- **小程序客户端已完成（Claude 开发）**：分包 [`snowmeet_wechat_mini/pages/fnbinv/`](../snowmeet_wechat_mini/pages/fnbinv/)，共 11 页 + 3 个组件。
+  - 底部 8 tab：库存、入库、分类、制作、配方、出餐、盘点、看板；另有临期、销毁、批次详情三页。
+  - 后台菜单改为「【餐饮】食材管理」；旧标签扫码进 `mat_expire_detail` 时 redirect 到新批次页。
+  - `npm test` 113/113（新增 fnbinv 测试 67 条，页面冒烟抓出并修掉 2 个真 bug）。
+  - **未提交、未上传**；开发者工具编译和真机走查都还没做。
+- **服务端验证（Claude）**：本地隔离库 HTTP 全链路 80 项，77 过 3 败。报告见 [接口验证报告](docs/superpowers/plans/2026-09-23-fnb-inventory-api-verification.md)。
+  - 失败 3 项：已过期批次可入库；并发出餐、同 requestId 并发入库时 SQL 死锁 1205 → HTTP 500。
+  - 数据都保持一致，重试能成功；按用户确认只报告、未修。
+  - 集成 8/8，单元 344 过。
+- **服务端新增（Claude，未提交未部署）**：`FnbRecipe/ListDishes`（员工）、`FnbRecipe/SaveDish`（店长，新建菜品时自动建「标准份」）。
+  - 服务：[`FnbDishService.cs`](../SnowmeetApi/Services/Fnb/FnbDishService.cs)；新增 2 条集成测试和冒烟运行器 `run_fnb_http_smoke.py`。
+- **⚠️ 上线阻塞在生产数据**：29 名在职员工中 25 人 `base_shop_id` 为空；7 个餐饮商品的 `shop_id`（45855..）不在 `shop_list`。
+  - 用户决定：新建门店「多呆一会儿吧」，界面不显示门店名；改数据不改鉴权；菜品由店长在配方页 `SaveDish` 新建。
+  - 修正脚本 [2026-09-23_fnb_restaurant_shop.sql](sql/2026-09-23_fnb_restaurant_shop.sql) 由用户执行，需填后厨员工 id。
+- 用户 09-23 表示会先完成「① 执行 SQL ② 部署 SnowmeetApi」，再开始人工测试。**线上部署仍未核实**：本机访问 `mini.snowmeet.top` 超时。
 
 ## 2026-09-21 外卖订单获取方案（记录备用）
 - **用户明确要求获取美团订单，自动获取是目标。** 本次记录的备选路线为：官方 API 优先，网页采集待验证，手机截图上传 OCR 用于补录；截图上传仍需人工，不能单独满足自动获取要求。
@@ -130,6 +140,7 @@ dotnet run
 - `pages/` — 110 个页面（ski_pass、rent、tickets、order、admin、claude 等）
 - `components/` — 24 个组件族
 - `utils/util.js` — 公共工具函数
+- `pages/fnbinv/` — 食材管理分包（11 页；`common/` 下为纯函数模块，配套 `tests/fnbinv_*.test.js`）
 
 **服务端核心路径 (SnowmeetApi)：**
 - `Controllers/` — 39 个 Controller（Order、Rent、SkiPass、Member 等）
@@ -349,7 +360,12 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- **食材管理交接（2026-09-22）**：Claude 独立审查 SnowmeetApi `ai@9ee8fd9` 的食材服务端改动，重点核验真实员工会话 HTTP、权限/成本隐藏、并发和旧批次写入保护；用户安排 Claude 开发小程序。服务端通过审查与实测后再按用户部署节奏发布，企业微信 H5 后续实现。见 [API 契约](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
+- **食材管理上线（2026-09-23 交接）**：
+  - ① 用户执行 [门店修正 SQL](sql/2026-09-23_fnb_restaurant_shop.sql)：新建门店「多呆一会儿吧」+ 绑定后厨员工。至少一个店长级账号（建议「苍杰（测试）」id 31）和一个 100 级员工账号。
+  - ② 部署 SnowmeetApi（含未提交的 `ListDishes`/`SaveDish`）。若服务器靠 git pull 更新，先让 Claude 提交并推送。发布后在 Network 看 `FnbRecipe/ListDishes` 返回 JSON 而非 404。
+  - ③ 开发者工具编译 + 真机按「建分类 → 建食材 → 入库 → 开封 → 建菜品和配方 → 制作 → 建厨房单 → 出餐 → 盘点 → 看板」走一遍，再用员工账号验证权限。
+  - ④ 服务端 3 个问题待定修不修：过期批次入库校验、死锁 1205 映射 code 4、`ListBatches` 在库过滤；另有 `ListOrders` 缺出餐标记的改进建议。
+  - ⑤ 两个业务仓按节奏提交。
 - **reqai 两条待办（2026-09-11 留）**：① **修 `MODEL_WHITELIST` 价格表**（见「已知遗留」首条，预算保护当前不准，建议优先）；② **给门店字段加枚举 + 模糊匹配 + 澄清文案**（自然语言按门店筛目前大概率失败且报错无用）；③ 待用户决定：要不要把帮助系统的模型与 reqai 主对话分开（现在共用一个全局默认，已一起切到 luna）；④ **下次上机第一件事**：核实 09-12 重新部署（`main@c5ab3ef`）之后 luna 设置是否仍生效——env 与 DB 都在 git 之外理应不受影响，但 09-11 收尾时 SSH 不通没能复核
 - **管理员帮助结构化查询交接**：① **reqai 线上已部署并验证完毕，无剩余阻塞**（`main@c5ab3ef`，详见 2026-09-12 补充）；② SnowmeetApi 无改动、也无待发布内容；③ **小程序仍未发布**——停止按钮（`ai@df1506e7`）要在开发者工具里重编/上传，店员才用得上；④ **仍未做**：在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”，以及真机点「停止」确认面板立刻可用。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
@@ -429,6 +445,19 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **食材接口鉴权依赖 `staff.base_shop_id`，而线上多数员工为空（2026-09-23 发现）**：`FnbAccess.CanAccess` 要求 `base_shop_id == shopId`，新表 `shop_id` 外键指向 `shop_list`。
+  - 餐饮商品 `shop_id` 为 45855/45862/45863，都不在 `shop_list`（共 136 个商品的 shop_id > 1000，来源不明）。
+  - 不执行 [2026-09-23_fnb_restaurant_shop.sql](sql/2026-09-23_fnb_restaurant_shop.sql)，所有员工都会提示「无门店权限」。
+  - 副作用：`Order/GetShops` 不按门店类型过滤，新门店会出现在所有门店下拉里（sort=900 排最后）；`base_shop_id` 也是租赁/养护门店选择器的默认值。
+- **食材过账并发时 SQL 死锁 → HTTP 500（2026-09-23 冒烟复现）**：各过账都在 Serializable 事务里。死锁 1205 有时是裸 `SqlException`（所有控制器都没捕获），有时被 EF 包成 transient `InvalidOperationException`（`PostReceipt` 没捕获，`PostOpen`/`PostServe` 捕获为 code 4）。
+  - 数据不受影响；小程序把 500 当可重试，沿用原 requestId。
+  - 建议统一映射为 code 4，或服务端自动重试一次。
+- **`PostReceipt` 不拦已过期批次（2026-09-23）**：需求写明不许入库；目前只有小程序在前端拦截。
+- **`ListBatches` 没有「只看在库」过滤，且按到期日升序分页**：历史批次越多，库存首页越慢（小程序 `getAll` 最多拉 50 页）。建议加 `inStockOnly`。
+- **`PostServe` 不改 `fnb_order.order_status`，`ListOrders` 不带出餐标记和菜品**：出餐页只能逐单调 `GetOrder`（N+1，4 路并发）。
+- **`util.performWebRequest` reject 时只给 message、丢掉 code**：食材模块因此自包请求层 [`pages/fnbinv/common/api.js`](../snowmeet_wechat_mini/pages/fnbinv/common/api.js)，保留 2/3/4 以区分会话失效、无权限、需刷新。
+- **`FnbMaterial/GenBatchNo` 按已入库批次计数发号**：同一张入库单里未提交的几条会拿到同号，客户端 `forms.nextBatchNo` 递增避让。
+- **本机（Intel Mac）连不上生产 API 主机 `mini.snowmeet.top`（161.189.64.210:443）**：关闭沙箱也超时，github 正常。部署是否生效只能请用户在开发者工具里看 Network。生产库（config.sqlServer）可以直连做只读核对。
 - **reqai 的模型价格表是错的，预算保护因此失效（2026-09-11 发现，未修）**：`backend/app/config.py` 的 `MODEL_WHITELIST` 写着 sol `$0.05/$0.40`、terra `$0.25/$2.00`、luna `$1.25/$10.00`，而 OpenAI 官方价是 sol **$4.00/$20.00**、terra $2.00/$12.00、luna **$0.20/$1.20** —— sol 低估 50–80 倍、luna 高估 6–8 倍，顺序都反了。这张表直接喂给 `llm.py` 的 `DAILY_USD_CAP` 判断和管理后台「今日花费」：**用 sol 那段时间账面花费只有实际的 1/50~1/80，每日预算保护形同虚设**；切 luna 后误差反向，真实花费到上限 1/7 左右就会被拦。修的时候要标注价格来源日期（sol 的 $4/$20 是 8 月 21 日起的临时降价，原价 $5/$30）。**教训：硬编码的外部价格不参与任何测试，错了没人发现，却决定着预算保护是否生效。**
 - **管理员自然语言查询里「门店」是唯一没有约束的字段（2026-09-10 审查发现，未修）**：`rent_status` 是 9 值 Literal 枚举、`cell_suffix` 有正则，唯独 `shop` 是自由字符串，**planner 的 prompt 里也没给门店清单**，模型只能从用户原话抄；而 `RentalOrderQueryExecutor` 是 `shop.name == 输入` **精确相等**，对不上就抛「租赁门店不支持」，前端统一显示「暂时无法获得回答」+ 重试按钮——用户看不到真因、重试永远失败。用户说「万龙店」而库里是「万龙服务中心」就会触发。2026-08 刚把 `product.shop` 自由文本退役改 `shop_id`，这条新链路又退回了按名字匹配。修法：门店清单进 prompt 当枚举 + 执行器加包含匹配兜底 + 匹配不上时把可选门店列进澄清 reply。另：11 个字段里**没有金额区间**，「金额超过 1000 的订单」表达不了。
 - **本机网络会间歇拦截出站 22 端口（2026-09-10/11 两天反复踩）**：`ssh` 到 reqai 服务器和 `github.com` 会同时超时，而两者 443 始终正常，`nc -z host 22` 直接不通，一度持续 10 分钟以上。**此前归档里记的「服务器 SSH 不稳」是误判，服务器一直是好的。** 排查先用 `nc -z -w 8 github.com 22` 对照，同样不通就是本地网络，别狂刷重试；绕过办法是切手机热点/VPN，git 走 SSH 可用 `ssh.github.com:443`，急着重启服务可让用户从 AWS 控制台 EC2 Instance Connect 执行。
@@ -3879,3 +3908,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 常规测试 318 项、SQL Server 隔离集成测试 6 项通过；测试库自动删除。报损重复请求号错指批次的回归用例先失败后通过。
 - 🚧 end-work 时核对 SnowmeetApi `ai@9ee8fd9` 已与远端一致，食材代码在 `d40a9d0`；线上部署未核实，真实员工会话 HTTP 冒烟和多请求并发压测尚未做。Claude 将独立审查服务端并负责小程序客户端，本助手不再开发小程序。
 - 📌 本轮不使用平台门店/SKU 映射；用户先选本站菜品直接录入厨房单。详细经过见 [`sessions/2026-09-22_fnb-inventory-api-verification.md`](sessions/2026-09-22_fnb-inventory-api-verification.md)。
+
+### 2026-09-23：食材管理小程序客户端 + 服务端接口验证
+
+- ✅ 需求理解：依据 Claude Design 的 deck（18 页）和原型（10 屏，本地导出在 `~/Downloads/mat/`）。以 09-21/22 决定为准：手动建厨房单、一菜一份、不做出餐微调，看板不做损耗率/周转，入库加选填单价。
+- ✅ 服务端验证：生产只读核对 + 本地隔离库 HTTP 全链路冒烟 80 项，77 过 3 败（过期批次可入库、两处死锁 500）。详见 [验证报告](docs/superpowers/plans/2026-09-23-fnb-inventory-api-verification.md)。
+- ✅ 服务端补 `ListDishes`/`SaveDish`（按 TDD，集成测试先失败后通过）。
+- ✅ 小程序分包 `pages/fnbinv/`：11 页 + 3 组件 + 11 个纯函数模块；`npm test` 113/113。
+- 🚧 用户执行门店修正 SQL + 部署 API 后开始人工测试；两个业务仓未提交。
+- 📌 最终代码审查：审查子代理触发会话额度上限（429），改为作者自审，只修了 1 处（生产日期晚于到期日期要在加单前拦下）。
+- 📌 教训：页面胶水先写后测时，页面级冒烟（假后端 + 假 wx 逐页 onLoad）抓到了库存页参数名写错导致列表恒空的 bug；纯函数测试覆盖不到这类问题。
+- 详细归档：[`sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md`](sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md)。

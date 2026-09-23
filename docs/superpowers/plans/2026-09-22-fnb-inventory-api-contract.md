@@ -6,7 +6,7 @@
 |---|---|---|
 | `FnbCatalog` | `GetUnits`、`ListCategories`、`ListShelfLifeRules`、`ListMaterials`、`GetMaterial` | `SaveCategory`、`SaveShelfLifeRule`、`SaveMaterial` |
 | `FnbInventory` | `PreviewExpiry`、`ListBatches`、`GetBatch`、`GetLabelData`、`GetStock`、`GetDocument`、`ListMovements` | `PostReceipt`、`PostOpen`、`PostWaste`、`PostPreparation` |
-| `FnbRecipe` | `ListDishSpecs`、`ListRecipes`、`GetRecipe` | `SaveDishSpec`、`SaveRecipeDraft`、`PublishRecipe` |
+| `FnbRecipe` | `ListDishes`（2026-09-23 新增）、`ListDishSpecs`、`ListRecipes`、`GetRecipe` | `SaveDish`（2026-09-23 新增）、`SaveDishSpec`、`SaveRecipeDraft`、`PublishRecipe` |
 | `FnbKitchen` | `ListOrders`、`GetOrder`、`PreviewServe` | `CreateManualOrder`、`CancelManualOrder`、`ReviewOrder`、`PostServe` |
 | `FnbStocktake` | `GetSnapshot`、`PreviewAdjustment` | `CreateSnapshot`、`SaveCount`、`PostStocktake` |
 | `FnbReport` | `GetOverview`、`GetLossLedger`、`GetExpirySummary` | 无 |
@@ -36,3 +36,15 @@ POST /api/FnbKitchen/CreateManualOrder?sessionKey=...
 本轮不提供 `SyncInternalOrder`、平台门店／SKU 映射、平台订单采集及导入接口。已建的相关空表保留，不代表相应功能已实现或启用。服务端集成测试使用独立 SQL Server 数据库，运行器为 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`；线上业务库不写入测试数据。Claude 接入前请独立复核鉴权、并发重试、成本权限和旧接口绕行路径；目前自动化测试覆盖业务服务和 SQL Server 数据写入，尚无真实员工会话的端到端 HTTP 冒烟验证。
 
 验证记录（2026-09-22）：`dotnet test SnowmeetApi.sln --no-restore --no-build --verbosity quiet` 通过 318 项，另 6 项 SQL Server 专项测试按设计跳过；单独运行上述隔离库脚本，6 项全部通过，测试库已自动删除。报损重复请求号指向不同批次的错误已用先失败、后通过的回归用例验证。上述结果不等于已部署到线上 API，也不覆盖真实员工会话和多请求并发压测。
+
+## 2026-09-23 补充：菜品接口与小程序客户端
+
+- `GET FnbRecipe/ListDishes?sessionKey=&shopId=`（在职员工）：返回 `{ dishes, categories }`。
+  - `dishes` 是本店有效、未隐藏、属于有效餐饮分类的商品，每条含 `productId`、`name`、`salePrice`、`categoryId`、`categoryName`、`specId`、`specName`、`publishedRecipeId`、`publishedVersion`、`draftRecipeId`（配方号为字符串）。
+  - `categories` 是可选的有效餐饮分类。
+- `POST FnbRecipe/SaveDish?sessionKey=`（`title_level >= 200`）：请求体 `{ shopId, id, name, salePrice, categoryId?, categoryName?, valid }`。
+  - `categoryId` 为空时，按 `categoryName` 找同名餐饮分类，没有就新建；
+  - 新建菜品时自动建默认规格「标准份」；
+  - `valid=false` 表示停用菜品。
+- 小程序客户端在分包 `snowmeet_wechat_mini/pages/fnbinv/`，后台菜单入口是「【餐饮】食材管理」。
+- 验证结果与仍待服务端处理的问题见 [接口验证报告](2026-09-23-fnb-inventory-api-verification.md)。
