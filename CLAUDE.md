@@ -1,11 +1,16 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-23）：食材管理小程序已完成，待数据修正 + 部署 + 人工测试
-- **小程序客户端已完成（Claude 开发）**：分包 [`snowmeet_wechat_mini/pages/fnbinv/`](../snowmeet_wechat_mini/pages/fnbinv/)，共 11 页 + 3 个组件。
+## 当前状态（截至 2026-09-25）：食材管理按用户试用意见完成第二轮打磨，待跑迁移 + 部署 + 人工测试
+- **09-24~25 第二轮打磨（两业务仓已提交；小程序最后一个提交 `6b474c7c` 本地领先 origin 1 个）**：
+  - 分类只填名称 + 储存方式，单位/临期/开封默认/保质期规则下沉到食材。**部署 API 前必须先跑 [`sql/2026-09-24_fnb_item_expiry_settings.sql`](sql/2026-09-24_fnb_item_expiry_settings.sql)**（生产是否已执行未核实）。
+  - 入库：到期日自动算、照片选填、新食材直接录、「保质期不变」、直接过账 + 确认框、10 分钟内可删。
+  - 菜品只填名称和用料；厨房单改为一单一道菜、按配方 × 份数扣料、用量可微调、10 分钟内可编辑/删除回滚。
+  - 欠料：建单前逐项提示库存（缺的是整包没开封时可直接开封）；事后「补扣欠料」；出餐页「有欠料（近 7 天）」筛选。
+  - 验证：小程序 149/149、服务端单元 346、本机 LocalDB 集成 22/22。详见 [会话记录](sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md)。
+- **小程序客户端（Claude 开发）**：分包 [`snowmeet_wechat_mini/pages/fnbinv/`](../snowmeet_wechat_mini/pages/fnbinv/)，共 11 页 + 3 个组件。
   - 底部 8 tab：库存、入库、分类、制作、配方、出餐、盘点、看板；另有临期、销毁、批次详情三页。
   - 后台菜单改为「【餐饮】食材管理」；旧标签扫码进 `mat_expire_detail` 时 redirect 到新批次页。
-  - `npm test` 113/113（新增 fnbinv 测试 67 条，页面冒烟抓出并修掉 2 个真 bug）。
-  - **未提交、未上传**；开发者工具编译和真机走查都还没做。
+  - 开发者工具已在用（用户边试边提改）；真机走查还没做。
 - **服务端验证（Claude）**：本地隔离库 HTTP 全链路 80 项，77 过 3 败。报告见 [接口验证报告](docs/superpowers/plans/2026-09-23-fnb-inventory-api-verification.md)。
   - 失败 3 项：已过期批次可入库；并发出餐、同 requestId 并发入库时 SQL 死锁 1205 → HTTP 500。
   - 数据都保持一致，重试能成功；按用户确认只报告、未修。
@@ -299,7 +304,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
-- 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
+- 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`（本机 Windows 用 [`tools/windows_test/`](tools/windows_test/)）；厨房单扣料/欠料补扣集中在 `SnowmeetApi/Services/Fnb/FnbServeService.cs` + 小程序 `pages/fnbinv/serve/` 与 `common/kitchen.js`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
 - 页面（未归还租赁物列表，2026-06-22 重做）：`pages/admin/rent/unreturned`（品类 section→顾客分组→租赁物卡片 + 模糊搜索 + 汇总；点卡片带 `rentItemId` 深链跳订单明细并展开目标 rental/折叠其余）
@@ -360,9 +365,10 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- **食材管理上线（2026-09-23 交接）**：
+- **食材管理上线（2026-09-23 交接，09-25 更新）**：
   - ① 用户执行 [门店修正 SQL](sql/2026-09-23_fnb_restaurant_shop.sql)：新建门店「多呆一会儿吧」+ 绑定后厨员工。至少一个店长级账号（建议「苍杰（测试）」id 31）和一个 100 级员工账号。
-  - ② 部署 SnowmeetApi（含未提交的 `ListDishes`/`SaveDish`）。若服务器靠 git pull 更新，先让 Claude 提交并推送。发布后在 Network 看 `FnbRecipe/ListDishes` 返回 JSON 而非 404。
+  - ①′ **生产库执行 [`sql/2026-09-24_fnb_item_expiry_settings.sql`](sql/2026-09-24_fnb_item_expiry_settings.sql)**（分类属性下沉到食材），再部署 API；顺序反了 EF 读新列会报错。
+  - ② 部署 SnowmeetApi（09-24~25 全部改动已在 `ai` 分支）。**先 API 后小程序**：小程序先上会调到不存在的补扣/欠料接口，微调用量也会被旧服务端静默忽略。小程序 `6b474c7c` 需先 push。
   - ③ 开发者工具编译 + 真机按「建分类 → 建食材 → 入库 → 开封 → 建菜品和配方 → 制作 → 建厨房单 → 出餐 → 盘点 → 看板」走一遍，再用员工账号验证权限。
   - ④ 服务端 3 个问题待定修不修：过期批次入库校验、死锁 1205 映射 code 4、`ListBatches` 在库过滤；另有 `ListOrders` 缺出餐标记的改进建议。
   - ⑤ 两个业务仓按节奏提交。
@@ -445,6 +451,14 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **业务规则能在代码里实现，就不要让用户手动跑生产 SQL（2026-09-24 用户纠正）**：分类删除后同名重建报错，我先给了改唯一索引的 SQL，用户明确拒绝——要的是「只在未删除的分类中查重」。终版在代码里查重，并把已删除的同名分类改名让位（`FnbCategoryService.FreeNameAsync`）。结构性迁移（加删列）仍走 `sql/` 脚本由用户执行。
+- **本机 Windows 测试工具在 [`tools/windows_test/`](tools/windows_test/)（2026-09-25）**：
+  - 小程序：`"C:\Program Files (x86)\Tencent\微信web开发者工具\node.exe" ../snowmeet_ai_doc/tools/windows_test/run_tests.js tests/*.test.js`（在 `snowmeet_wechat_mini` 下执行；开发者工具自带 node v16 没有 `node:test`，这个脚本代跑）。
+  - 服务端集成：先 `dotnet build SnowmeetApi.Tests`，再 `py tools/windows_test/run_integration_localdb.py`。它在 LocalDB 建 `snowmeet_fnb_test_*` 隔离库，按 EF 模型建旧表，执行 09-22 建表 + 09-24 迁移，核对表结构后跑集成测试，最后删库。
+  - pyodbc 连 LocalDB 用老驱动 `DRIVER={SQL Server}` + `Network=dbnmpntw` + 命名管道地址（从 `SqlLocalDB info` 读）；本机没有 ODBC Driver 17/18。
+- **补扣欠料的两个边界（2026-09-25）**：
+  - `fnb_stock_movement` 有 `UQ(document_line_id, batch_id)`，补扣时跳过同一单据行已扣过的批次。
+  - 出餐后已盘点（盘点单过账晚于扣料）的食材不补扣，视为盘点已调整；否则会重复扣。
 - **食材接口鉴权依赖 `staff.base_shop_id`，而线上多数员工为空（2026-09-23 发现）**：`FnbAccess.CanAccess` 要求 `base_shop_id == shopId`，新表 `shop_id` 外键指向 `shop_list`。
   - 餐饮商品 `shop_id` 为 45855/45862/45863，都不在 `shop_list`（共 136 个商品的 shop_id > 1000，来源不明）。
   - 不执行 [2026-09-23_fnb_restaurant_shop.sql](sql/2026-09-23_fnb_restaurant_shop.sql)，所有员工都会提示「无门店权限」。
@@ -3919,3 +3933,16 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 最终代码审查：审查子代理触发会话额度上限（429），改为作者自审，只修了 1 处（生产日期晚于到期日期要在加单前拦下）。
 - 📌 教训：页面胶水先写后测时，页面级冒烟（假后端 + 假 wx 逐页 onLoad）抓到了库存页参数名写错导致列表恒空的 bug；纯函数测试覆盖不到这类问题。
 - 详细归档：[`sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md`](sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md)。
+
+### 2026-09-24 ~ 09-25：食材管理第二轮打磨（分类下沉、入库简化、厨房单按配方扣料、欠料补扣）
+
+- ✅ 后台删掉 4 个餐饮死菜单（页面 06-15 已删）；分类只填名称 + 储存方式，单位/临期/开封默认/保质期规则下沉到食材（迁移 `sql/2026-09-24_fnb_item_expiry_settings.sql`，**部署前必须先执行**）。
+- ✅ 分类删除后同名重建 500：改为只在有效同级查重、已删除的同名分类改名让位，纯代码不动索引（用户拒绝了改索引的 SQL 方案）。
+- ✅ 入库：到期日自动算、手改到期日后生产日期/保质期变灰、含量单位可选、照片选填、新食材直接录、开封「保质期不变」(36500)、直接过账 + 确认框、10 分钟内无后续操作可删（`DeleteReceipt`）。
+- ✅ 菜品只填名称和用料（`SaveDish` 售价/分类可不传）。
+- ✅ 厨房单：第一版做成多菜品手填配料，被用户纠正——将来是外部自动导入，一单一道菜、按配方扣。终版 `CreateAndServe` / `UpdateServedOrder` / `DeleteServedOrder`（10 分钟内编辑/删除回滚），菜名输入自动提示，用量可微调（只限配方内，0 = 不扣）。
+- ✅ 欠料：不拦建单、不负库存；`GetDeductStock` 建单前逐项提示、整包没开封可直接开封；`FillShortage` 事后补扣（不限时、盘点后不补）；`ListShortageOrders` + 出餐页「有欠料（近 7 天）」。
+- ✅ 验证：小程序 149/149、服务端单元 346、本机 LocalDB 集成 22/22；本机测试工具存进 `tools/windows_test/`。
+- 🚧 待办：执行 09-24 迁移 → 部署 SnowmeetApi → push 小程序 `6b474c7c` 并上传 → 真机走查（先 API 后小程序）。
+- 📌 教训：先问清业务主线（厨房单将来自动导入）再定模型；能用代码实现的规则不要甩给用户跑生产 SQL。
+- 详细归档：[`sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md`](sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md)。
