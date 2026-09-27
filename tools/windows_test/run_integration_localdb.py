@@ -50,7 +50,8 @@ try:
     cur = connect(DB).cursor()
     for t in OLD:
         cur.execute(old_table_ddl(t))
-    for script in ["2026-09-22_fnb_inventory_other_tables.sql", "2026-09-24_fnb_item_expiry_settings.sql"]:
+    for script in ["2026-09-22_fnb_inventory_other_tables.sql", "2026-09-24_fnb_item_expiry_settings.sql",
+                   "2026-09-25_fnb_category_prepared.sql", "2026-09-26_fnb_item_low_stock.sql"]:
         run_script(cur, (SQL_DIR / script).read_text(encoding="utf-8"))
     mismatches = []
     for t in sorted(k for k in blocks if k.startswith("fnb_") and k not in OLD):

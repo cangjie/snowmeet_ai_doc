@@ -87,8 +87,37 @@ POST /api/FnbKitchen/CreateManualOrder?sessionKey=...
   - 物理删除本次入库写入的流水、单据行、单据、批次库存和旧批次行；自动建档的食材保留。
   - `GetBatch` 新增 `deleteSecondsLeft`：当前员工还能删除时为剩余秒数，否则为 null；小程序据此显示「删除这次入库」。
   - 小程序「提交入库」前弹确认框；入库页「本次已入库」10 分钟内可直接删除。
-- `PostReceipt` 的批次照片改为选填：`imageIds` 可为空数组，此时 `fnb_material_batch.image_ids` 存 NULL；传了照片仍须有效、不重复且用途为「食材批次」。半成品制作 `PostPreparation` 仍要求照片。
+- `PostReceipt` 的批次照片改为选填：`imageIds` 可为空数组，此时 `fnb_material_batch.image_ids` 存 NULL；传了照片仍须有效、不重复且用途为「食材批次」。半成品制作 `PostPreparation` 自 2026-09-26 起同样选填（规则相同）。
 - 分类重名（线上 2026-09-24 删掉「冻品」后再建同名返回 500）：只在未删除（`valid=1`）的同级分类中查重，不改数据库。
   - `SaveCategory` 与未删除的同级分类重名时返回 `code=1`「同级已有「名称」分类」；一级分类 `parent_id` 为 NULL，彼此视为同级。
   - 唯一索引 `IX_fnb_material_category_sibling_name (parent_id, name)` 不区分 `valid`，所以已删除的同名分类在保存前改名为「名称（已删除#id）」让出名称；库存、看板按 id 仍能找到它。
   - 连点保存等并发请求撞唯一索引时同样返回 `code=1`，不再是 500。
+
+## 2026-09-25 变更：半成品分类
+
+原因：半成品由多种食材制作，但本身也是食材，应能单独成类。须在 09-24 迁移之后执行 [`sql/2026-09-25_fnb_category_prepared.sql`](../../../sql/2026-09-25_fnb_category_prepared.sql)，再部署同版本 SnowmeetApi。
+
+- `fnb_material_category` 新增 `is_prepared`（bit，默认 0）；`ListCategories` 随行返回。
+- 分类是否「半成品分类」= 自身 `is_prepared` 或其一级父分类 `is_prepared`。
+- `SaveCategory` 请求体新增 `isPrepared`（可不传，默认 false），一级、二级分类都可设。
+  - 父分类是半成品分类时，二级分类一律按半成品保存。
+  - 改已有分类的类型时，类型会变的二级分类里有效食材须已是改后的类型，否则返回 `code=1`「分类下已有 N 种原料（半成品）食材，不能改成半成品（原料）分类；可以另建一个……分类」。食材类型不跟着分类批量改。
+  - 一级分类改类型只影响自身没标半成品的二级分类。
+- `SaveMaterial` 的 `itemType` 不再采用（传了也忽略）：新食材的 `item_type` 由所在分类决定（半成品分类→`prepared`，否则 `raw`）。
+  - 已有食材保留原类型（兼容历史上原料分类里的半成品）；换到另一类型的分类时返回 `code=1`。
+- 迁移：已有有效食材且全部为半成品的二级分类标为半成品分类；混合分类保持原料分类，脚本末尾列出其中的半成品食材供核对。
+- 小程序：分类页新增 / 编辑一级、二级分类时选「原料 / 半成品」（一级是半成品时二级锁定显示）；分类卡片标「半成品」；食材表单的类型只读显示「由所在分类决定」。一级分类改为和二级一样用弹层新增，并加「编辑一级分类」。
+
+## 2026-09-26 变更：用量预警（库存低提醒）
+
+须在 09-25 迁移之后执行 [`sql/2026-09-26_fnb_item_low_stock.sql`](../../../sql/2026-09-26_fnb_item_low_stock.sql)，再部署同版本 SnowmeetApi。
+
+- 规则：可用量 ≤ 预警线就提醒。
+  - 可用量 = 本店未开封 + 已开封 + 散装 + 自制，不含过期、已报损（销毁）、已处理的批次。
+  - 预警线默认 = 最近一次入库或制作的数量 × 10%。「最近一次」取入库单（`receipt`）、制作单（`prep`）里该食材的最后一条入库行；开封、盘盈不算。
+  - 每种食材可改比例，或直接填数量（基本单位）；填了数量就不按比例。
+  - 没有入库或制作记录（如只有盘盈）且没填数量时，算不出预警线，不提醒。
+- `fnb_material_item` 新增 `low_stock_ratio`（decimal(5,4)，0 < 比例 ≤ 1）和 `low_stock_qty`（decimal(18,6)，≥ 0），两列都空 = 默认 10%，不能同时有值（CHECK 约束）。`SaveMaterial` 不改这两列。
+- `GET FnbInventory/ListLowStock(sessionKey, shopId)`（员工）：本店有可用量、或入库 / 制作过的有效食材，库存低的排前面。每行 `itemId, itemName, categoryId, baseUnitCode, defaultInputUnitCode, availableQuantity, lastBatchQuantity, ratio, fixedQuantity, threshold, low`；`lastBatchQuantity` / `threshold` 可为 null。
+- `POST FnbCatalog/SaveLowStockAlert`（店长）：`{ shopId, itemId, ratio, quantity }`，只能填一个，都不填 = 恢复默认；返回 `{ id, low_stock_ratio, low_stock_qty }`。参数不对返回 `code=1`。
+- 小程序：库存页顶部「临期与过期批次」「用量预警」两张卡并排，库存低的食材在列表里带「库存低」标签，库存 tab 角标 = 临期过期批次数 + 库存低食材数；点「用量预警」进新页 `lowstock`，分「需要补货 / 其他食材」列出。设置入口主要在库存页：搜到食材、点开后第一行显示预警线和规则，店长点「设置」可按比例（填 10 即默认）或按数量（按常用单位填）改；`lowstock` 页也能设置（已用完、库存页不再显示的食材在这里改）。两处共用弹层组件 `low-stock-editor`。旧版服务端没有该接口时不显示这张卡和这一行。
