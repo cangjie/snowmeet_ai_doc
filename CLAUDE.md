@@ -1,6 +1,11 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-27）：食材管理第三轮打磨完成、代码已推送，用户称服务端已部署；操作指南 PPT 等真实截图
+## 当前状态（截至 2026-09-28）：操作指南 PPT 已换成真实截图；小程序三处文案/样式已改未提交
+- **09-28 操作指南 PPT + 小修（详见 [会话记录](sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md)）**：
+  - PPT（https://claude.ai/artifact/AkjZNKHQ3xkP2v7Ei4evCf）：用 iPhone 镜像截线上真实界面 27 张，覆盖第 2、5～18 页。仅用户可见，需 Share 开放给员工。
+  - 小程序本地已改、**未提交**：临期页底部提示、菜品配方页说明两处过时文案；盘点入口卡按钮压字（iOS）。测试 167/167，真机未看。
+  - 待办：用户上传新版小程序后，重截 PPT 第 10、12 页。
+  - 线上遗留：为截图开过一次盘点再放弃，服务端留一张 draft 盘点快照；测试厨房单已删、配料已退回。
 - **09-25~27 第三轮打磨（两业务仓已提交并推送：SnowmeetApi `ai@9db5d2a9`、小程序 `ai@528d8366`）**：
   - 半成品分类：分类可标「半成品」，食材类型由分类决定。迁移 [`sql/2026-09-25_fnb_category_prepared.sql`](sql/2026-09-25_fnb_category_prepared.sql)。
   - 半成品配方：配方页可「＋ 新建半成品」；不再填「每次产出」，按每 1 单位记；千克、升的用料自动按克、毫升填。
@@ -8,7 +13,7 @@
   - 用量预警：可用量 ≤ 最近一批 × 10%（可按食材改比例或数量）就提醒；库存页顶部与临期卡并排，店长在库存页逐个食材「设置」。迁移 [`sql/2026-09-26_fnb_item_low_stock.sql`](sql/2026-09-26_fnb_item_low_stock.sql)。
   - 验证：小程序 167/167、服务端单元 350、LocalDB 集成 24/24。
   - **线上**：用户 09-27 说服务端已部署，我未核实；09-24 → 09-25 → 09-26 三份 SQL 是否已在生产执行未核实；小程序是否已上传发布未知。
-  - 操作指南 PPT（20 页，Slides Artifact）：https://claude.ai/artifact/AkjZNKHQ3xkP2v7Ei4evCf 。等用户把截图放进 `D:\source\snowmeet\ai\screenshots\`（按页码命名）后替换示意图。
+  - 操作指南 PPT（20 页，Slides Artifact）：https://claude.ai/artifact/AkjZNKHQ3xkP2v7Ei4evCf 。09-28 已换成真实截图。
   - 详见 [会话记录](sessions/2026-09-24_fnb_prepared_recipe_low_stock_and_guide.md)。
 - **09-24~25 第二轮打磨（已提交推送）**：
   - 分类只填名称 + 储存方式，单位/临期/开封默认/保质期规则下沉到食材。**部署 API 前必须先跑 [`sql/2026-09-24_fnb_item_expiry_settings.sql`](sql/2026-09-24_fnb_item_expiry_settings.sql)**（生产是否已执行未核实）。
@@ -3971,3 +3976,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 1：设置项要放在用户能搜到对象的页面上。用量预警第一版只做了独立列表页，食材一多就找不到。用户要求改到库存页逐个食材设置，列表页只留给已用完的食材。
 - 📌 教训 2：半成品配方里的「每次产出」对用户是多余的输入，按每 1 单位记就够，制作时再乘产出数量。
 - 详细归档：[`sessions/2026-09-24_fnb_prepared_recipe_low_stock_and_guide.md`](sessions/2026-09-24_fnb_prepared_recipe_low_stock_and_guide.md)。
+
+### 2026-09-28：操作指南 PPT 换真实截图（iPhone 镜像）+ 小程序三处文案/样式修正
+
+- ✅ 用 iPhone 镜像截线上真实界面：`screencapture -l <窗口号>` 截图，自写 Swift CGEvent 工具点击/滚动，`osascript keystroke` 打字；27 张截图裁边后上传为 PPT 资源。
+- ✅ PPT 第 2、5～18 页改为「左文字、右手机截图」版式，同一链接更新；第 16 页补「库存不够」弹窗和带欠料的厨房单，第 17 页补盘点中界面。
+- ✅ 为截图做的线上写操作（用户同意）：开盘点再放弃（服务端留 draft 快照）；建测试厨房单后 1 分钟内删除，配料已退回并核对。
+- ✅ 小程序：`expiry.wxml` 底部提示改为「临期提醒天数按食材设置」；`recipe.wxml` 去掉「待核对的厨房单才能出餐」；`count` 入口卡加 `start-card`（`flex-shrink: 0` + 按钮上边距）修 iOS 压字。测试 167/167，**未提交**，真机未看。
+- 🚧 用户上传新版后重截 PPT 第 10、12 页；PPT 需 Share 给员工。
+- 📌 教训 1：镜像里点击没反应，先怀疑输入框仍在焦点（Mac 键盘输入时手机不弹软键盘，看不出来），按 Esc 退出编辑再点；一度误判为出餐页真机 bug。
+- 📌 教训 2：线上写操作只点一次，截图确认后再决定是否重试；盘点「放弃」只清本地单号，不是服务端操作。
+- 详细归档：[`sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md`](sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md)。
