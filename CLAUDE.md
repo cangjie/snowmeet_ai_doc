@@ -1,6 +1,14 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-30 晚）：雪季测试准备——系统功能说明已写好；南山关店，小程序南山代码已删（未提交）
+## 当前状态（截至 2026-09-30 晚）：Copilot 测试方案已交付（170 条用例）；待执行业务测试；小程序南山清理仍未提交
+- **09-30 晚：Copilot 测试方案与执行交接（详见 [会话记录](sessions/2026-09-30_copilot-test-plan-handoff.md)）**：
+  - ✅ [完整方案](docs/testing/2026-09-30-copilot-test-plan.md)、[Copilot 启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[JSON 用例索引](docs/testing/2026-09-30-copilot-test-cases.json) 已完成。170 条主用例（P0 92、P1 76、P2 2），其中 12 条人工验收；覆盖 16 个业务模块、9 项公共机制和全部 35 条历史回归。
+  - ✅ 本轮实跑：前端既有测试 **167/167**；后端不含 DDL 的安全子集 **353/353**，排除 `FnbSqlServerIntegrationTests` 和含 SQLite `EnsureCreatedAsync` 的 `AdminAssistantControllerTests`。**这些不是 170 条新用例的执行结果**；B/C/D 业务验证本轮未跑。
+  - ✅ 纠正文档差异：当前小程序注册 **93 页（主包 80 + 分包 13）**；本地 AI 已支持租赁、养护、零售、雪票四域，线上版本本轮未核实；食材创建盘点快照也需店长，新食材建档不能由普通员工完成。
+  - **测试环境限制**：旧 `run_fnb_http_smoke.py` 导入的 SQL Server 运行器会读生产配置、访问生产结构并在同机建删测试库；`run_integration_localdb.py` 虽不读生产仍包含 DDL。Copilot 不直接执行或 import，B 类须由负责人先准备本地隔离库；小程序 C 类须在 App 启动前完成网络隔离，不能仅改域名。
+  - ✅ 索引生成器 [`tools/qa/build_test_plan_index.cjs`](tools/qa/build_test_plan_index.cjs) 校验通过：170 个唯一用例、25 项章节映射、35 项回归映射；两段 PowerShell 语法、文档链接和原文七条安全规则均已检查。
+  - 🚧 **下一步**：把启动指令交给 Copilot，先执行 S/A 并补缺失测试，再按环境闸门执行 B/C，真实支付、退款、订票及设备流程按 12 条 D 类由人工验收。测试运行器/完整业务测试套件仍需 Copilot 实现，不能将方案交付视为系统已通过测试。
+  - 本轮仅改文档仓；业务代码未改。小程序之前的 36 个已暂存删除 + 14 个未暂存修改仍保留，需开发者工具编译点测后由用户提交。
 - **09-30 晚：测试准备 + 删除南山代码（Windows 机，详见 [会话记录](sessions/2026-09-30_feature_inventory_and_nanshan_removal.md)）**：
   - **系统功能说明**：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)，约 870 行，逐页逐接口对照代码写。用户交给 ChatGPT 生成测试方案，再由 Copilot 执行。内含 7 条执行安全红线（本地后端默认连生产库、不许真实支付退款、不许调万龙雪票下单等）、各模块规则、35 条回归重点、上线前提、页面和接口附录。按用户要求已去掉全部南山内容。
   - **南山已关店（用户 09-30 告知）**：删除微信小程序里的南山代码，共 36 个文件约 83 KB，另有 14 个共用文件只删南山分支约 9 KB。共用的雪票选购页、`my_skipass`（万龙付款后的落地页）、租赁价格设置都保留。雪票选购页过滤后端返回的「南山」，旧链接带 `resort=南山` 时落到第一个雪场。自动检查全过（80 个注册页面文件齐全、JS 语法、WXML 配对、测试 167/167）。**开发者工具还没编译、没提交**，小程序仓 50 个文件改动在工作区。
@@ -327,6 +335,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 雪季 Copilot 测试交接（2026-09-30）：[测试方案](docs/testing/2026-09-30-copilot-test-plan.md)、[启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[用例索引](docs/testing/2026-09-30-copilot-test-cases.json)；[索引生成器](tools/qa/build_test_plan_index.cjs) 仅读写文档，不运行业务测试。
 - 雪季测试用系统功能说明：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)（交给 ChatGPT 生成测试方案、Copilot 执行；功能或规则有变时同步更新它）。
 - 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`（本机 Windows 用 [`tools/windows_test/`](tools/windows_test/)）；厨房单扣料/欠料补扣集中在 `SnowmeetApi/Services/Fnb/FnbServeService.cs` + 小程序 `pages/fnbinv/serve/` 与 `common/kitchen.js`；开封共用 `common/open-pack.js`（出餐、制作两页）；半成品配方换算在 `common/recipe.js`（`lineUnitCode` / `perUnitCode` / `prepNeeds`）；用量预警服务端 `SnowmeetApi/Services/Fnb/FnbLowStockService.cs`，小程序 `common/lowstock.js` + 组件 `components/low-stock-editor/` + 页面 `lowstock/`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
@@ -389,6 +398,8 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
+- **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
 - **09-30 晚 雪季测试 + 南山清理**：
   - 用户在开发者工具编译小程序，点一遍雪票选购页、我的雪票、后台雪票菜单、租赁分类维护/套餐设置的门店价格标签，确认无误后提交小程序仓（36 个删除 + 14 个修改）。
   - **待用户定**：支付宝小程序首页（`alipay_snowmeet/pages/index`）仍有「南山」标签，若已上线顾客仍可能选到南山，要不要删。其他南山残留：后端 `SkiPass/GetResorts` 写死返回南山、`NanshanSkipass` 控制器、公众号 `nanshanskipass_`/`nanshanreserve_` 场景、`shop_list` 里的南山门店记录（门店下拉框会列出）。
@@ -489,6 +500,8 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **2026-09-30 测试运行器不能按名字判断隔离性**：`SnowmeetApi.Tests/run_fnb_http_smoke.py` 会 import `run_fnb_sqlserver_integration.py`，读取仓根 `config.sqlServer`，以 `snowmeet_new` 为结构源并在同一服务器 CREATE/DROP DATABASE；不要直接执行/import。Windows LocalDB 运行器不读生产但同样执行 DDL，按功能说明限制由负责人负责。详见 [测试方案环境闸门](docs/testing/2026-09-30-copilot-test-plan.md)。
+- **2026-09-30 前端测试网络与旧 Node 命令**：`run_tests.js` 不展开 `tests/*.test.js`，PowerShell 要先枚举文件。App 的登录、独立图片/上传地址与 Socket 可在首次加载时触发；C 类隔离必须先于 App 启动，不能启动后只改 `requestPrefix`。`Util.GetSqlServerConnectionString/GetDbContext` 按工作目录读取配置，后端仅换环境变量也不够。
 - **南山已关店（2026-09-30 用户告知）**：微信小程序里的南山业务代码已删——店员端 7 个南山雪票页（预定、预定明细、取票扫码、验票、消费、退押金、退押金明细）、顾客端南山预订页 `ski_pass_reserve` 和南山加票页、后台 4 个南山菜单、`util.js` 里 3 段南山购票文案、`app.js` 的 `uploadDomain`、租赁价格设置（`shop_price_matrix` 等）里的南山门店。不要再为南山写功能或测试。**仍有残留、未清理**：后端 `SkiPass/GetResorts` 写死返回「万龙」「南山」（小程序 `ski_pass_selector` 在前端过滤，旧链接带 `resort=南山` 落到第一个雪场，防止用万龙下单流程卖南山的票）、`NanshanSkipass` 控制器；支付宝小程序首页的南山标签；公众号南山扫码场景；`shop_list` 南山记录。
 - **`pages/mine/skipass/my_skipass` 是共用页，不能当南山页删**：万龙雪票付款后跳到这里（原来南山流程也跳这里）；顾客从「我的」进入的是 `my_skipasses`。
 - **本地 `dotnet run` 起的 SnowmeetApi 默认连生产库**（`config.sqlServer` 指向生产 `snowmeet_new`）。给 Copilot 等做接口测试前必须先换成隔离库（`tools/windows_test/efschema` 可按 EF 模型生成全部建表脚本）。另：开单草稿在非 `mini.snowmeet.top` 域名下自动标 `is_test=1`；员工 28/31/34 下的单 `PlaceOrder` 自动标测试单。
@@ -4039,3 +4052,12 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 待用户：开发者工具编译并点测后提交小程序仓；决定支付宝小程序首页南山标签、后端 `GetResorts`、公众号南山场景、`shop_list` 南山记录要不要清。
 - 📌 教训：删某家店的代码前，先查每个页面被谁跳转——`my_skipass` 看名字像南山页，实际是万龙付款后的落地页；后端写死的雪场列表还会把已删功能的入口「送回来」，前端要兜底过滤并处理旧链接。
 - 详细归档：[`sessions/2026-09-30_feature_inventory_and_nanshan_removal.md`](sessions/2026-09-30_feature_inventory_and_nanshan_removal.md)。
+
+### 2026-09-30（晚，续）：Copilot 自动执行测试方案与交接
+
+- ✅ 按用户要求，将系统功能说明与当前源码、测试、配置入口逐项核对，编写 [170 条用例的执行方案](docs/testing/2026-09-30-copilot-test-plan.md)，配套 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 和 [机器可读索引](docs/testing/2026-09-30-copilot-test-cases.json)。覆盖 25 个功能章节、35 条历史回归；包含优先级、夹具、手算断言、逐层证据、并发/失败分支、已知问题复现、报告与上线闸门。
+- ✅ 已验证当前基线：前端 167 过；后端排除 SQL Server 集成和含内存建表的控制器类后 353 过。没有启动业务 API、查生产库、运行 DDL、支付、订票、推送或实际界面测试；170 条用例是后续执行目录，不是已通过报告。
+- ✅ 对照代码发现：93 个注册页、AI 四域本地实现、食材建快照/新建档权限细节；原功能说明保持原样，差异单列在方案。旧食材运行器有生产结构读取与建删库副作用，方案改为负责人备妥本地库后 Copilot 再做 DML/API 测试。
+- ✅ 新增文档工具 `tools/qa/build_test_plan_index.cjs`，生成/校验用例索引，无业务或网络副作用。唯一ID、执行层、夹具、章节/回归引用及方案 PowerShell 语法/链接/安全规则均已验证。
+- 🚧 下一步：Copilot 按启动指令实际补写与执行测试；缺环境/缺工具/未实现接缝逐项报告，D 类由人工验收。此前小程序 50 个改动不纳入本次文档提交。
+- 详细归档：[`sessions/2026-09-30_copilot-test-plan-handoff.md`](sessions/2026-09-30_copilot-test-plan-handoff.md)。

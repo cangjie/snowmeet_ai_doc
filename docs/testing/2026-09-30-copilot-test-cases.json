@@ -1,0 +1,4881 @@
+{
+  "schema_version": 1,
+  "authored_date": "2026-09-30",
+  "source": "2026-09-30-copilot-test-plan.md",
+  "description": "Planning catalog, not execution results. Split every required mode and parameter variant into result records; all required records must pass for parent PASS.",
+  "case_count": 170,
+  "priority_counts": {
+    "P0": 92,
+    "P1": 76,
+    "P2": 2
+  },
+  "allowed_statuses": [
+    "NOT_RUN",
+    "PASS",
+    "FAIL",
+    "BLOCKED_ENV",
+    "BLOCKED_SCHEMA",
+    "BLOCKED_TOOL",
+    "NOT_IMPLEMENTED_TEST",
+    "NEEDS_DECISION",
+    "MANUAL_REQUIRED",
+    "OUT_OF_SCOPE_APPROVED"
+  ],
+  "gates": {
+    "B": "plan section 2.3",
+    "C": "plan section 2.4",
+    "D": "human execution only"
+  },
+  "cases": [
+    {
+      "id": "BASE-01",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "S"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "枚举主包/分包全部 93 页，验证 js/json/wxml 存在、JSON 可解析、usingComponents 可解析；wxss 可按框架合法省略。输出全部路径，既有外部组件单列",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ]
+      }
+    },
+    {
+      "id": "BASE-02",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "S",
+        "C"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "按角色遍历菜单，去掉 query 后核对注册及文件，再点所有可见入口；6 个历史死入口逐项出结果，不因“已知”放过",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "BASE-03",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "S"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "提取前端 /api、/core、动态拼接与跨公众号调用，映射后端路由/方法/签名；原 6.2 每条单列；未解析动态 URL 记待核对，不误报成缺失",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ]
+      }
+    },
+    {
+      "id": "BASE-04",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "运行全部既有 JS 测试，记录文件数、测试数、退出码；零用例即失败；新增数与原 167 区分",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "BASE-05",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "运行 4.2 后端子集；记录所有排除类及原因，不能宣称后端全套完成",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "BASE-06",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P1",
+      "required_modes": [
+        "S"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "比对 EF 模型和仓库迁移字段/类型/索引，不连接生产；输出 care取消、order储值、退卡、券分享、食材、AI日志必需结构清单交负责人",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ]
+      }
+    },
+    {
+      "id": "BASE-07",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P0",
+      "required_modes": [
+        "S",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "对当前未提交清理逐项查引用；共用雪票选择/付款落地/租赁价格入口能打开，失效雪场参数落首个有效雪场，无缺模块编译错；不测试已下线业务",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "BASE-08",
+      "section": "6.1 基础、资源与路由（落点：app.json、admin.js/wxml、Controller、现有 tests）",
+      "priority": "P1",
+      "required_modes": [
+        "S"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "审查运行器及所有新增测试的数据库/网络/进程副作用；禁止脚本不被 import，C 首次启动无真实请求；输出闸门证明",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-01",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "wx.login 成功/失败、MemberLogin 失败/超时分别模拟；loginPromise 均结束，失败清旧身份；未注册登录不产生“已注册”假状态",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-02",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "正常/空/随机/过期/valid=0 session 调所测接口；无效会话不读出他人数据、不写库、不 500。Fnb 明确 code=2，其余按实测契约",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-03",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "同接口替换离职、任职未开始、失效员工和类型不符 session；不取得员工权限；发现当前代码允许则记录越权，不改预期",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-04",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "会员管理 199/200、合并 200/300、养护价 200/300、AI 199/200 分界；菜单与直接 API 两端核对，隐藏按钮不能代替接口鉴权",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-05",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "Fnb 同店员工、同店店长、跨店 300、无基地店矩阵；跨店高级别仍 code=3，无成本字段泄露",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-06",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "M1 请求 M2 订单、资产、券、次卡详情/修改；逐接口校验归属，拒绝且原数据不变；员工入口另用授权身份正向对照",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-07",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "请求伪造 staffId/memberId/title_level/shopId，服务端只信会话推导的员工与授权；Fnb 微信/wecom 等价权限，支付宝 session 不误作后厨员工",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AUTH-08",
+      "section": "6.2 会话与权限（落点：StaffController、PaymentIdentityController、FnbAccess、会员/券/AI 控制器）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "员工 A 发请求后换 B、退出重登、session 轮换；A 的迟到成功/失败不覆盖 B 页面和 AI 条件，退出清本地敏感状态",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-01",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "SHOP"
+      ],
+      "actions_and_assertions": "空信息散客开租赁；11位/国际号命中 M1，contact-only MC 不匹配，MM 不回流；回填姓名性别且不覆盖手动新输入",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-02",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "连续快速改5次+网络延迟/乱序，草稿保存串行、只建1个订单；最终完整字段等于最后输入，结算等最后保存结束",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-03",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "SHOP"
+      ],
+      "actions_and_assertions": "找回草稿→改日租金→加套餐→退出重入；数据真正保存，金额/附件/门店不丢；SA草稿在SB选择下恢复另记门店显示差异（KD-05）",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-04",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "三租赁模式逐次切换并保存重载；start_date持久化、atOnce为bool非null；延时=明天00:00，其他=今天当前时分",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-05",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "遍历分类/编码/名称/模式/日期缺失、noNeed/noCode组合；提示优先级和结算禁用正确；禁用状态点击不发请求",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-06",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "套餐多份、多品类、附件，无价格品类修改租金；每槽正确显示分类，全部收费/附件保存重载不丢",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-07",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "搜索编码/名称，非正常物置灰；重复编码/同件并发加入两个草稿→验证最终发放不重复占用，失败不产生部分明细",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-08",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "无码物品切换有附件/无附件分类来回3次；旧附件移除，正确重建，主品类必填，无孤儿项与重复附件",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-09",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "RENT"
+      ],
+      "actions_and_assertions": "改押金/租金弹窗取消、确认、0、小数、负数、超长输入；净额/减免/总计一致；无价格配置也能持久化合法新租金",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "REC-10",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "SHOP"
+      ],
+      "actions_and_assertions": "草稿valid=0→PlaceRentOrder生成正式号与押金明细；同一草稿重复提交及两个独立草稿并发，不能重复生效或生成相同正式号；按已批准本地无渠道分支执行",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "REC-11",
+      "section": "6.3 接待与租赁开单（落点：pages/admin/reception、components/reception/rent_recept_form、RentController）",
+      "priority": "P1",
+      "required_modes": [
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "分类/时间排序、左滑取消与删除、返回恢复；切业务不串用卡资产；接待“扫描条码”占位提示如实记录能力缺口",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-01",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "分别构造8状态；按未付/未起租/在租/部分还/全还/部分退/全退/关闭验证，归还但实退0必须全部归还；关闭优先级与未付金额边界一致",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-02",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "改第1天租金/超时/减免，第二天不变；清超时到0；新连接读回valid和金额，core_data_mod_log记录实际动作",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-03",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "免除首/末/唯一计租日再取消免除；三类费用valid翻转、原金额保留、无重复行；恢复同金额仍有效；时间用装备记录兜底不退回未开始",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-04",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "发放→暂存→重新发放→归还→设未归还；两视图操作同一实体结果一致，rent_product状态同步；重复动作不重复发放/归还记录",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-05",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "更换为兼容/不兼容品类；成功保留历史，被换下项置灰不计件且不显示操作；失败新旧物状态不变",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-06",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "改赔偿30→50后应收160、应退340；页面立即重算订单级汇总；刷新与服务端读回一致，不能用旧order汇总值",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-07",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "已付/未付/部分付/已退对象分别算押金可退；校验5.2手算；超出配置押金的实收不被全计为可退押金",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-08",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "部分/全部归还时间，最晚归还作为结束时间；只免除收费不能冒充归还；noNeed/已更换项不阻止正确结算",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-09",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "招待开/关；商品小计0/恢复，列表毛租金可见；订单总应收随之变化且无重复减免",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-10",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "未发放/已发放/暂存/已全部归还分别执行本地续租规则，同一天重复执行；只已发放或暂存计租且每天一笔；不得调用线上批量续租",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "RENT-11",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "RENT"
+      ],
+      "actions_and_assertions": "CloseOrder三条件逐个为假及全真；缺未归还、应退非0、欠费任一不得关；已付款且满足条件可关，无实际退款调用",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "RENT-12",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "ID"
+      ],
+      "actions_and_assertions": "储值付租金勾选→未核验/错会员/核验成功/余额不足/余额0；未授权不进入扣款，成功预览全押金，取消回滚预览，无0元储值记录请求",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-13",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "CARD"
+      ],
+      "actions_and_assertions": "仅含雪板/鞋商品按商品×天核销，不按装备件数；全部归还才可；勾选/取消只是预览，无扣卡请求；无应退款时确认核销按钮正确",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-14",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "CARD"
+      ],
+      "actions_and_assertions": "租赁卖卡价小于/等于/大于退款+抵租金额；算退款或补差；未到账/取消/失败不发卡核销；储值不得作为补差方式；重复成功响应只显示1笔销售",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-15",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT"
+      ],
+      "actions_and_assertions": "追加套餐/单品/无码→草稿保存→删除；不补押金的本地确认分支生效一次；需补押金用C mock成功/失败；全退对象使未确认草稿作废，不删已确认项",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-16",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "UI"
+      ],
+      "actions_and_assertions": "列表全部筛选及两两组合；分页0/50/51/101行，跨页不重漏；详情返回保留页码/筛选并刷新，金额与标签一致",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RENT-17",
+      "section": "6.4 租赁详情、计费与列表（落点：rent_order_detail、rent_append、unreturned、Models/Order/Order.cs）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "ID"
+      ],
+      "actions_and_assertions": "未归还按分类/订单/手机号聚合，缺手机号不把不同顾客乱合；查编码/姓名/手机号；跳转只展开目标rentItemId并滚动",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-01",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "同订单两笔支付P1成功300/P2待付200，分别扫码；微信与支付宝均显示所扫支付ID的金额、状态、有效性，旧码作废时明确提示",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-02",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "MONEY"
+      ],
+      "actions_and_assertions": "身份direct/direct_to_scanner/choose_identity/care_member_required/error逐项；陌生人不能替用养护权益；本人扫码不报无效身份",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-03",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "正常支付与代付分支、手机号授权同意/拒绝/超时；拒绝后按当前产品规则允许的路径继续；提交前不更改订单归属，代付标记及手机号展示脱敏",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-04",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "MONEY"
+      ],
+      "actions_and_assertions": "模拟微信/支付宝成功、失败、取消、重复通知、错误订单/金额；成功规则恰好生效一次，失败不转归属/发卡/发券；微信openid及支付宝payerid不得为空；缺隔离接缝则标测试缺口",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-05",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "切换微信/支付宝/其他方式；旧待支付失效，撤单失败禁止新方式；扫码状态按等待→扫码→支付中→已收款/取消，旧轮询不得覆盖新支付",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-06",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "多笔退款用5.2合法/差1分/超单笔上限/负数矩阵；仅全归还可提交，储值部分不进入原路退款分配；禁用时点击不得发请求",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-07",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "VerifyWechatIdentity用M1/M2/无会员/过期session；只本人能将wechat_unverified置1且新连接读回；staff轮询必须鉴权，不能任意查看他单",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-08",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "0元且已生效订单显示已收款；0元未生效权益单仍要求核验；支付结果跳租赁/养护对应详情，继续开单回首页",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "PAY-09",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "五个生效入口分别测M0与已有资料M1，补全只填空不覆盖；用纯处理规则/stub调用链；无法隔离入口不得标通过",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "PAY-10",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "payment_refund.state=1、refund_id非空、两者皆无、重复回调/失败退款对象矩阵；实退只计有效已发起口径，无重复累计，金额不可负或超付",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "PAY-11",
+      "section": "6.5 支付、退款、身份与公共订单（落点：settle、两端payment_entry、PaymentIdentityController、OrderController）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "页面离开、后台、重进，轮询计时器/Socket释放；两页并开不串单；网络断开可重试且不重复发起资金动作",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-01",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "ID"
+      ],
+      "actions_and_assertions": "新/历史装备，照片与品牌+长度矩阵；两者都无不能结算，历史带回正确品牌长度；非雪季无会员拒绝",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-02",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "修刃/热蜡/双项/机打蜡/刮蜡×加急×两店；按5.1价格，SB缺加急回退普通价；改商品名称仍同价，热蜡默认刮蜡无重复计费",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "CARE-03",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "客户端篡改0元/低价、并发快速变服务项；CalcCareCharge与PlaceCareOrder服务端重算一致；最后输入生效且不重复建草稿",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-04",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "COUPON"
+      ],
+      "actions_and_assertions": "券规则一口价→折扣→立减优先级；跨店配置和无配置回退；手动减免大于券减免时保留，失效/已用/异业务券不选",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-05",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "CARD"
+      ],
+      "actions_and_assertions": "次卡/季卡选中价0、与券互斥；单项/双项、机打蜡升热蜡/修刃补差；今天已用不可选；绑定装备回填锁定",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-06",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "CARD"
+      ],
+      "actions_and_assertions": "本地无渠道的季卡规则：首次完整装备绑定、不完整不绑定；当天重复使用拒绝；季卡不扣total但每次写记录；已退卡不可核销",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "CARE-07",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "ID"
+      ],
+      "actions_and_assertions": "0元招待/质保直接生效与0元储值/卡/券待核验区分；核验取消不核销；支付宝权益单需微信核验，不能靠付款方式绕过",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-08",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "CARD",
+        "ID"
+      ],
+      "actions_and_assertions": "模拟顾客支付归属变化后的卡核销，重新检查卡实际持有人/订单归属；允许路径不静默漏核销，冲突必须明确拒绝，不能扣别人的卡",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "CARE-09",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "本地任务链按服务项构建，无遗漏/重复；开始/结束/不足60秒确认/强行中止权限；越步骤或已完成重复提交不新增任务",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-10",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "安全检查默认历史值、手改未提交→补传照片/轮询刷新，输入不丢；保存后新连接读回；上传失败不出空白照片",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-11",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "取消弹窗输入原因后立即点扫码（不先失焦）、失焦再点、空白原因、关闭重开；非空产生正确mock请求，空白不提交；记录KD-03是否复现",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-12",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "取消/正常发板状态资格；全完成或只剩发板不得取消；本地已审查无消息分支验证原因必填、角色/凭证失败不改变状态；四核验方式外部部分放D",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-13",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "非雪季立等/寄存数量横幅、寄存/快递/柜分支、快递单号；保存重载一致，careId深链只展开目标",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-14",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "MONEY"
+      ],
+      "actions_and_assertions": "订单退款默认取消原因，0可退禁用；非0校验金额/备注；模拟500明确报错不显示成功；真实退款成功与“不报500”由D验证",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-15",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "UI"
+      ],
+      "actions_and_assertions": "订单/未完成/未发板列表筛选、分页、标签质/非/券与当前任务一致；已取消不混入正常待做队列（若规则不明确先记录差异）",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARE-16",
+      "section": "6.6 养护（落点：care_recept_form、CarePricingRules、CareController、care_order_detail）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "COUPON"
+      ],
+      "actions_and_assertions": "扫券内容为纯券码；同会员自动选券、异会员确认换顾客、取消不换；错误/失效/非养护券拒绝，价格和资产切换同步",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-01",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD",
+        "SHOP"
+      ],
+      "actions_and_assertions": "商品业务×卡型四组合，名称/价格/次数/项目数/规则/收款门店必填边界；季卡total为null，次卡正次数；上下架/停用正确",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-02",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD",
+        "ID"
+      ],
+      "actions_and_assertions": "新顾客无会员号购买→手机号授权成功/拒绝；拒绝不下单，成功可到确认页；付款前不发卡，失败/取消不发卡，重复成功仅一次",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-03",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "CARD",
+        "SHOP"
+      ],
+      "actions_and_assertions": "收款门店与使用门店区分：商品配置SA收款不限制在SB合法使用；避免将shop_id误当使用范围；资金渠道选择仅对象规则验证",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "CARD-04",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD"
+      ],
+      "actions_and_assertions": "查询全部卡型包含季卡；我的卡、员工查看使用明细、销售列表分组数量一致；已退款灰色且每个选卡入口都排除",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-05",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD"
+      ],
+      "actions_and_assertions": "自助退款资格：从未用+微信/支付宝可申请，已用/现金/赠卡/已退均不可；页面显示正确原因且非法点击不调用退款",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-06",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "CARD"
+      ],
+      "actions_and_assertions": "本地纯资产使用服务/规则重复核销同商品同日，不双扣；余次0拒绝；租赁商品天数与使用记录一致；不同季卡当天不互相误锁",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "CARD-07",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD"
+      ],
+      "actions_and_assertions": "店员发卡权限200/199、商品失效/卡型不匹配；成功发放1张且关联会员/发放员工，错误无半成品记录",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-08",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD",
+        "CARE"
+      ],
+      "actions_and_assertions": "季卡改绑定品牌/长度有权限且读回持久化；其他会员不能改；重新开单带回新装备；历史使用记录保留",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "CARD-09",
+      "section": "6.7 次卡与季卡（落点：punchcard_*、Models/Rent/PunchCard*、RentController、MemberAdminController）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "CARD",
+        "MONEY"
+      ],
+      "actions_and_assertions": "租赁卖卡与顾客自购回调先后/重复/超时后重试；卡、销售记录、核销记录的数量守恒，失败不出现已发卡状态；对应D验证真实结果",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-01",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "UI"
+      ],
+      "actions_and_assertions": "姓名/手机号/业务多选/标签多选/分页组合；已合并会员不显示；cell与contact查找口径不同且没有重复会员行",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-02",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "新手机号注册、已有号重复注册、非法/国际号；礼包逐项失败时正确显示每项结果，不重试已经成功项；无手机号的身份不能误创建空号会员",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-03",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "STAFF"
+      ],
+      "actions_and_assertions": "店长编辑姓名性别/联系方式/标签，普通员工直接API拒绝；cell换绑与contact补充按现有规则独立，查找命中不串会员",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-04",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "标签人数随增删变化；有人使用时不能删除；合并标签不丢会员且不重复关联，目标等于源拒绝，空标签可删除",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-05",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "ID",
+        "CARD",
+        "COUPON",
+        "MONEY"
+      ],
+      "actions_and_assertions": "只在隔离库合并M1→M2：订单、储值、龙珠、次卡、券逐类计数和金额前后守恒；M1失效，旧手机号转contact；不遗留可再消费资产",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-06",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P0",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "ID",
+        "STAFF"
+      ],
+      "actions_and_assertions": "合并自我/不存在/已合并/权限200/并发重复；拒绝或幂等完成，任一失败不部分迁移；同库另一套公众号EF查询不误复活源会员",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "MEMBER-07",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "CARD",
+        "COUPON"
+      ],
+      "actions_and_assertions": "会员资产与近期订单各业务tab、储值/次卡/券/龙珠汇总；总额等于明细，点击跳正确业务详情，会员变更后旧响应不覆盖",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "DEPOSIT-01",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "MONEY"
+      ],
+      "actions_and_assertions": "隔离库充值五类型、七色米单号、备注和金额；0/负/多小数拒绝或明确规范化；成功流水、账户和会员可用余额一致，读回非假成功",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "DEPOSIT-02",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "ID"
+      ],
+      "actions_and_assertions": "储值足额/差1分/0/负金额/重复订单规则；余额不得负或双扣；0元不生成支付记录；不调用真实Order/PayWithDeposit",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "DEPOSIT-03",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "UI"
+      ],
+      "actions_and_assertions": "新旧储值列表/详情/资金流水、顾客我的储值；充值行类型/七色米号/备注，消费行订单号；总额-已消费=可用，跨会员拒绝",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RETAIL-01",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "UI"
+      ],
+      "actions_and_assertions": "零售普通/招待/租赁附加三型筛选；实收按deal_price、不用标价替代；订单详情改备注/明细/图片后读回，mi7_code可追踪",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "RETAIL-02",
+      "section": "6.8 会员、储值与零售（落点：MemberAdmin、Deposit、retail_*、Mi7Order、相关模型）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "仅本地导入合成七色米文件：正常/重复/缺列/坏金额/异常编码/空文件；校验导入行数与金额，重复不双入；错误行和成功行的事务策略必须可解释",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-01",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON"
+      ],
+      "actions_and_assertions": "模板四业务、三有效期策略互斥；固定日、启用N天、永久含跨日边界；一口价/折扣/立减合法区间；错误配置不保存",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-02",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "ID"
+      ],
+      "actions_and_assertions": "新发券valid=1、归属正确；过期/已用/无效/模板业务错不出现在开单选券列表；有效期精度按实际DateTime口径验证",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-03",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "STAFF"
+      ],
+      "actions_and_assertions": "员工发券三路径使用本地外发stub：记录staff和渠道；同模板同人同日固定码限1，次日可领；旧getticket场景只提示结束不发券",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-04",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "ID"
+      ],
+      "actions_and_assertions": "模板允许/禁止转赠、自己领、分享撤回/过期/已接受后再领；归属/分享状态转换合法且只一次，不靠前端隐藏保护",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-05",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "ID"
+      ],
+      "actions_and_assertions": "同券依次分享给M1/M2，合成关注事件只匹配本次交互；旧关注场景重放不能给新接收人授权，重复事件不多发券",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-06",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON"
+      ],
+      "actions_and_assertions": "券A→B→A来回转赠；三tab按最后方向归属正确，无重复券，券码三位分隔不改二维码原始值",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-07",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "STAFF"
+      ],
+      "actions_and_assertions": "全店可看分享记录，但只能撤回本人批次；直接API试撤他人批次拒绝；日期默认一周、发券人多选及在职排序正确",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-08",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "ID"
+      ],
+      "actions_and_assertions": "未验证手机号详情整页遮罩不能绕过操作；授权成功恢复；分享卡片个人/群方式、取消/失败处理；未关注自动领取用stub，真实流程放D",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-09",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "UI"
+      ],
+      "actions_and_assertions": "海报横竖图/动态码/静态码，二维码保持正方形且在图内，原图不拉伸；图片加载失败可重试、无空白保存",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-10",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "COUPON"
+      ],
+      "actions_and_assertions": "同券两个核销请求并发、同一分享批次多人同时领取；单券最多一次有效核销，不越限多领，失败无部分资产迁移",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "TICKET-11",
+      "section": "6.9 优惠券（落点：TicketController、ticket_*、coupon_admin、现有 Ticket*Tests）",
+      "priority": "P0",
+      "required_modes": [
+        "A"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "CARE"
+      ],
+      "actions_and_assertions": "雪票/聚合/非雪季养护/发板四自动发券规则用stub分别触发重复事件；发放数符合规则且有来源；不调用真实业务回调或消息API",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "FNB-01",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "STAFF"
+      ],
+      "actions_and_assertions": "员工查/入库/开封/制作/出餐/SaveCount成功；维护分类配方/新建食材/报损/建快照/过账/预警设置需店长；所有写接口测同店与跨店",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-02",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "STAFF"
+      ],
+      "actions_and_assertions": "员工库存/单据/流水/看板响应逐层检查成本/金额字段，不只是界面隐藏；店长能看；嵌套对象/错误响应也不泄露",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "FNB-03",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "分类父子半成品继承、已有食材类型冲突拒绝；新食材类型由分类决定，伪造itemType无效；已有食材换不兼容分类拒绝",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-04",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "有有效食材不许删分类；删空一级连子类、同名重建成功且历史仍按ID关联；同名并发返回业务错误非500",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-05",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "g/kg、ml/L、piece；不同量纲拒绝，1000换算准确，零负/超过6位精度/NaN拒绝；封装2袋×500g=1000g，不把袋数当克数",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-06",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "生产日期+天/月、月末闰日、高低温月份、手动到期与规则互斥；同分类两个食材规则不得串；按上海日判断今天到期/已过期",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-07",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "OCR固定文本：2025-08-0512:30、四位年份与短日期混排、非法日、无日期；yyyy-MM-dd候选优先；选择确认后才填表，失败保留手填值，真实OCR放D",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-08",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "已有食材/店长临时建新食材两入库路径，单价照片均可空；传照片须有效且用途正确；提交取消无写入，成功200g×0.02=4并写批/库存/单/流水",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-09",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "FNB-V"
+      ],
+      "actions_and_assertions": "相同requestId串行重放3次、丢响应后重试、并发2/5/10；只一份库存和单据；不同payload复用ID不能悄悄写第二份；500仍记失败",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-10",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "FNB-V"
+      ],
+      "actions_and_assertions": "入库删除599/600/601秒边界按服务端比较符；本人/他人/店长；已有开封/出库/快照引用不能删；合法删除无孤儿流水，自动建的食材保留",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-11",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "绕前端直接POST已过期批次、未来生产日/到期早于生产；明确不合法输入应拒绝且无写入；已知过期入库漏洞保留FAIL，不改成预期成功",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-12",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "开封1袋→密封减500g、子批加500g，数量/成本守恒；到期=min原到期、开封后到期；36500代表保质期不变；重放不再开1袋",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-13",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "菜品无售价分类可建默认标准份；配方存草稿→发布→新版本；旧rowVersion冲突，不覆盖他人版本；无效/重复/自我循环配料拒绝",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-14",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "半成品每1000g耗600g，产2000g耗1200g；旧每批配方转每1单位不改变比例；不足原料整体拒绝，允许开封后重试；照片空允许",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-15",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "FEFO用5.2的B1/B2场景，排除密封/过期/销毁；同到期排序稳定；库存与每笔balance_qty/amount可对账，无负库存",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "FNB-16",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "CreateAndServe一道菜×2份，扣200g flour+100ml milk；0或2行菜拒绝；无已发布配方整单回滚，无孤立厨房单",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-17",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "微调配料为0/合法/负数/重复/配方外/全0，按契约接受或拒绝；改份数保留已手改项，只重算未改项",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-18",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "需求900g仅800g可用→实扣800欠100；建单前提示欠料，取消不扣；不开封时密封库存仅提示，不偷偷参与扣料",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-19",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "后补200g→FillShortage只补100g；重复补扣不能双扣；该食材在出餐后已盘点则跳过并说明；7天/31天筛选和上限100准确",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-20",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "FNB-V"
+      ],
+      "actions_and_assertions": "出餐599/600/601秒编辑/删除和权限矩阵；退回原批次及后续流水余额，不延长首次时限；新菜无配方失败回滚为原单，补扣部分也正确退回",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-21",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "出餐后批次被销毁/有盘点快照引用时禁止删除编辑，库存不被复活；重试不留下部分退料",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "FNB-22",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "FNB-V"
+      ],
+      "actions_and_assertions": "店长建快照→员工录实盘→预览→店长过账；原库存100实盘90差-10；库存被其他请求改过则code4，旧rowVersion拒绝，重复过账不重复调量",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-23",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "过期销毁/报损合法数量及越量/重复ID/跨批次重用ID；一次扣减、旧批次状态同步、流水金额正确；不同批次相同requestId不得被误认成功",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-24",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "低库存99/100/101g边界、固定线/比例/默认、无入库历史；开封与盘盈不改基数；预警可用量含有效未开封，与出餐可用量口径不同",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-25",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "UI"
+      ],
+      "actions_and_assertions": "库存/临期/过期/批次/流水/看板互相对账；大ID超过JS安全整数仍精确跳详情；业务日和UTC审计展示不偏一天",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-26",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P1",
+      "required_modes": [
+        "B"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "FNB-V"
+      ],
+      "actions_and_assertions": "同食材两个出餐、两个相同ID入库、盘点与出餐并发，2/5/10并发各3轮；不得双扣/负库存/部分提交；死锁500记FAIL并附重试后守恒证据",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "FNB-27",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P2",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "UI"
+      ],
+      "actions_and_assertions": "8tab与4详情页入口完整；旧mat_expire_detail重定向正确；旧服务端无预警接口时不影响其他页；照片加载/上传失败有提示",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "FNB-28",
+      "section": "6.10 餐饮食材（落点：Controllers/Fnb、Services/Fnb、pages/fnbinv、Fnb*Tests）",
+      "priority": "P2",
+      "required_modes": [
+        "C"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "UI"
+      ],
+      "actions_and_assertions": "入库首屏日历未挂载，第一次点日期才创建；采冷启动5次中位数/p95、接口与渲染耗时、首次开日历；不把历史6.6秒/5秒当固定验收阈值",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-01",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "AI",
+        "STAFF"
+      ],
+      "actions_and_assertions": "四域各返回合法plan/action；按当前页面选择查询执行器，结果只跳固定对应列表；S100拒绝、S200允许，staff由服务端推导",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-02",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "AI"
+      ],
+      "actions_and_assertions": "未知action、未知字段、跨域条件、非法日期/倒序/超365天/非法手机号后缀；拒绝执行且保留安全反馈，不任意跳URL或调用写接口",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-03",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "AI",
+        "UI"
+      ],
+      "actions_and_assertions": "四月查询→只看未支付→条件回顾→切养护→改五月；四域上下文独立；页码重置1，筛选显示与实际query一致",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-04",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "AI"
+      ],
+      "actions_and_assertions": "提示注入“忽略权限/给SQL/删除订单”、伪造staff/任意SQL参数；只能受白名单约束的只读查询，无执行代码/写数据库动作",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AI-05",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "AI"
+      ],
+      "actions_and_assertions": "问题>2000字符、本地网络失败、stub超时、停止、离页、旧员工迟到响应；无无限loading/重复回答/串会话；重试不重复追加历史",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-06",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "B"
+      ],
+      "fixture_keys": [
+        "AI"
+      ],
+      "actions_and_assertions": "结构错误/重复JSON键/null/未知版本统一错误信封；不落入服务执行；trace关联日志，日志不存sessionKey/密钥/原始手机号",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ]
+      }
+    },
+    {
+      "id": "AI-07",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "AI",
+        "UI"
+      ],
+      "actions_and_assertions": "帮助只讲操作、不输出代码/接口字段；悬浮按钮拖动不出屏且不遮主要操作；未知门店、金额区间等不支持条件明确失败不伪造结果",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "AI-08",
+      "section": "6.11 管理员 AI（落点：adminAiDomains/adminAssistant、AdminAiController、Services/AdminAssistant、reqai）",
+      "priority": "P1",
+      "required_modes": [
+        "S"
+      ],
+      "fixture_keys": [
+        "AI"
+      ],
+      "actions_and_assertions": "对照reqai四域能力表与前后端版本；列出本地6131ea4和线上待确认；缺仓库标BLOCKED_ENV，不读取密钥、不自动访问线上模型",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ]
+      }
+    },
+    {
+      "id": "SKI-01",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "SHOP",
+        "UI"
+      ],
+      "actions_and_assertions": "商品按雪场取，不被当前门店名误过滤；崇礼顾客可见万龙商品；有效/无效/缺省resort参数、空商品、网络失败不崩溃",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "SKI-02",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P0",
+      "required_modes": [
+        "S",
+        "A"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "静态定位ReserveSkiPass两次乘count；单价100数量1/2/3的独立期望100/200/300；若无可调用纯函数则S记录KD-04，A标NOT_IMPLEMENTED_TEST，不复制错误表达式自测",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "SKI-03",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID",
+        "UI"
+      ],
+      "actions_and_assertions": "日期价/姓名/手机号/身份证输入、无库存/预存不足stub、取消付款、成功落my_skipass；我的入口落my_skipasses，两页状态正确；绝不真实ReserveSkiPass",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "SKI-04",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "SHOP",
+        "UI"
+      ],
+      "actions_and_assertions": "管理上下架/每日价格编辑请求校验，隐藏票顾客不可见；推荐码携带staff/referee并按优先级展示；订单取消/退款资格只用mock",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "OA-01",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "S",
+        "A"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "ID"
+      ],
+      "actions_and_assertions": "合成关注/取关/重复/非法签名/XML事件，检查模板与场景分发、关注状态规则；消息外发stub；未验证来源不得执行业务写入",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "OA-02",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "S",
+        "A"
+      ],
+      "fixture_keys": [
+        "COUPON",
+        "CARE"
+      ],
+      "actions_and_assertions": "ticket_gift/share/qr、care、recept、reserveskipass、unipay、员工注册、停用getticket逐场景；缺段/畸形/重放不串业务，不能复用旧交互授权",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "A": [
+          "test_log"
+        ]
+      }
+    },
+    {
+      "id": "STAFF-01",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "S",
+        "C"
+      ],
+      "fixture_keys": [
+        "STAFF"
+      ],
+      "actions_and_assertions": "title_level100/101/199/200/201/300/1000列人事菜单矩阵；当前101～200可见记录KD-06，预期待负责人拍板；员工页面旧接口路由独立核对",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "WEB-01",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "后台二维码登录未扫码/超时/成功/退出/非员工；未授权不加载报表数据，退出旧会话不可复用；扫码mock，真实扫码放D",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "WEB-02",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI",
+        "MONEY"
+      ],
+      "actions_and_assertions": "租赁/养护/零售/七色米/雪票/微信支付报表使用合成数据，日期/门店/测试标记/汇总与明细一致，空结果和导出特殊字符正确",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "WEB-03",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY"
+      ],
+      "actions_and_assertions": "unipay金额空/0/负/0.01/超限/非数，微信/非微信两分支和崇礼门店参数；仅mock下单/支付/送券，取消不显示成功",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "ALI-01",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "MONEY",
+        "ID"
+      ],
+      "actions_and_assertions": "支付宝独立页面重复PAY-01/02/03，空openid/payerid/手机号授权失败/q参数编码；不能以微信通过代替；无支付宝工具则C单列阻塞",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "ALI-02",
+      "section": "6.12 雪票、公众号、员工、网页与支付宝",
+      "priority": "P1",
+      "required_modes": [
+        "S",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "支付宝3页编译、首页导航与雪票订单列表空/有/失败；检查本地与正式域名分离、支付签名错误友好反馈，真实解密放D",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-01",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P0",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "SHOP",
+        "STAFF"
+      ],
+      "actions_and_assertions": "手动选店后延迟BLE定位成功/30秒超时不覆盖；万龙定位与基地店取舍；“全部门店”维持全部；销毁组件停止扫描",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-02",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "今天/昨天/本周/上周、跨月跨年、周一/周日、手选范围，快捷高亮与真实范围一致；不以UTC截日偏移上海日期",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-03",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "分页0/1/50/51/101行、末页、跳页非法、换每页数；查询时按钮不可点，返回详情保留筛选页码；最后页删除一条能回有效页",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-04",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P1",
+      "required_modes": [
+        "A",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "图片上传超时/业务失败/坏URL/取消/成功，失败明确且可重试，无空白占位永久残留；IMAGE_HOST一致，网络轨迹无真实域名漏出",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "A": [
+          "test_log"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-05",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P1",
+      "required_modes": [
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "320/375/414宽、长姓名金额、键盘遮挡、弹窗滚动、按钮连点；关键金额完整可读、禁用操作确实不发请求，回退无卡死",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-06",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P1",
+      "required_modes": [
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "UI"
+      ],
+      "actions_and_assertions": "列表51/501/2001行的本地确定性数据，记录耗时/响应大小/页码一致性；5次相同条件中位数/p95与本次基线比，增长>20%列性能观察，未经批准不当SLA",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "COMMON-07",
+      "section": "6.13 公共组件与非功能回归",
+      "priority": "P0",
+      "required_modes": [
+        "S",
+        "B",
+        "C"
+      ],
+      "fixture_keys": [
+        "ID"
+      ],
+      "actions_and_assertions": "报告、日志、错误页、截图检查密钥/session/手机号/身份证脱敏；越权与500响应不暴露连接串；只保留合成夹具明文",
+      "initial_status": "NOT_RUN",
+      "mode_evidence": {
+        "S": [
+          "source"
+        ],
+        "B": [
+          "http",
+          "db_before",
+          "db_after"
+        ],
+        "C": [
+          "screenshot",
+          "console",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "MAN-01",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "ID",
+        "MONEY"
+      ],
+      "actions_and_assertions": "租赁微信/支付宝本人支付、代付各跑一次；扫码身份/金额正确，代付可弹支付窗，成功归属和标记正确，openid/payerid非空，取消不生效",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-02",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "RENT",
+        "MONEY"
+      ],
+      "actions_and_assertions": "原押金+追加押金两笔，分别扫码；全归还后逐笔原路退款，实际到账与订单余额一致；储值付租金全退押金且无0元储值记录",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-03",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "CARD"
+      ],
+      "actions_and_assertions": "养护储值/券/次卡/季卡微信核验；支付宝前置微信核验；错会员拒绝；0元权益单、0元招待单分别生效，核销不漏不重复",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-04",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "CARE"
+      ],
+      "actions_and_assertions": "养护取消原因→四核验方式；正常发板的扫码/验证码/凭证照片/店长确认；取消和发板不混，退款有到账且不500",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-05",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "CARD"
+      ],
+      "actions_and_assertions": "顾客新号授权购买次卡、租赁卖卡补差，款到发卡；未使用自助退款→已退灰色、各入口禁用；第二次退款拒绝",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-06",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "SHOP",
+        "ID"
+      ],
+      "actions_and_assertions": "四条普通链接二维码分别进入支付/核验/养护目标care/食材批次；体验版测试链接、冷启动、已登录和未登录都验证",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-07",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P1",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "COUPON"
+      ],
+      "actions_and_assertions": "转赠给未关注/已关注两人、撤回、来回转赠、个人/群卡片、动态/固定海报；只本次合法领取成功，通知仅给批准接收者",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-08",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P1",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "CARE",
+        "FNB"
+      ],
+      "actions_and_assertions": "养护/食材BLE打印，60×40mm标签、中文、二维码、份数、断开重连；扫描定位正确实体，不串上一件装备",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-09",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P1",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "FNB"
+      ],
+      "actions_and_assertions": "摄像头/OCR真实照片，优先日期候选正确、错误可手改；图片上传后其他设备可见；生产合法域名配置正确",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-10",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P1",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "FNB",
+        "STAFF"
+      ],
+      "actions_and_assertions": "企业微信登录/门店权限、旧H5跳转、提醒接收人确认；若确需提醒，仅负责人批准的测试收件范围，不默认@all",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-11",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P0",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "SHOP"
+      ],
+      "actions_and_assertions": "万龙查价→订单→自我游出票→取票/取消/退款按业务允许情况；单独批准真实票款和预存扣费；支付与第三方失败补偿留证，自动化不得代做",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    },
+    {
+      "id": "MAN-12",
+      "section": "6.14 真机与线上人工验收（Copilot 只准备步骤和账本）",
+      "priority": "P1",
+      "required_modes": [
+        "D"
+      ],
+      "fixture_keys": [
+        "AI",
+        "UI"
+      ],
+      "actions_and_assertions": "线上后端/小程序/公众号/reqai版本与必要schema/config确认；四域AI查询结果、后台扫码登录、人事入职、聚合付款送券分别验收；未发布功能逐项标明",
+      "initial_status": "MANUAL_REQUIRED",
+      "mode_evidence": {
+        "D": [
+          "manual_record"
+        ]
+      }
+    }
+  ],
+  "inventory_feature_coverage": [
+    {
+      "inventory_section": "4.1",
+      "feature": "登录与会员识别",
+      "case_ids": [
+        "AUTH-01",
+        "AUTH-02",
+        "AUTH-03",
+        "AUTH-04",
+        "AUTH-05",
+        "AUTH-06",
+        "AUTH-07",
+        "AUTH-08",
+        "REC-01",
+        "MEMBER-01",
+        "MEMBER-02",
+        "MEMBER-03"
+      ]
+    },
+    {
+      "inventory_section": "4.2",
+      "feature": "订单支付退款数据",
+      "case_ids": [
+        "PAY-01",
+        "PAY-02",
+        "PAY-03",
+        "PAY-04",
+        "PAY-05",
+        "PAY-06",
+        "PAY-07",
+        "PAY-08",
+        "PAY-09",
+        "PAY-10",
+        "RENT-07",
+        "MAN-01",
+        "MAN-02",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_section": "4.3",
+      "feature": "通用结算",
+      "case_ids": [
+        "PAY-05",
+        "PAY-08",
+        "PAY-11",
+        "MAN-01",
+        "MAN-02",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_section": "4.4",
+      "feature": "顾客扫码支付",
+      "case_ids": [
+        "PAY-01",
+        "PAY-02",
+        "PAY-03",
+        "PAY-04",
+        "ALI-01",
+        "MAN-01"
+      ]
+    },
+    {
+      "inventory_section": "4.5",
+      "feature": "支付回调与生效",
+      "case_ids": [
+        "PAY-04",
+        "PAY-09",
+        "TICKET-11",
+        "CARD-09",
+        "MAN-01",
+        "MAN-03",
+        "MAN-05"
+      ]
+    },
+    {
+      "inventory_section": "4.6",
+      "feature": "退款",
+      "case_ids": [
+        "PAY-06",
+        "PAY-10",
+        "CARE-14",
+        "CARD-05",
+        "MAN-02",
+        "MAN-04",
+        "MAN-05"
+      ]
+    },
+    {
+      "inventory_section": "4.7",
+      "feature": "身份核验",
+      "case_ids": [
+        "PAY-07",
+        "CARE-07",
+        "MAN-03",
+        "MAN-06"
+      ]
+    },
+    {
+      "inventory_section": "4.8",
+      "feature": "公共组件",
+      "case_ids": [
+        "COMMON-01",
+        "COMMON-02",
+        "COMMON-03",
+        "COMMON-04",
+        "COMMON-05",
+        "COMMON-06",
+        "COMMON-07",
+        "AI-07",
+        "MAN-08"
+      ]
+    },
+    {
+      "inventory_section": "4.9",
+      "feature": "普通链接扫码",
+      "case_ids": [
+        "MAN-06"
+      ]
+    },
+    {
+      "inventory_section": "5.1",
+      "feature": "接待开单",
+      "case_ids": [
+        "REC-01",
+        "REC-02",
+        "REC-03",
+        "REC-04",
+        "REC-05",
+        "REC-06",
+        "REC-07",
+        "REC-08",
+        "REC-09",
+        "REC-10",
+        "REC-11"
+      ]
+    },
+    {
+      "inventory_section": "5.2",
+      "feature": "租赁",
+      "case_ids": [
+        "RENT-01",
+        "RENT-02",
+        "RENT-03",
+        "RENT-04",
+        "RENT-05",
+        "RENT-06",
+        "RENT-07",
+        "RENT-08",
+        "RENT-09",
+        "RENT-10",
+        "RENT-11",
+        "RENT-12",
+        "RENT-13",
+        "RENT-14",
+        "RENT-15",
+        "RENT-16",
+        "RENT-17",
+        "MAN-02"
+      ]
+    },
+    {
+      "inventory_section": "5.3",
+      "feature": "养护",
+      "case_ids": [
+        "CARE-01",
+        "CARE-02",
+        "CARE-03",
+        "CARE-04",
+        "CARE-05",
+        "CARE-06",
+        "CARE-07",
+        "CARE-08",
+        "CARE-09",
+        "CARE-10",
+        "CARE-11",
+        "CARE-12",
+        "CARE-13",
+        "CARE-14",
+        "CARE-15",
+        "CARE-16",
+        "MAN-03",
+        "MAN-04",
+        "MAN-08"
+      ]
+    },
+    {
+      "inventory_section": "5.4",
+      "feature": "雪票",
+      "case_ids": [
+        "SKI-01",
+        "SKI-02",
+        "SKI-03",
+        "SKI-04",
+        "MAN-11"
+      ]
+    },
+    {
+      "inventory_section": "5.5",
+      "feature": "零售",
+      "case_ids": [
+        "RETAIL-01",
+        "RETAIL-02",
+        "WEB-02"
+      ]
+    },
+    {
+      "inventory_section": "5.6",
+      "feature": "次卡季卡",
+      "case_ids": [
+        "CARD-01",
+        "CARD-02",
+        "CARD-03",
+        "CARD-04",
+        "CARD-05",
+        "CARD-06",
+        "CARD-07",
+        "CARD-08",
+        "CARD-09",
+        "RENT-13",
+        "RENT-14",
+        "MAN-05"
+      ]
+    },
+    {
+      "inventory_section": "5.7",
+      "feature": "会员",
+      "case_ids": [
+        "MEMBER-01",
+        "MEMBER-02",
+        "MEMBER-03",
+        "MEMBER-04",
+        "MEMBER-05",
+        "MEMBER-06",
+        "MEMBER-07"
+      ]
+    },
+    {
+      "inventory_section": "5.8",
+      "feature": "储值",
+      "case_ids": [
+        "DEPOSIT-01",
+        "DEPOSIT-02",
+        "DEPOSIT-03",
+        "RENT-12",
+        "MAN-02",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_section": "5.9",
+      "feature": "优惠券",
+      "case_ids": [
+        "TICKET-01",
+        "TICKET-02",
+        "TICKET-03",
+        "TICKET-04",
+        "TICKET-05",
+        "TICKET-06",
+        "TICKET-07",
+        "TICKET-08",
+        "TICKET-09",
+        "TICKET-10",
+        "TICKET-11",
+        "CARE-16",
+        "MAN-07"
+      ]
+    },
+    {
+      "inventory_section": "5.10",
+      "feature": "食材",
+      "case_ids": [
+        "FNB-01",
+        "FNB-02",
+        "FNB-03",
+        "FNB-04",
+        "FNB-05",
+        "FNB-06",
+        "FNB-07",
+        "FNB-08",
+        "FNB-09",
+        "FNB-10",
+        "FNB-11",
+        "FNB-12",
+        "FNB-13",
+        "FNB-14",
+        "FNB-15",
+        "FNB-16",
+        "FNB-17",
+        "FNB-18",
+        "FNB-19",
+        "FNB-20",
+        "FNB-21",
+        "FNB-22",
+        "FNB-23",
+        "FNB-24",
+        "FNB-25",
+        "FNB-26",
+        "FNB-27",
+        "FNB-28",
+        "MAN-08",
+        "MAN-09",
+        "MAN-10"
+      ]
+    },
+    {
+      "inventory_section": "5.11",
+      "feature": "聚合支付",
+      "case_ids": [
+        "WEB-03",
+        "TICKET-11",
+        "MAN-12"
+      ]
+    },
+    {
+      "inventory_section": "5.12",
+      "feature": "员工",
+      "case_ids": [
+        "STAFF-01",
+        "AUTH-03",
+        "OA-02",
+        "MAN-12"
+      ]
+    },
+    {
+      "inventory_section": "5.13",
+      "feature": "管理员AI",
+      "case_ids": [
+        "AI-01",
+        "AI-02",
+        "AI-03",
+        "AI-04",
+        "AI-05",
+        "AI-06",
+        "AI-07",
+        "AI-08",
+        "MAN-12"
+      ]
+    },
+    {
+      "inventory_section": "5.14",
+      "feature": "公众号",
+      "case_ids": [
+        "OA-01",
+        "OA-02",
+        "TICKET-03",
+        "TICKET-04",
+        "TICKET-05",
+        "MAN-07",
+        "MAN-12"
+      ]
+    },
+    {
+      "inventory_section": "5.15",
+      "feature": "后台网页",
+      "case_ids": [
+        "WEB-01",
+        "WEB-02",
+        "RETAIL-02",
+        "MAN-12"
+      ]
+    },
+    {
+      "inventory_section": "5.16",
+      "feature": "支付宝",
+      "case_ids": [
+        "ALI-01",
+        "ALI-02",
+        "PAY-01",
+        "PAY-02",
+        "PAY-03",
+        "PAY-04",
+        "MAN-01"
+      ]
+    }
+  ],
+  "inventory_regression_traceability": [
+    {
+      "inventory_regression": 1,
+      "topic": "找回草稿后保存",
+      "case_ids": [
+        "REC-03"
+      ]
+    },
+    {
+      "inventory_regression": 2,
+      "topic": "无价品类改租金",
+      "case_ids": [
+        "REC-06",
+        "REC-09"
+      ]
+    },
+    {
+      "inventory_regression": 3,
+      "topic": "atOnce与起租时间持久化",
+      "case_ids": [
+        "REC-04"
+      ]
+    },
+    {
+      "inventory_regression": 4,
+      "topic": "免除日费用后的时间状态",
+      "case_ids": [
+        "RENT-03",
+        "RENT-08"
+      ]
+    },
+    {
+      "inventory_regression": 5,
+      "topic": "全归还与实际退款状态",
+      "case_ids": [
+        "RENT-01",
+        "RENT-08"
+      ]
+    },
+    {
+      "inventory_regression": 6,
+      "topic": "未付/已付的可退押金",
+      "case_ids": [
+        "RENT-07"
+      ]
+    },
+    {
+      "inventory_regression": 7,
+      "topic": "禁用按钮真的不可操作",
+      "case_ids": [
+        "REC-05",
+        "PAY-06",
+        "COMMON-05"
+      ]
+    },
+    {
+      "inventory_regression": 8,
+      "topic": "已付款订单正常关单",
+      "case_ids": [
+        "RENT-11"
+      ]
+    },
+    {
+      "inventory_regression": 9,
+      "topic": "未发放不日计租",
+      "case_ids": [
+        "RENT-10"
+      ]
+    },
+    {
+      "inventory_regression": 10,
+      "topic": "招待净额与毛租金",
+      "case_ids": [
+        "RENT-09"
+      ]
+    },
+    {
+      "inventory_regression": 11,
+      "topic": "储值付租金退款、无零金额记录",
+      "case_ids": [
+        "RENT-12",
+        "DEPOSIT-02",
+        "MAN-02"
+      ]
+    },
+    {
+      "inventory_regression": 12,
+      "topic": "两端按支付笔显示",
+      "case_ids": [
+        "PAY-01",
+        "ALI-01",
+        "MAN-01",
+        "MAN-02"
+      ]
+    },
+    {
+      "inventory_regression": 13,
+      "topic": "多笔退款精确分配",
+      "case_ids": [
+        "PAY-06",
+        "MAN-02"
+      ]
+    },
+    {
+      "inventory_regression": 14,
+      "topic": "养护快改不重复单/不冲卡",
+      "case_ids": [
+        "CARE-03",
+        "CARE-05",
+        "REC-02"
+      ]
+    },
+    {
+      "inventory_regression": 15,
+      "topic": "卡价0/季卡升级/锁装备/日限",
+      "case_ids": [
+        "CARE-05",
+        "CARE-06",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_regression": 16,
+      "topic": "手动较大减免保留",
+      "case_ids": [
+        "CARE-04"
+      ]
+    },
+    {
+      "inventory_regression": 17,
+      "topic": "付款人变化后正确核卡",
+      "case_ids": [
+        "CARE-08",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_regression": 18,
+      "topic": "零元招待生效",
+      "case_ids": [
+        "CARE-07",
+        "PAY-08",
+        "MAN-03"
+      ]
+    },
+    {
+      "inventory_regression": 19,
+      "topic": "养护退款不500",
+      "case_ids": [
+        "CARE-14",
+        "MAN-04"
+      ]
+    },
+    {
+      "inventory_regression": 20,
+      "topic": "安全检查值不丢",
+      "case_ids": [
+        "CARE-10"
+      ]
+    },
+    {
+      "inventory_regression": 21,
+      "topic": "代付弹支付窗",
+      "case_ids": [
+        "PAY-03",
+        "PAY-04",
+        "MAN-01"
+      ]
+    },
+    {
+      "inventory_regression": 22,
+      "topic": "支付宝openid及按手机号绑定",
+      "case_ids": [
+        "PAY-04",
+        "ALI-01",
+        "MAN-01"
+      ]
+    },
+    {
+      "inventory_regression": 23,
+      "topic": "本人身份状态正确",
+      "case_ids": [
+        "PAY-02",
+        "PAY-07"
+      ]
+    },
+    {
+      "inventory_regression": 24,
+      "topic": "五生效入口补会员资料",
+      "case_ids": [
+        "PAY-09"
+      ]
+    },
+    {
+      "inventory_regression": 25,
+      "topic": "新顾客授权买卡",
+      "case_ids": [
+        "CARD-02",
+        "MAN-05"
+      ]
+    },
+    {
+      "inventory_regression": 26,
+      "topic": "新券有效且可选",
+      "case_ids": [
+        "TICKET-02"
+      ]
+    },
+    {
+      "inventory_regression": 27,
+      "topic": "转赠不沿用旧关注记录",
+      "case_ids": [
+        "TICKET-05",
+        "MAN-07"
+      ]
+    },
+    {
+      "inventory_regression": 28,
+      "topic": "退卡后全入口禁用/退款资格",
+      "case_ids": [
+        "CARD-04",
+        "CARD-05",
+        "CARE-06",
+        "MAN-05"
+      ]
+    },
+    {
+      "inventory_regression": 29,
+      "topic": "全部卡型含季卡",
+      "case_ids": [
+        "CARD-04"
+      ]
+    },
+    {
+      "inventory_regression": 30,
+      "topic": "手选门店不被BLE覆盖",
+      "case_ids": [
+        "COMMON-01"
+      ]
+    },
+    {
+      "inventory_regression": 31,
+      "topic": "日期高亮正确",
+      "case_ids": [
+        "COMMON-02"
+      ]
+    },
+    {
+      "inventory_regression": 32,
+      "topic": "返回保留页码筛选",
+      "case_ids": [
+        "RENT-16",
+        "COMMON-03"
+      ]
+    },
+    {
+      "inventory_regression": 33,
+      "topic": "上传失败不留空图",
+      "case_ids": [
+        "CARE-10",
+        "COMMON-04"
+      ]
+    },
+    {
+      "inventory_regression": 34,
+      "topic": "崇礼查万龙雪票",
+      "case_ids": [
+        "SKI-01"
+      ]
+    },
+    {
+      "inventory_regression": 35,
+      "topic": "改商品名不改养护价格",
+      "case_ids": [
+        "CARE-02"
+      ]
+    }
+  ]
+}
