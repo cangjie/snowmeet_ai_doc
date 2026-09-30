@@ -1,9 +1,14 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-28）：操作指南 PPT 已换成真实截图；小程序三处文案/样式已改未提交
+## 当前状态（截至 2026-09-30）：入库页首屏卡 6 秒已修；图片上传临时切到 mini.snowmeet.top；OCR 日期优先认 yyyy-MM-dd
+- **09-28 ~ 09-30 三项修改（Windows 机，详见 [会话记录](sessions/2026-09-28_image_host_ocr_date_inbound_render.md)）**，已全部提交推送（小程序 `ai@0c712574`、SnowmeetApi `ai@18e0601a`）：
+  - **入库页首屏 6.6 秒 → 日历改为用到才创建**：`date-range-picker` 里的 `van-calendar` 虽然藏在弹层里，但页面加载时就会创建全部月份子组件。入库页两个日期框共 252 个月（36 + 216），setData 1.7 MB。4 个接口只用了 110 ms，网络不是瓶颈。改为第一次点开才挂载（`calendarMounted`），9 个用该组件的页面一起受益。
+  - **图片上传/显示临时切到 `mini.snowmeet.top`**：`utils/data.js` 新增 `IMAGE_HOST` 常量，上传和 8 处显示统一读它。wanlonghuaxue 图片服务器修好后只改这一行，但切回前要先把这期间传到 mini 磁盘的照片拷过去。
+  - **OCR 日期**：`yyyy-MM-dd`（月日两位）前后粘着什么都能识别（如 `2025-08-0512:30`），带四位年份的明确日期排在所有候选前面。新增 `FnbOcrDateTests` 12 例，服务端单元 362 过。**需 publish SnowmeetApi 生效**。
+  - 入库页还留着临时计时日志（`[入库页耗时]`），用户确认首屏变快后要删；批次号改为与目录数据并发请求；加载中/失败提示替换了误导的「去分类页添加」。
 - **09-28 操作指南 PPT + 小修（详见 [会话记录](sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md)）**：
   - PPT（https://claude.ai/artifact/AkjZNKHQ3xkP2v7Ei4evCf）：用 iPhone 镜像截线上真实界面 27 张，覆盖第 2、5～18 页。仅用户可见，需 Share 开放给员工。
-  - 小程序本地已改、**未提交**：临期页底部提示、菜品配方页说明两处过时文案；盘点入口卡按钮压字（iOS）。测试 167/167，真机未看。
+  - 小程序三处（临期页底部提示、菜品配方页说明两处过时文案；盘点入口卡按钮压字）已提交 `b6892624`。测试 167/167，真机未看。
   - 待办：用户上传新版小程序后，重截 PPT 第 10、12 页。
   - 线上遗留：为截图开过一次盘点再放弃，服务端留一张 draft 盘点快照；测试厨房单已删、配料已退回。
 - **09-25~27 第三轮打磨（两业务仓已提交并推送：SnowmeetApi `ai@9db5d2a9`、小程序 `ai@528d8366`）**：
@@ -379,6 +384,12 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **09-30 入库页 / 图片域名 / OCR 收尾**：
+  - 用户重新编译后看 `[入库页耗时]` 的首屏时间是否降下来，确认后删 [`inbound.js`](../snowmeet_wechat_mini/pages/fnbinv/inbound/inbound.js) 里标 `TEMP 耗时诊断` 的计时代码。
+  - **待用户定**：到期日期日历可选范围仍是往回 3 年～往后 15 年（216 个月），第一次点开预计卡 5 秒左右。建议改成今天～往后 3 年（36 个月）。
+  - publish SnowmeetApi（`18e0601a`，OCR 日期规则）；用户上次说的红圈图片没传过来，拿到后对照验证。
+  - 南山雪票预约上传走 `xuexiaotupian.wanlonghuaxue.com`，这次没切，要不要切待用户定。
+  - wanlonghuaxue 图片服务器修好后：先把切换期间传到 mini 磁盘的照片拷过去，再把 `IMAGE_HOST` 改回。
 - **食材管理上线（2026-09-23 交接，09-27 更新）**：
   - ⓪ **09-27 下次开工先做**：用户截图放进 `D:\source\snowmeet\ai\screenshots\` 后，更新操作指南 PPT。先用 Artifact `read` 取回 `project/deck.json` 和 `project/slides/*.html`，因为原文件在会话 scratchpad，已经没有了。再把截图批量上传为资源，替换示意图和文字页，最后发布到同一 URL。
   - ⓪′ 核实生产环境：三份 SQL 是否都已执行，服务端是否为 `9db5d2a9`，用量预警接口是否可用。之后再用真机走一遍。
@@ -468,6 +479,10 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`van-calendar` 藏在弹层里也会在页面加载时创建全部月份（2026-09-30 踩）**：每个月是一个 `month` 子组件，日期、类型、最小/最大日期等属性每变一次就重新生成当月格子并 setData。入库页两个日期框共 252 个月，首屏 6.6 秒、setData 1.7 MB。`date-range-picker` 已改为第一次点开才挂载（`calendarMounted`，挂载后保留）。新写日历/弹层类组件时，内容要在用到时才创建，不要只靠 `show` 隐藏。
+- **页面慢先看控制台的 setData 警告，再猜网络（2026-09-30）**：我先根据「本机查库每条 480 ms」和 IP 段推断是 API 服务器跨境查库，结果实测 4 个接口并发只用 110 ms。真正原因是开发者工具控制台里那条「setData 数据传输长度为 1693 KB」。本机到数据库慢不代表 API 服务器到数据库慢。
+- **图片上传/显示域名临时切到 `mini.snowmeet.top`（2026-09-28）**：统一读 [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 的 `IMAGE_HOST`。wanlonghuaxue 的老照片在切换期间显示不出来；切回前要先把切换期间传到 mini 磁盘的照片拷到 wanlonghuaxue。南山雪票预约（`uploadDomain`，xuexiaotupian 子域）和优惠券海报、次卡商品图不走这个常量。
+- **Windows 机（`D:\source\snowmeet\ai`）也连不上 `mini.snowmeet.top` 和 `snowmeet.wanlonghuaxue.com` 的 443**，github 的 22 端口也经常超时（fetch 失败时 ahead/behind 用的是本地缓存）。本机只有老的 `DRIVER={SQL Server}` ODBC 驱动，连生产库不要加 `Encrypt`。
 - **业务规则能在代码里实现，就不要让用户手动跑生产 SQL（2026-09-24 用户纠正）**：分类删除后同名重建报错，我先给了改唯一索引的 SQL，用户明确拒绝——要的是「只在未删除的分类中查重」。终版在代码里查重，并把已删除的同名分类改名让位（`FnbCategoryService.FreeNameAsync`）。结构性迁移（加删列）仍走 `sql/` 脚本由用户执行。
 - **本机 Windows 测试工具在 [`tools/windows_test/`](tools/windows_test/)（2026-09-25）**：
   - 小程序：`"C:\Program Files (x86)\Tencent\微信web开发者工具\node.exe" ../snowmeet_ai_doc/tools/windows_test/run_tests.js tests/*.test.js`（在 `snowmeet_wechat_mini` 下执行；开发者工具自带 node v16 没有 `node:test`，这个脚本代跑）。
@@ -636,7 +651,7 @@ dotnet run
 - **⚠️ EF `Remove()`/`Add()` 沿导航图遍历附加实体（2026-07-08 踩，SaveCareRecept 500 根因）**：AsNoTracking + Include 加载的实体经 fixup 带反向导航（如 `careImage.care`），`_db.X.Remove(entity)` 会把导航指向的实体一并附加进跟踪器，与 `_db.Update(order)` 已跟踪的同 id 实体撞键 → `InvalidOperationException: cannot be tracked`。删除单实体一律用 `_db.Entry(x).State = EntityState.Deleted`（只附加自身、不遍历导航）。与「全局 NoTracking 需 Entry=Modified」是同一族坑
 - **保存回填别用本地对象整体覆盖服务端返回的子行（2026-07-08）**：`saveCareReceptOrder` 原为保住 url/thumb 展示字段整体用本地 careImages 覆盖 → id 永远 0 → 后端每次保存插新行删旧行（数据抖动）+ 引爆上条撞键。正确做法：保留本地展示字段、按业务键（image_id）回填服务端生成的主键。租赁侧同类回填如再遇 id 抖动照此检查
 - **`wx.uploadFile` 的 success 对任何 HTTP 状态码都触发（2026-07-08 修 uploadFilePromise）**：不判 `res.statusCode` 直接 resolve 会把 400 的 ProblemDetails 当上传结果，下游拿 undefined id 连锁假成功（假图片框 + 垃圾 careImage 进 payload）。已改非 2xx reject + fail 回调 reject（原 `JSON.parse(res)` 对对象必抛）。写新的 wx.uploadFile 封装必须判 statusCode
-- **mini.snowmeet.top 与 snowmeet.wanlonghuaxue.com 是两台服务器两份部署（2026-07-08 确认）**：161.189.64.210 vs 60.8.110.78，同一项目各自部署、config.sqlServer 各自服务器本地——同 sessionKey 两台鉴权结果可以不同（wanlonghuaxue 缺 6-14 `bb210a9` 的 GetStaffBySessionKey openid 兜底或指不同库 → 上传 400）。「同一份代码」不等于「同一状态」；上传/显示域名 2026-07-08 起 3 处暂切 mini（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST，搜「2026-07-08 暂时」可全找到），wanlonghuaxue 部署对齐后再定
+- **mini.snowmeet.top 与 snowmeet.wanlonghuaxue.com 是两台服务器两份部署（2026-07-08 确认）**：161.189.64.210 vs 60.8.110.78，同一项目各自部署、config.sqlServer 各自服务器本地——同 sessionKey 两台鉴权结果可以不同（wanlonghuaxue 缺 6-14 `bb210a9` 的 GetStaffBySessionKey openid 兜底或指不同库 → 上传 400）。「同一份代码」不等于「同一状态」；上传/显示域名 2026-07-08 起 3 处暂切 mini（data.js uploadFilePromise / care_recept_form UPLOAD_HOST / care_order_detail IMG_HOST，搜「2026-07-08 暂时」可全找到），wanlonghuaxue 部署对齐后再定。**2026-09-28 更新**：上传/显示域名已统一收进 `data.js` 的 `IMAGE_HOST`，当前指向 mini
 - **care_recept_form 装备卡片展开态「一旦展开就记住」（2026-07-08 用户拍板）**：`_refreshCares` 无手动记录时未录入完整默认展开**并写入 expandedMap**——录入中任何字段变化（含录完最后一项）都不自动折叠，唯一收起方式是手动点卡片头部。背景坑：卡片 key 规则 `id>0?'c'+id:'t'+timeStamp`，首次落库 id 0→真实 id 时 key 漂移丢状态；组件 UI 状态按 key 记忆时要么稳定 key、要么把默认态落成显式记录
 - **⚠️ `Ticket` 模型 C# 默认 `valid = 0`，发券代码不显式置 1 券就天生不可见（2026-07-09 根因定位）**：选券链路 `GetMemberTicketsByStaff` 基查询过滤 `valid==1 && is_active==1`。[`GenerateTicketByAction`](../SnowmeetApi/Controllers/TicketController.cs)（买雪票增券 / 扫码领取 / 非雪季养护 17/18 三条在用发券路径）原漏设 `valid` 和 `member_id`——已补 `valid=1, member_id=memberId`（随下次 publish；非雪季 17/18 此前靠 CareController 545/549 事后补 valid=1 侥幸能用）。存量 template 12 共 84 张 valid=0：4 张 `channel='daidai'`（15506 测试券，2026-07-09 DB 已 UPDATE 置 1）+ 45 张「买雪票增券」+ 30 余张 create_memo=雪票id（待业务确认是否批量修）。`channel='daidai'` 在代码库和 git 全历史都搜不到，是外部通道直插的数据
 - **券可见性接口口径不一致（排查「看得到选不了」先查这条）**：`GetMemberTicketsByStaff`（开单选券）和新版 `api/Ticket/GetMyTickets`（顾客券包）都过滤 `valid=1`；但旧 `/core/Ticket/GetTicketsByUser`（admin `ticket_unuse_list`、旧 `ticket_selector` 组件用）只按 `open_id`+`used` 过滤、**不看 valid/is_active** → 同一张券 admin 券列表能看到、开单选券选不出。排查顺序：DB 直查该券 `valid / is_active / used / expire_date / member_id`
@@ -3987,3 +4002,13 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 1：镜像里点击没反应，先怀疑输入框仍在焦点（Mac 键盘输入时手机不弹软键盘，看不出来），按 Esc 退出编辑再点；一度误判为出餐页真机 bug。
 - 📌 教训 2：线上写操作只点一次，截图确认后再决定是否重试；盘点「放弃」只清本地单号，不是服务端操作。
 - 详细归档：[`sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md`](sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md)。
+
+### 2026-09-28 ~ 09-30：图片域名临时切 mini + OCR 日期优先 yyyy-MM-dd + 入库页首屏 6.6 秒定位修复（Windows 机）
+
+- ✅ 图片上传/显示临时切到 `mini.snowmeet.top`：`data.js` 新增 `IMAGE_HOST`，10 个文件改为读它（上传两个函数 + 养护、零售、食材 8 处显示）。
+- ✅ OCR：`yyyy-MM-dd`（月日两位）不看前后缀，带四位年份的明确日期排最前；识别过的先抹掉再跑喷码等宽松规则。先写 12 例测试（5 例失败）再改，服务端单元 362 过。
+- ✅ 入库页慢：加分步计时后用户在开发者工具实测——接口 110 ms，首屏 6678 ms，控制台 setData 1693 KB。根因是两个日期框的 `van-calendar` 在页面加载时创建了 252 个月份组件，改为第一次点开才挂载。另把批次号改为并发请求，加载中不再显示「去分类页添加」。
+- ✅ 两个业务仓已由用户提交推送：小程序 `0c712574`、SnowmeetApi `18e0601a`；09-28 Mac 上的三处小修在 `b6892624`。
+- 🚧 待用户：重编看首屏时间 → 删临时计时；到期日期日历范围（216 个月，首开约卡 5 秒）要不要收窄；publish SnowmeetApi；补传 OCR 红圈图片。
+- 📌 教训：我一开始按「本机查库 480 ms + IP 段」推断跨境查库是瓶颈，实测接口只要 110 ms。页面慢先看控制台的 setData 警告和分步计时，再下结论。
+- 详细归档：[`sessions/2026-09-28_image_host_ocr_date_inbound_render.md`](sessions/2026-09-28_image_host_ocr_date_inbound_render.md)。
