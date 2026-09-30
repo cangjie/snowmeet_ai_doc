@@ -1,6 +1,10 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-30）：入库页首屏卡 6 秒已修；图片上传临时切到 mini.snowmeet.top；OCR 日期优先认 yyyy-MM-dd
+## 当前状态（截至 2026-09-30 晚）：雪季测试准备——系统功能说明已写好；南山关店，小程序南山代码已删（未提交）
+- **09-30 晚：测试准备 + 删除南山代码（Windows 机，详见 [会话记录](sessions/2026-09-30_feature_inventory_and_nanshan_removal.md)）**：
+  - **系统功能说明**：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)，约 870 行，逐页逐接口对照代码写。用户交给 ChatGPT 生成测试方案，再由 Copilot 执行。内含 7 条执行安全红线（本地后端默认连生产库、不许真实支付退款、不许调万龙雪票下单等）、各模块规则、35 条回归重点、上线前提、页面和接口附录。按用户要求已去掉全部南山内容。
+  - **南山已关店（用户 09-30 告知）**：删除微信小程序里的南山代码，共 36 个文件约 83 KB，另有 14 个共用文件只删南山分支约 9 KB。共用的雪票选购页、`my_skipass`（万龙付款后的落地页）、租赁价格设置都保留。雪票选购页过滤后端返回的「南山」，旧链接带 `resort=南山` 时落到第一个雪场。自动检查全过（80 个注册页面文件齐全、JS 语法、WXML 配对、测试 167/167）。**开发者工具还没编译、没提交**，小程序仓 50 个文件改动在工作区。
+  - 核对代码时发现的疑点写进了测试文档第 6 章：后台菜单 6 个入口指向不存在的页面；9 个页面调用的 `/core/...` 路径在后端找不到路由；万龙雪票数量 N 时金额为单价 × N²；人事入口系统管理员看不到。
 - **09-28 ~ 09-30 三项修改（Windows 机，详见 [会话记录](sessions/2026-09-28_image_host_ocr_date_inbound_render.md)）**，已全部提交推送（小程序 `ai@0c712574`、SnowmeetApi `ai@18e0601a`）：
   - **入库页首屏 6.6 秒 → 日历改为用到才创建**：`date-range-picker` 里的 `van-calendar` 虽然藏在弹层里，但页面加载时就会创建全部月份子组件。入库页两个日期框共 252 个月（36 + 216），setData 1.7 MB。4 个接口只用了 110 ms，网络不是瓶颈。改为第一次点开才挂载（`calendarMounted`），9 个用该组件的页面一起受益。
   - **图片上传/显示临时切到 `mini.snowmeet.top`**：`utils/data.js` 新增 `IMAGE_HOST` 常量，上传和 8 处显示统一读它。wanlonghuaxue 图片服务器修好后只改这一行，但切回前要先把这期间传到 mini 磁盘的照片拷过去。
@@ -323,6 +327,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 雪季测试用系统功能说明：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)（交给 ChatGPT 生成测试方案、Copilot 执行；功能或规则有变时同步更新它）。
 - 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`（本机 Windows 用 [`tools/windows_test/`](tools/windows_test/)）；厨房单扣料/欠料补扣集中在 `SnowmeetApi/Services/Fnb/FnbServeService.cs` + 小程序 `pages/fnbinv/serve/` 与 `common/kitchen.js`；开封共用 `common/open-pack.js`（出餐、制作两页）；半成品配方换算在 `common/recipe.js`（`lineUnitCode` / `perUnitCode` / `prepNeeds`）；用量预警服务端 `SnowmeetApi/Services/Fnb/FnbLowStockService.cs`，小程序 `common/lowstock.js` + 组件 `components/low-stock-editor/` + 页面 `lowstock/`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
 - 管理员帮助结构化查询：`SnowmeetApi/Controllers/AdminAiController.cs`、`SnowmeetApi/Services/AdminAssistant/`、`SnowmeetApi/Models/AdminAssistant/`、`snowmeet_wechat_mini/utils/adminAssistant.js`、`snowmeet_wechat_mini/components/admin-page-help/`、`reqai/backend/app/routers/admin_assistant.py`；设计与验收见 `docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md`、`sessions/2026-09-10_admin_assistant_command_protocol.md`
 - 页面：`pages/admin/reception/recept_entry`、`recept_new`、`recept_package`、`pages/order/payment_entry`（顾客扫码支付落地页）
@@ -384,11 +389,16 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **09-30 晚 雪季测试 + 南山清理**：
+  - 用户在开发者工具编译小程序，点一遍雪票选购页、我的雪票、后台雪票菜单、租赁分类维护/套餐设置的门店价格标签，确认无误后提交小程序仓（36 个删除 + 14 个修改）。
+  - **待用户定**：支付宝小程序首页（`alipay_snowmeet/pages/index`）仍有「南山」标签，若已上线顾客仍可能选到南山，要不要删。其他南山残留：后端 `SkiPass/GetResorts` 写死返回南山、`NanshanSkipass` 控制器、公众号 `nanshanskipass_`/`nanshanreserve_` 场景、`shop_list` 里的南山门店记录（门店下拉框会列出）。
+  - 用户把测试文档交给 ChatGPT 生成测试方案 → Copilot 执行。测试前先在开发者工具或真机逐个点测试文档第 6.2 节的 9 个 `/core/...` 调用，确认线上是否有转发。
+  - 测试文档第 8.2 节的生产库结构比对（EF 模型 vs `INFORMATION_SCHEMA`，只读）本次被权限拦下，需用户放开「生产库只读」权限后补做，或由用户自己跑。
 - **09-30 入库页 / 图片域名 / OCR 收尾**：
   - 用户重新编译后看 `[入库页耗时]` 的首屏时间是否降下来，确认后删 [`inbound.js`](../snowmeet_wechat_mini/pages/fnbinv/inbound/inbound.js) 里标 `TEMP 耗时诊断` 的计时代码。
   - **待用户定**：到期日期日历可选范围仍是往回 3 年～往后 15 年（216 个月），第一次点开预计卡 5 秒左右。建议改成今天～往后 3 年（36 个月）。
   - publish SnowmeetApi（`18e0601a`，OCR 日期规则）；用户上次说的红圈图片没传过来，拿到后对照验证。
-  - 南山雪票预约上传走 `xuexiaotupian.wanlonghuaxue.com`，这次没切，要不要切待用户定。
+  - ~~南山雪票预约上传走 `xuexiaotupian.wanlonghuaxue.com`，要不要切待用户定~~ —— 09-30 南山关店，相关页面和 `uploadDomain` 已删，此项作废。
   - wanlonghuaxue 图片服务器修好后：先把切换期间传到 mini 磁盘的照片拷过去，再把 `IMAGE_HOST` 改回。
 - **食材管理上线（2026-09-23 交接，09-27 更新）**：
   - ⓪ **09-27 下次开工先做**：用户截图放进 `D:\source\snowmeet\ai\screenshots\` 后，更新操作指南 PPT。先用 Artifact `read` 取回 `project/deck.json` 和 `project/slides/*.html`，因为原文件在会话 scratchpad，已经没有了。再把截图批量上传为资源，替换示意图和文字页，最后发布到同一 URL。
@@ -479,9 +489,15 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **南山已关店（2026-09-30 用户告知）**：微信小程序里的南山业务代码已删——店员端 7 个南山雪票页（预定、预定明细、取票扫码、验票、消费、退押金、退押金明细）、顾客端南山预订页 `ski_pass_reserve` 和南山加票页、后台 4 个南山菜单、`util.js` 里 3 段南山购票文案、`app.js` 的 `uploadDomain`、租赁价格设置（`shop_price_matrix` 等）里的南山门店。不要再为南山写功能或测试。**仍有残留、未清理**：后端 `SkiPass/GetResorts` 写死返回「万龙」「南山」（小程序 `ski_pass_selector` 在前端过滤，旧链接带 `resort=南山` 落到第一个雪场，防止用万龙下单流程卖南山的票）、`NanshanSkipass` 控制器；支付宝小程序首页的南山标签；公众号南山扫码场景；`shop_list` 南山记录。
+- **`pages/mine/skipass/my_skipass` 是共用页，不能当南山页删**：万龙雪票付款后跳到这里（原来南山流程也跳这里）；顾客从「我的」进入的是 `my_skipasses`。
+- **本地 `dotnet run` 起的 SnowmeetApi 默认连生产库**（`config.sqlServer` 指向生产 `snowmeet_new`）。给 Copilot 等做接口测试前必须先换成隔离库（`tools/windows_test/efschema` 可按 EF 模型生成全部建表脚本）。另：开单草稿在非 `mini.snowmeet.top` 域名下自动标 `is_test=1`；员工 28/31/34 下的单 `PlaceOrder` 自动标测试单。
+- **后台菜单有 6 个入口指向不存在的页面（2026-09-30 核对，确定打不开）**：【养护】现场雪具养护列表、【养护】快速查询、【养护】养护取板、【养护】需盘点的、【租赁】快速查找订单、【招待】养护招待。页面没在 `app.json` 注册，文件也不存在。未处理，待用户决定删入口还是补页面。
+- **9 个页面调用的 `/core/...` 在后端找不到路由（2026-09-30 核对，未经线上验证）**：租赁报表 `/core/Rent/*`、今日未完成接待 `/core/Recept/*`、员工管理 `/core/Member/GetStaffList|GetWholeMemberInfo|SetStaffInfo|RegStaff|GetMemberByCell`、订票二维码、发放/待核销/绑定优惠券 `/core/Ticket/*`。对应控制器只有 `/api` 路由或没有该方法，除非线上 nginx 另有转发，否则 404。清单见测试文档 6.2。
+- **万龙雪票 `SkiPassController.ReserveSkiPass` 数量 N 时订单金额 = 单价 × N²**：`skipass.deal_price` 已乘数量，`order.total_amount` 又乘一次。界面固定 1 张所以没暴露，直接调接口 `count=2` 可复现。未修。
 - **`van-calendar` 藏在弹层里也会在页面加载时创建全部月份（2026-09-30 踩）**：每个月是一个 `month` 子组件，日期、类型、最小/最大日期等属性每变一次就重新生成当月格子并 setData。入库页两个日期框共 252 个月，首屏 6.6 秒、setData 1.7 MB。`date-range-picker` 已改为第一次点开才挂载（`calendarMounted`，挂载后保留）。新写日历/弹层类组件时，内容要在用到时才创建，不要只靠 `show` 隐藏。
 - **页面慢先看控制台的 setData 警告，再猜网络（2026-09-30）**：我先根据「本机查库每条 480 ms」和 IP 段推断是 API 服务器跨境查库，结果实测 4 个接口并发只用 110 ms。真正原因是开发者工具控制台里那条「setData 数据传输长度为 1693 KB」。本机到数据库慢不代表 API 服务器到数据库慢。
-- **图片上传/显示域名临时切到 `mini.snowmeet.top`（2026-09-28）**：统一读 [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 的 `IMAGE_HOST`。wanlonghuaxue 的老照片在切换期间显示不出来；切回前要先把切换期间传到 mini 磁盘的照片拷到 wanlonghuaxue。南山雪票预约（`uploadDomain`，xuexiaotupian 子域）和优惠券海报、次卡商品图不走这个常量。
+- **图片上传/显示域名临时切到 `mini.snowmeet.top`（2026-09-28）**：统一读 [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 的 `IMAGE_HOST`。wanlonghuaxue 的老照片在切换期间显示不出来；切回前要先把切换期间传到 mini 磁盘的照片拷到 wanlonghuaxue。优惠券海报、次卡商品图不走这个常量（原南山雪票预约用的 `uploadDomain` 已随南山代码一起删除）。
 - **Windows 机（`D:\source\snowmeet\ai`）也连不上 `mini.snowmeet.top` 和 `snowmeet.wanlonghuaxue.com` 的 443**，github 的 22 端口也经常超时（fetch 失败时 ahead/behind 用的是本地缓存）。本机只有老的 `DRIVER={SQL Server}` ODBC 驱动，连生产库不要加 `Encrypt`。
 - **业务规则能在代码里实现，就不要让用户手动跑生产 SQL（2026-09-24 用户纠正）**：分类删除后同名重建报错，我先给了改唯一索引的 SQL，用户明确拒绝——要的是「只在未删除的分类中查重」。终版在代码里查重，并把已删除的同名分类改名让位（`FnbCategoryService.FreeNameAsync`）。结构性迁移（加删列）仍走 `sql/` 脚本由用户执行。
 - **本机 Windows 测试工具在 [`tools/windows_test/`](tools/windows_test/)（2026-09-25）**：
@@ -4012,3 +4028,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 待用户：重编看首屏时间 → 删临时计时；到期日期日历范围（216 个月，首开约卡 5 秒）要不要收窄；publish SnowmeetApi；补传 OCR 红圈图片。
 - 📌 教训：我一开始按「本机查库 480 ms + IP 段」推断跨境查库是瓶颈，实测接口只要 110 ms。页面慢先看控制台的 setData 警告和分步计时，再下结论。
 - 详细归档：[`sessions/2026-09-28_image_host_ocr_date_inbound_render.md`](sessions/2026-09-28_image_host_ocr_date_inbound_render.md)。
+
+### 2026-09-30（晚）：雪季测试用系统功能说明 + 删除小程序南山代码（Windows 机）
+
+- ✅ 写 [`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)：对照代码逐页、逐接口核对（app.json 101 页、后台菜单跳转、61 个控制器、公众号扫码场景、现有测试），不只照搬开发记录。用户交给 ChatGPT 生成测试方案，再由 Copilot 执行。
+- ✅ 文档要求每条用例标执行方式（单元测试 / 本地隔离库接口 / 开发者工具界面 / 真机人工），并写入 7 条执行安全红线：本地后端默认连生产库、不许真实支付退款、不许调万龙雪票下单（会向自我游真实订票扣预存款）、不许触发群发推送等。
+- ✅ 核对中发现的疑点写进文档第 6 章：6 个后台菜单入口指向不存在的页面、9 个页面的 `/core/...` 调用在后端找不到路由、万龙雪票数量 N 时金额 × N²、人事入口系统管理员看不到。原怀疑「退款回调地址不对」，核对后是旧退款路径，没写进去。
+- ❌ 想只读比对 EF 模型与生产库表结构（找出库里缺的列），被 auto-mode 权限规则以「生产读取」拦下，没做；文档第 8.2 节改为待确认清单。
+- ✅ 南山已关店：删除微信小程序南山代码（36 个文件约 83 KB + 14 个共用文件的南山分支约 9 KB）。共用的雪票选购页、`my_skipass`、租赁价格设置只删南山部分；雪票选购页过滤后端返回的南山并处理 `resort=南山` 旧链接。自动检查全过，测试 167/167。测试文档按用户要求去掉全部南山内容。
+- 🚧 待用户：开发者工具编译并点测后提交小程序仓；决定支付宝小程序首页南山标签、后端 `GetResorts`、公众号南山场景、`shop_list` 南山记录要不要清。
+- 📌 教训：删某家店的代码前，先查每个页面被谁跳转——`my_skipass` 看名字像南山页，实际是万龙付款后的落地页；后端写死的雪场列表还会把已删功能的入口「送回来」，前端要兜底过滤并处理旧链接。
+- 详细归档：[`sessions/2026-09-30_feature_inventory_and_nanshan_removal.md`](sessions/2026-09-30_feature_inventory_and_nanshan_removal.md)。
