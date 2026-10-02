@@ -1,6 +1,12 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-02）：旧版演示分包已生成（未提交、未编译），验证交给 Copilot；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+## 当前状态（截至 2026-10-02）：旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+- **10-02：旧版演示 API 部署（详见 [会话记录](sessions/2026-10-02_legacy_demo_api_deployment.md)）**：
+  - SnowmeetApi 固定部署提交 `9b4d35f19b4c1c1f06065e89071d155450d8bf69`（`migrate_to_new_season` 分支最后提交、`ai` 分支起点），独立目录 `/home/ubuntu/webs/SnowmeetApiLegacy/releases/9b4d35f1`、systemd `snowmeet-legacy-demo.service`、loopback `127.0.0.1:5003`；不改客户端代码，不碰 `.top` 生产服务。
+  - Nginx 独立配置 `/etc/nginx/conf.d/mini.snowmeet.com.conf`，TLS 证书 SAN 匹配且私钥 `root:root 0600`；HTTP→HTTPS、Swagger 200/TLS 校验通过、WebSocket 握手 101。生产 `mini.snowmeet.top` Swagger 仍 200。
+  - `legacy` 登录只访问 `legacy`，`db_datareader`/`db_datawriter` 覆盖 102 张表，CRUD 缺权 0；无 `db_owner`/`sysadmin`，对 `snowmeet`、`snowmeet_new` 无访问权。连接文件和 appSettings 均为 `0600`；appSettings 与生产文件完全相同。
+  - **安全限制**：复制的生产 appSettings 含线上微信/第三方服务配置；演示前禁止真实支付、退款、订票及其他有副作用的外部调用，先确认沙箱或禁用方案。小程序分包尚未在开发者工具编译，也未上传/点测；先完成编译并核验合法域名 request/upload/socket 均含 `mini.snowmeet.com`。
+  - 构建成功但有 875 条警告；服务器根盘剩约 1.5 GB（95% 已用），需尽快清理/扩容。回滚只停用演示 unit、移除演示 Nginx 配置并 reload；保留 `.top` 生产服务和数据库。
 - **10-02：接口改动分析 + 旧版演示分包 + 库结构清单（Windows 机，详见 [会话记录](sessions/2026-10-02_api-diff-legacy-demo-schema-list.md)）**：
   - **10-01 有一天工作没跑 end-work，本文件没有记录**：员工账号管理（`pages/staffadmin/`：一次性绑定码、公众号自助登记、超级管理员、权限等级），小程序 `fed5a59f`～`d5613602`、SnowmeetApi `446f955e`～`3c9dc278` 已提交；[`sql/2026-10-01_staff_bind_code.sql`](sql/2026-10-01_staff_bind_code.sql) 本次随文档仓库一起提交，**生产库未执行，必须先于这版 SnowmeetApi 部署**；公众号仓库 `OfficialAccountApi.cs` 两条入职回复的链接改到 `pages/staffadmin/selfreg/selfreg`，**未提交**，要和小程序一起发布（旧 `staff_reg` 页已删）。09-30 的南山删除 50 个改动已在小程序 `cb1513e1` 提交。
   - ✅ 服务端 `ai` 分支改动分析：分支在 **2026-05-01** 从 `migrate_to_new_season`（最后提交 `9b4d35f1`，04-14，之后再没改过）开出。分支开出时有 381 个接口：37 个改了实现、7 个加了可选参数、0 个删除或改地址；新增 175 个。有几处改动会影响旧调用方：券转赠两个接口的返回格式、`MemberLogin` 不再自动建会员、商品去掉 `shop` 字段、`GetMySkipass` 只按 member_id 查、租赁状态计算重写。
@@ -13,9 +19,9 @@
   - ✅ Copilot 待办清单：[docs/legacy-demo/2026-10-02-legacy-demo-todo.md](docs/legacy-demo/2026-10-02-legacy-demo-todo.md)，包括编译和实际体积、新版回归、演示点测、删除演练。用户说服务器还没搭好，测试暂缓。
   - ✅ 5 月起的库结构变更清单：[docs/db/2026-10-02-schema-changes-since-0501.md](docs/db/2026-10-02-schema-changes-since-0501.md)。新建 25 张表、2 个视图；10 张旧表加了约 40 列；约 22 列没有脚本存档。这些改动对旧版服务端都只是新增，演示服务器连当前库从结构上能跑。生产库只读核对被权限规则拦下，**❓ 项需要用户在 SSMS 跑第八节的查询**。
   - 🚧 **下一步（负责人）**：
-    - 搭演示服务器：建议用 SnowmeetApi `migrate_to_new_season`；
-    - 小程序后台合法域名：request、uploadFile 加 `https://mini.snowmeet.com`，socket 加 `wss://mini.snowmeet.com`；
-    - 把 Copilot 待办交出去；
+    - 在微信开发者工具编译旧版演示分包，确认体积并按待办做新版回归、演示点测、删除演练；
+    - 核验小程序后台 request/uploadFile `https://mini.snowmeet.com`、socket `wss://mini.snowmeet.com` 合法域名；
+    - 先确认演示环境不会触发真实支付/退款/订票，再交接 Copilot 待办；
     - 执行 `staff_bind_code` 后再部署 SnowmeetApi；
     - 提交公众号仓库的改动。
 - **09-30 晚：Copilot 测试方案与执行交接（详见 [会话记录](sessions/2026-09-30_copilot-test-plan-handoff.md)）**：

@@ -1,0 +1,40 @@
+{
+  "runId": "qa-20261001-common02-yesterday-113751-6bb721",
+  "scope": "Focused C-M subcase only; not the full 170-case catalog or full COMMON-02 matrix.",
+  "startedAt": "2026-10-01T03:37:51Z",
+  "finishedAt": "2026-10-01T03:58:38Z",
+  "resumedAt": null,
+  "sourceRepositories": {
+    "snowmeet_ai_doc": {
+      "branch": "main",
+      "head": "0083352",
+      "worktree": "clean"
+    },
+    "snowmeet_wechat_mini": {
+      "branch": "ai",
+      "head": "fed5a59f",
+      "worktree": "clean"
+    }
+  },
+  "testCopy": "/tmp/snowmeet-common02-qa-20261001",
+  "testCopyAppId": "wxd1310896f2aa68bb",
+  "testCopyRegisteredPages": ["ui-test/common02/index"],
+  "tools": {
+    "macOS": "13.7.8",
+    "wechatDeveloperTools": "2.02.2607171",
+    "node": "v20.20.2",
+    "npm": "10.8.2",
+    "devtoolsHttpPort": 63227,
+    "devtoolsAutomationPort": 19626
+  },
+  "timezone": "Asia/Shanghai",
+  "expectedToday": "2026-10-01",
+  "expectedYesterday": "2026-09-30",
+  "sourceComponentHashes": {
+    "components/date-range-picker/index.js": "e7a3d75eea627840fb8512314a2d10dfa27bf4a7f252b288548b95f02ef8e490",
+    "components/date-range-picker/index.wxml": "bdcc201406a2c65de7e4aae8a32e45f43425ff61bcb2803a7b5da0661a8c333e"
+  },
+  "dirtySnapshot": [],
+  "retryScreenshotSha256": "89257a9fa09d658c9df4cb0b9b29732297767330f89ef4bcfb2d5dea344539b3",
+  "committed": false
+}

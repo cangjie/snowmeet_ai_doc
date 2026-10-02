@@ -1,0 +1,49 @@
+{
+  "runId": "qa-20261001-common02-yesterday-113751-6bb721",
+  "scope": "One focused child variant of COMMON-02; all other catalog cases remain NOT_RUN and are not included in this focused file.",
+  "results": [
+    {
+      "caseId": "COMMON-02",
+      "variant": "yesterday-shortcut",
+      "mode": "C",
+      "status": "PASS",
+      "priority": "P1",
+      "startedAt": null,
+      "finishedAt": "2026-10-01T03:58:38Z",
+      "attempt": 2,
+      "fixtureKeys": ["UI"],
+      "testFile": "/tmp/snowmeet-common02-qa-20261001/ui-test/common02/index.js",
+      "testName": "COMMON-02-yesterday-shortcut-C-M",
+      "expected": "On 2026-10-01 Asia/Shanghai, selecting yesterday emits startDate=2026-09-30 and endDate=2026-09-30, highlights yesterday, updates the parent range, and sends no business request.",
+      "actual": "After the tester clicked yesterday in the foreground DevTools simulator, the picker and parent both displayed 2026-09-30 ~ 2026-09-30; yesterday was highlighted, the prior '尚未操作' acknowledgment disappeared, and blocked business request count remained 0.",
+      "evidence": [
+        "screenshots/COMMON-02-before.png",
+        "screenshots/COMMON-02-click-attempt.png",
+        "screenshots/COMMON-02-after-pass.png",
+        "logs/devtools-project.log",
+        "logs/manual-retry-2.txt"
+      ],
+      "defectId": null,
+      "blocker": null,
+      "nextAction": null,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "BLOCKED_TOOL",
+          "startedAt": "2026-10-01T03:37:51Z",
+          "finishedAt": "2026-10-01T03:50:38Z",
+          "actual": "DevTools/system clicks did not dispatch the tap handler; screen remained on today and parent acknowledgment remained '尚未操作'.",
+          "evidence": ["screenshots/COMMON-02-click-attempt.png", "logs/devtools-project.log"]
+        },
+        {
+          "attempt": 2,
+          "status": "PASS",
+          "startedAt": null,
+          "finishedAt": "2026-10-01T03:58:38Z",
+          "actual": "Tester clicked yesterday in the foreground simulator; range updated to 2026-09-30 ~ 2026-09-30, yesterday highlighted, blocked business request count 0.",
+          "evidence": ["screenshots/COMMON-02-after-pass.png", "logs/manual-retry-2.txt"]
+        }
+      ]
+    }
+  ]
+}

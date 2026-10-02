@@ -1,0 +1,8 @@
+Run: qa-20261001-common02-yesterday-113751-6bb721
+Case: COMMON-02 / yesterday-shortcut / C-M
+Attempt: 2
+Input: The tester manually clicked the visible “昨天” shortcut in the isolated WeChat DevTools simulator.
+Observed through DevTools accessibility tree: picker and parent range both read 2026-09-30 ~ 2026-09-30; the previous “尚未操作” acknowledgment was absent; blocked business request count was 0.
+Observed in screenshot screenshots/COMMON-02-after-pass.png: “昨天” is visibly highlighted; the displayed date range is 2026-09-30 ~ 2026-09-30; blocked business request count is 0.
+Result: PASS.
+The exact time of the user click was not captured. Verification screenshot and accessibility read completed by 2026-10-01T03:58:38Z. Attempt 1 remains recorded as BLOCKED_TOOL in case-results.json.

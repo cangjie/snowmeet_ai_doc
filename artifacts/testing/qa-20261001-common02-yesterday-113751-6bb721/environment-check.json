@@ -1,0 +1,24 @@
+{
+  "runId": "qa-20261001-common02-yesterday-113751-6bb721",
+  "mode": "C-M",
+  "status": "PASS",
+  "checks": {
+    "isolatedTestCopy": {
+      "status": "PASS",
+      "evidence": "Only ui-test/common02/index is registered; source repositories remained clean."
+    },
+    "productionNetworkGuard": {
+      "status": "PASS",
+      "evidence": "wx.login and MemberLogin use a synthetic session; wx.request allows only the synthetic MemberLogin response and blocks all other URLs. uploadFile, downloadFile, connectSocket, requestPayment, scanCode, and requestSubscribeMessage are blocked in the test copy. No business request was observed."
+    },
+    "devtoolsCompileAndPageLoad": {
+      "status": "PASS",
+      "evidence": "The simulator visibly rendered ui-test/common02/index and the initial date state. The DevTools raw log also contains routeTo appLaunch timeout warnings; screenshot evidence confirms the page subsequently rendered."
+    },
+    "uiInputDispatch": {
+      "status": "PASS",
+      "evidence": "Attempt 1 was blocked; on retry, the tester clicked yesterday in the foreground DevTools simulator. The picker and parent range updated to 2026-09-30 ~ 2026-09-30, yesterday was visibly highlighted, and the blocked business request count stayed 0."
+    }
+  },
+  "externalNetwork": "No business API call observed; blocked request counter remained 0."
+}

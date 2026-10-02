@@ -1,0 +1,15 @@
+{
+  "runId": "qa-20261001-common02-yesterday-113751-6bb721",
+  "scope": "Focused partial mapping only; not a full feature or 35-regression coverage map.",
+  "featureCoverage": [
+    {
+      "feature": "6.13 公共组件 / 日期范围选择",
+      "caseId": "COMMON-02",
+      "variant": "yesterday-shortcut",
+      "mode": "C",
+      "testFile": "/tmp/snowmeet-common02-qa-20261001/ui-test/common02/index.js",
+      "status": "PASS"
+    }
+  ],
+  "historicalRegressionCoverage": []
+}
