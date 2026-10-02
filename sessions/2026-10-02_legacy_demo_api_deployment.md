@@ -45,6 +45,16 @@
 - 安全点测前确认真实支付、退款、订票及外部商户接口已隔离；不要扫描可能关联生产数据的二维码。
 - 回滚只针对演示资源：`systemctl disable --now snowmeet-legacy-demo.service`，移除 `/etc/nginx/conf.d/mini.snowmeet.com.conf`，`nginx -t` 通过后 reload；再按需删除演示 unit、release 与 `.com` 证书文件。不得改动 `.top` 生产服务或其数据库。
 
+## 6. 旧版首页显示「您不是管理员」的排查
+
+- 用户反馈：截图中旧版后台有返回新版横幅，正文停在「您不是管理员」，并认为没有发请求。
+- `legacy/pages/admin/admin.wxml` 的 `wx:else` 是默认显示内容；`admin.js` 初始 `role=''`，仅 `loginPromiseNew` 完成后根据 `app.globalData.staff` 设置 `role='staff'`。因此截图本身不能证明服务器鉴权拒绝。
+- `legacy_app.js` 在模块加载时调用 `wx.login`；成功后请求 `https://mini.snowmeet.com/api/MiniAppHelper/MemberLogin`。登录 Promise 对 wx.login fail、业务 code 非 0 的失败路径未完整 resolve/reject，页面可能停留默认状态。
+- 服务器共用 Nginx access log 当天有 5 条 `MemberLogin`：一条 `/core` 200，四条 `/api` 200；其中 13:16、13:20 的 `/api` 请求早于用户 13:26 截图。access log 未记录 Host，无法确认这些请求来自 `.com` 旧版客户端；HTTP 200 也不代表返回业务 `code=0` 或 `data.staff` 存在。
+- 新版 `project.config.json` 中 `urlCheck=false`，但本机个人覆盖 `project.private.config.json` 中 `urlCheck=true`。小程序后台 request/uploadFile/socket 合法域名对 `.com` 的配置状态未验证，故 URL 校验仍是待查项，不是已证实根因。
+- 目标 API 的 `MemberLogin` 返回 `session.staff = StaffController.GetStaffBySocialNum(openId, "wechat_mini_openid", ...)`；当前无法从 Nginx access log 确认请求 App 侧结果。应在开发者工具 Network/Console 检查 `wx.login`、MemberLogin 是否发出、HTTP 状态、响应 `code`、`data.staff` 是否存在及 `title_level`；分享诊断时去掉 code、openid、session_key 等身份字段。
+- 本轮没有修改客户端或服务器；诊断结论保持为待 Network/Console 实证，不能将「没有请求」或「不是管理员」单独归因于服务器权限。
+
 ## 学到的小知识
 
 1. `db_datareader`/`db_datawriter` 可覆盖数据库全部用户表的数据读写；对象元数据不可见时，普通登录查询 `sys.tables` 可能误显 0 表，应由有权账号核对 schema，再以应用登录验证对象权限。
