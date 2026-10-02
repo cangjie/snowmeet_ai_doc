@@ -138,6 +138,16 @@ def check_isolation():
         err("app.json 里没有 legacy 分包")
         return
     pages = set(LEGACY_ROOT + "/" + p for p in sub["pages"])
+    banner = "legacy-demo：旧版演示的返回条（build_legacy.py 注入）"
+    page_wxml = {pg + ".wxml" for pg in pages}
+    for wxml in page_wxml:
+        path = legacy / wxml[len(LEGACY_ROOT) + 1:]
+        if not path.is_file() or path.read_text(encoding="utf-8", errors="replace").count(banner) != 1:
+            err("旧版页面缺少唯一的返回新版提示：%s" % wxml)
+    for path in legacy.rglob("*.wxml"):
+        rel = path.relative_to(MINI_DIR).as_posix()
+        if rel not in page_wxml and banner in path.read_text(encoding="utf-8", errors="replace"):
+            err("返回新版提示不应注入非页面 WXML：%s" % rel)
     other_roots = [s["root"].rstrip("/") for s in subpackages(app) if s["root"].rstrip("/") != LEGACY_ROOT]
     F = Files()
     for pg in pages:

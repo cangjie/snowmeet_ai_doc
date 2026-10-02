@@ -20,8 +20,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 MARK = "由 snowmeet_ai_doc/tools/legacy/build_legacy.py 生成"
 # legacy_app.js 里旧版 globalData 引用的图片（旧版 app.js 不复制，其引用由这里补上）
 EXTRA_ASSETS = ["images/icons/icon_maintain_white.jpg"]
-# 注入「返回新版」条的页面
-EXIT_BAR_PAGES = ["pages/admin/admin", "pages/index/index"]
+# 注入「返回新版」条的页面 WXML 由旧版 app.json 注册的页面单元决定。
 EXIT_BAR = ('<!-- legacy-demo：旧版演示的返回条（build_legacy.py 注入） -->\n'
             '<view style="background:#fff3cd;color:#8a6d3b;padding:20rpx 24rpx;font-size:28rpx;text-align:center;" '
             'bindtap="__legacyExit">【演示】当前为旧版，点此返回新版</view>\n')
@@ -140,7 +139,7 @@ class Builder:
 
         s = re.sub(r"""(['"])((?:\.{1,2}/|/)[^'"\n]*?)\1""", repl, s)
         s = self.hosts(s)
-        if unit_of(src) in EXIT_BAR_PAGES:
+        if src in self.P.O.pagefiles:
             s = EXIT_BAR + s
         return s
 

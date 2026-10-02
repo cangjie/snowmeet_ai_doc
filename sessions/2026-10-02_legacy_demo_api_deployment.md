@@ -55,6 +55,15 @@
 - 目标 API 的 `MemberLogin` 返回 `session.staff = StaffController.GetStaffBySocialNum(openId, "wechat_mini_openid", ...)`；当前无法从 Nginx access log 确认请求 App 侧结果。应在开发者工具 Network/Console 检查 `wx.login`、MemberLogin 是否发出、HTTP 状态、响应 `code`、`data.staff` 是否存在及 `title_level`；分享诊断时去掉 code、openid、session_key 等身份字段。
 - 本轮没有修改客户端或服务器；诊断结论保持为待 Network/Console 实证，不能将「没有请求」或「不是管理员」单独归因于服务器权限。
 
+## 7. 所有旧版页面显示返回新版提示
+
+- 用户要求：旧版所有页面都显示管理页顶部的「【演示】当前为旧版，点此返回新版」提示。
+- 定位到 `build_legacy.py` 原先用 `EXIT_BAR_PAGES` 只对 `pages/admin/admin` 和 `pages/index/index` 注入，导致进入其他页面横幅消失。
+- 生成器现在按旧版 `app.json` 注册页的 `pagefiles` 注入；检查器断言每个注册页面 WXML 恰有一个提示，非页面 WXML 不得注入。
+- 重新生成后注册页 112 个、带横幅页面 112 个，legacy WXML 标记共 112 处；`check_legacy.py` 全部通过，主包估算体积无变化。
+- 客户端生成目录有 118 个改动：110 个页面 WXML 插入提示；另有 8 个旧生成 JSON/WXSS 文件经重建移除，内容仅为空组件配置或注释。
+- 生成器/检查器的 Python diagnostics 无错误，文档与客户端 `git diff --check` 通过。微信开发者工具尚未编译，改动未提交、未上传；上线前需编译回归。
+
 ## 学到的小知识
 
 1. `db_datareader`/`db_datawriter` 可覆盖数据库全部用户表的数据读写；对象元数据不可见时，普通登录查询 `sys.tables` 可能误显 0 表，应由有权账号核对 schema，再以应用登录验证对象权限。
