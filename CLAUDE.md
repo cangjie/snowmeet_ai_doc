@@ -1,6 +1,14 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-02）：旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+## 当前状态（截至 2026-10-02）：reqai 同步、价格修正与简洁回答已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+- **10-02：reqai 同步、模型价格与简洁回答（详见 [会话记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)）**：
+  - ✅ 独立 reqai 仓 `main@56b59cd` 已提交推送；美国服务器 `44.207.251.65:/home/ubuntu/reqai` 同版，`reqai` 服务 active、`NRestarts=0`。实际入口为 `http://ai.snowmeet.top/`，现有 Nginx 自动跳转 HTTPS 后返回 200；本次未改证书或反代。
+  - ✅ reqai 从 `95354a3` 同步到 `6131ea4`；自己的语料副本同步到最新源码（SnowmeetApi `3c9dc278`、小程序 `023f7858`、文档 `d3251f9`、公众号 `4c9c0a6`）。同步验收时 959 个有效文件、2,792 个有效片段，文件哈希全部匹配、无缺失向量；检索已能找到 10-01 员工绑定码和自助登记代码。**静态 schema 导出未刷新，不能据此认定生产库新 DDL 已执行。**
+  - ✅ 全局默认、env `CHAT_MODEL` / `UTILITY_MODEL` 和会话 5 均为 `gpt-5.6-luna`，直连 OpenAI；本次未切换模型。
+  - ✅ `456cf5b` 修正每百万 tokens 的标准短上下文、未缓存输入/输出价格：Luna **$0.20/$1.20**、Terra **$2/$12**、Sol **$4/$20**。模型下拉和新调用费用估算/每日预算共同使用此表；历史记账金额未重算，缓存/长上下文精确计费仍未实现。
+  - ✅ `56b59cd` 调整五份对话提示词：普通回答通常 200–400 字、简单问题 1–3 句；追问每轮最多 3 个关键问题；不自动续写完整 FSD，保留引用和实际冲突；明确要求详细或选择 FSD 时保留完整内容。提示词按请求热读取，现有会话下一轮即生效，无需重启。
+  - ✅ 验证：同步相关测试 200 过/1 跳过；价格回归 3 过；完整后端 305 过/13 个既有失败/1 跳过（与 `95354a3` 基线相同）；提示词相关测试 81 过。Luna 虚构资料样例中，冲突检查由 3,450 字符降至 132 字符；完整 FSD 章节仍齐全。
+  - 本次没有执行 Snowmeet 生产 SQL/DDL、部署 SnowmeetApi 或改小程序。小程序已有 118 个旧版生成文件改动保留，不纳入归档提交。reqai 旧门店匹配待办和帮助/主对话分开配置仍未处理。
 - **10-02：旧版演示 API 部署（详见 [会话记录](sessions/2026-10-02_legacy_demo_api_deployment.md)）**：
   - SnowmeetApi 固定部署提交 `9b4d35f19b4c1c1f06065e89071d155450d8bf69`（`migrate_to_new_season` 分支最后提交、`ai` 分支起点），独立目录 `/home/ubuntu/webs/SnowmeetApiLegacy/releases/9b4d35f1`、systemd `snowmeet-legacy-demo.service`、loopback `127.0.0.1:5003`；不改客户端代码，不碰 `.top` 生产服务。
   - Nginx 独立配置 `/etc/nginx/conf.d/mini.snowmeet.com.conf`，TLS 证书 SAN 匹配且私钥 `root:root 0600`；HTTP→HTTPS、Swagger 200/TLS 校验通过、WebSocket 握手 101。生产 `mini.snowmeet.top` Swagger 仍 200。
@@ -139,7 +147,7 @@
 - reqai 管理员助手 v1 **已部署上线**：装文件 → `main.py` 挂载 → 重启，`/api/service/admin-assistant/{plan,finalize}` 返回 401（已注册）。随后做了 **Git 对齐**，服务器从 `527b466` `reset --hard` 到 `95354a3`，backend 未提交改动归零——09-08 欠的「scp 直改没进 Git」那笔债清了，以后部署就是 `git pull && systemctl restart`。
 - 对齐前逐文件比对过：45 个「未提交文件」里 53 个与本机一致、4 个是服务器落后、1 个（`backend/app/query_intent.py`）是**误放的孤儿副本、无人引用**，没有任何线上独有代码。
 - 按用户指令轮换了 OpenAI key，并把模型从 `gpt-5.6-sol` 换成 **`gpt-5.6-luna`**（env 的 `CHAT_MODEL`/`UTILITY_MODEL` + DB 全局默认三处一起改）。**模型设置是全局的，reqai 自己的需求分析对话也一起切成了 luna。**
-- ⚠️ 顺带发现 **reqai 的模型价格表与官方定价严重不符**（sol 低估 50–80 倍），导致预算保护一直形同虚设，**尚未修正**。
+- ⚠️ 顺带发现 **reqai 的模型价格表与官方定价严重不符**（sol 低估 50–80 倍），导致预算保护一直形同虚设，**当时未修；2026-10-02 已修正并部署 `456cf5b`**。
 - ⚠️ 全天 SSH 反复超时的真因是**本机网络间歇拦截出站 22 端口**（github.com:22 同样不通、443 正常），不是服务器问题——此前归档里「服务器 SSH 不稳」是误判。
 - 详见 [`sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md`](sessions/2026-09-10_reqai_deploy_key_rotation_and_luna.md)。
 
@@ -360,6 +368,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- reqai 成本与输出规则：[价格配置](../../reqai/backend/app/config.py)、[费用回归测试](../../reqai/backend/tests/test_pricing.py)、[对话提示词](../../reqai/backend/app/prompts/)、[检索上下文装配](../../reqai/backend/app/retrieval.py)；[同步/部署及验收记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - 雪季 Copilot 测试交接（2026-09-30）：[测试方案](docs/testing/2026-09-30-copilot-test-plan.md)、[启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[用例索引](docs/testing/2026-09-30-copilot-test-cases.json)；[索引生成器](tools/qa/build_test_plan_index.cjs) 仅读写文档，不运行业务测试。
 - 雪季测试用系统功能说明：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)（交给 ChatGPT 生成测试方案、Copilot 执行；功能或规则有变时同步更新它）。
 - 食材管理服务端：`SnowmeetApi/Controllers/Fnb/`、`SnowmeetApi/Services/Fnb/`、`SnowmeetApi/Models/Fnb/`、`SnowmeetApi/Data/FnbSchemaConfiguration.cs`；SQL Server 隔离测试运行器 `SnowmeetApi/SnowmeetApi.Tests/run_fnb_sqlserver_integration.py`（本机 Windows 用 [`tools/windows_test/`](tools/windows_test/)）；厨房单扣料/欠料补扣集中在 `SnowmeetApi/Services/Fnb/FnbServeService.cs` + 小程序 `pages/fnbinv/serve/` 与 `common/kitchen.js`；开封共用 `common/open-pack.js`（出餐、制作两页）；半成品配方换算在 `common/recipe.js`（`lineUnitCode` / `perUnitCode` / `prepNeeds`）；用量预警服务端 `SnowmeetApi/Services/Fnb/FnbLowStockService.cs`，小程序 `common/lowstock.js` + 组件 `components/low-stock-editor/` + 页面 `lowstock/`；接口契约 [`docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md`](docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md)。
@@ -446,7 +455,11 @@ dotnet run
   - ④ 服务端 3 个问题待定修不修：过期批次入库校验、死锁 1205 映射 code 4、`ListBatches` 在库过滤；另有 `ListOrders` 缺出餐标记的改进建议。
   - ⑤ ~~两个业务仓按节奏提交~~ ✅ 09-27 已全部提交推送。
   - ⑥ 榛果糖浆「可用 0 ml」（09-25）未定位：等用户截该食材的批次图，或同意只读查生产库。
-- **reqai 两条待办（2026-09-11 留）**：① **修 `MODEL_WHITELIST` 价格表**（见「已知遗留」首条，预算保护当前不准，建议优先）；② **给门店字段加枚举 + 模糊匹配 + 澄清文案**（自然语言按门店筛目前大概率失败且报错无用）；③ 待用户决定：要不要把帮助系统的模型与 reqai 主对话分开（现在共用一个全局默认，已一起切到 luna）；④ **下次上机第一件事**：核实 09-12 重新部署（`main@c5ab3ef`）之后 luna 设置是否仍生效——env 与 DB 都在 git 之外理应不受影响，但 09-11 收尾时 SSH 不通没能复核
+- **reqai 状态与待办（2026-10-02 核实）**：
+  - ✅ `MODEL_WHITELIST` 价格表已修正部署（`456cf5b`）；全局默认、聊天/辅助 env 和会话 5 都已核实为 Luna，不再列为待核实。
+  - ✅ 默认简洁回答已上线（`56b59cd`）；实际入口 `http://ai.snowmeet.top/`，服务器与远端同版。
+  - 🚧 旧门店枚举/模糊匹配/澄清文案待办，本次未处理、未复核最新执行器行为；帮助系统与主对话分开模型配置仍待用户决定。
+  - 后续如需完整数据库结构依据，单独安排刷新静态 schema 导出；13 个旧测试失败分别来自旧机器路径与已移除模型，待单独维护。
 - **管理员帮助结构化查询交接**：① **reqai 线上已部署并验证完毕，无剩余阻塞**（`main@c5ab3ef`，详见 2026-09-12 补充）；② SnowmeetApi 无改动、也无待发布内容；③ **小程序仍未发布**——停止按钮（`ai@df1506e7`）要在开发者工具里重编/上传，店员才用得上；④ **仍未做**：在真实员工 session 下验证“四月租赁订单→文字结果→跳转列表→未支付/五月 patch→条件回顾”，以及真机点「停止」确认面板立刻可用。不要把额外隐私加固、审查建议或非功能优化自动升级为阻塞项。
 - **次卡/季卡全链路部署清单（7-26，代码已 commit；SnowmeetApi 尚有 1 个未 push 的 commit）**：
   - ① **三条 DDL 已确认在生产库执行**（`product.usage_rules` / `product.care_project_count` / `punch_card.care_project_count`，2026-07-26 连库核对过），无新增 DDL 阻塞
@@ -558,7 +571,7 @@ dotnet run
 - **`util.performWebRequest` reject 时只给 message、丢掉 code**：食材模块因此自包请求层 [`pages/fnbinv/common/api.js`](../snowmeet_wechat_mini/pages/fnbinv/common/api.js)，保留 2/3/4 以区分会话失效、无权限、需刷新。
 - **`FnbMaterial/GenBatchNo` 按已入库批次计数发号**：同一张入库单里未提交的几条会拿到同号，客户端 `forms.nextBatchNo` 递增避让。
 - **本机（Intel Mac）连不上生产 API 主机 `mini.snowmeet.top`（161.189.64.210:443）**：关闭沙箱也超时，github 正常。部署是否生效只能请用户在开发者工具里看 Network。生产库（config.sqlServer）可以直连做只读核对。
-- **reqai 的模型价格表是错的，预算保护因此失效（2026-09-11 发现，未修）**：`backend/app/config.py` 的 `MODEL_WHITELIST` 写着 sol `$0.05/$0.40`、terra `$0.25/$2.00`、luna `$1.25/$10.00`，而 OpenAI 官方价是 sol **$4.00/$20.00**、terra $2.00/$12.00、luna **$0.20/$1.20** —— sol 低估 50–80 倍、luna 高估 6–8 倍，顺序都反了。这张表直接喂给 `llm.py` 的 `DAILY_USD_CAP` 判断和管理后台「今日花费」：**用 sol 那段时间账面花费只有实际的 1/50~1/80，每日预算保护形同虚设**；切 luna 后误差反向，真实花费到上限 1/7 左右就会被拦。修的时候要标注价格来源日期（sol 的 $4/$20 是 8 月 21 日起的临时降价，原价 $5/$30）。**教训：硬编码的外部价格不参与任何测试，错了没人发现，却决定着预算保护是否生效。**
+- **reqai 模型价格已修正；历史估算仍保留旧金额（2026-10-02）**：09-11 发现的错价已在独立 reqai `456cf5b` 修正并部署：标准短上下文、未缓存输入/输出（美元/百万 tokens）Luna `$0.20/$1.20`、Terra `$2/$12`、Sol `$4/$20`，官方核价日期写进配置，新增 3 个费用回归测试。原价表导致 Sol 低估、Luna 高估；历史 `usage_log.cost_usd` 未改，不等于 OpenAI 真实账单。新估算和每日预算使用修正价格，但未按缓存 tokens 或长上下文分段精确计价。详见 [本次记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - **管理员自然语言查询里「门店」是唯一没有约束的字段（2026-09-10 审查发现，未修）**：`rent_status` 是 9 值 Literal 枚举、`cell_suffix` 有正则，唯独 `shop` 是自由字符串，**planner 的 prompt 里也没给门店清单**，模型只能从用户原话抄；而 `RentalOrderQueryExecutor` 是 `shop.name == 输入` **精确相等**，对不上就抛「租赁门店不支持」，前端统一显示「暂时无法获得回答」+ 重试按钮——用户看不到真因、重试永远失败。用户说「万龙店」而库里是「万龙服务中心」就会触发。2026-08 刚把 `product.shop` 自由文本退役改 `shop_id`，这条新链路又退回了按名字匹配。修法：门店清单进 prompt 当枚举 + 执行器加包含匹配兜底 + 匹配不上时把可选门店列进澄清 reply。另：11 个字段里**没有金额区间**，「金额超过 1000 的订单」表达不了。
 - **本机网络会间歇拦截出站 22 端口（2026-09-10/11 两天反复踩）**：`ssh` 到 reqai 服务器和 `github.com` 会同时超时，而两者 443 始终正常，`nc -z host 22` 直接不通，一度持续 10 分钟以上。**此前归档里记的「服务器 SSH 不稳」是误判，服务器一直是好的。** 排查先用 `nc -z -w 8 github.com 22` 对照，同样不通就是本地网络，别狂刷重试；绕过办法是切手机热点/VPN，git 走 SSH 可用 `ssh.github.com:443`，急着重启服务可让用户从 AWS 控制台 EC2 Instance Connect 执行。
 - **`request.is_disconnected()` 只能在 anyio 管辖的任务里调用（2026-09-12 踩，reqai）**：它靠「进入一个已取消的 `anyio.CancelScope`，让 `receive()` 立刻返回」来做非阻塞探测，这机制只对 anyio 结构化并发范围内的任务有效。把它丢进 `asyncio.ensure_future()` 起的裸 watcher task 里轮询会**直接死锁**——管理员助手 router 的每个请求都卡住，整个测试文件超时。症状极具迷惑性：没报错、没堆栈，`pytest -q` 连部分输出都不打（被 capture 攒着），看起来只是「跑得慢」。**定位方法留档**：`timeout -s ABRT 45 .venv/bin/python -X faulthandler -m pytest ...`，SIGABRT 会让 faulthandler 打出所有线程栈，一眼看到事件循环空转在 `selectors.select`。正解是**在处理函数自己的任务里轮询**（`asyncio.wait({task}, timeout=...)` 循环，每轮查一次断连），不要另起 task。见 `backend/app/routers/admin_assistant.py` 的 `_run_until_client_leaves`。
@@ -4104,3 +4117,13 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 2：判断「能不能共用」要按单元（同名的 js/json/wxml/wxss）和依赖闭包来判。文件级判断会漏：组件的 js 读 `getApp()`，但同名的 wxml/json 看起来无害。
 - 📌 教训 3：旧代码的全局副作用（WebSocket 最多 5 个、蓝牙连接、未注销的监听、定时器）会带进新版，「零影响」必须在退出时逐项释放。
 - 详细归档：[`sessions/2026-10-02_api-diff-legacy-demo-schema-list.md`](sessions/2026-10-02_api-diff-legacy-demo-schema-list.md)。
+
+### 2026-10-02：reqai 同步美国部署、价格修正与默认简洁回答
+
+- ✅ 按用户要求同步 reqai 和其自有语料副本，重新部署并验证新员工账号代码可检索；未刷新静态 schema 导出。同步验收时 959 个有效文件、2,792 个片段，无向量缺失。
+- ✅ 用户确认入口为 `http://ai.snowmeet.top/`，已有 HTTPS 跳转正常，公网 200；未改 Nginx/TLS。
+- ✅ 核实默认及会话模型是 Luna；`456cf5b` 修正三款模型价格并更新新调用费用估算，保留历史金额。价格回归 3 过；完整后端 305 过、13 个基线已有失败、1 跳过。
+- ✅ `56b59cd` 默认回答精简、追问最多 3 项、取消自动完整 FSD，保留引用和显式详细输出；81 项相关测试通过，Luna 实测冲突检查 3,450→132 字符，完整 FSD 仍保留全部章节。
+- ✅ 收尾核实 reqai 本机、GitHub 和美国服务器同版；服务 active、PID 308721、重启次数 0。小程序既有 118 个文件改动保留；本次不提交业务仓其他工作。
+- 📌 提示词通过 `llm.prompt()` 每次读取并 `.strip()`，不需重启；校验时分别比较文件原始哈希与运行时去空白文本。全套测试的旧路径/旧模型失败不可写成全部通过。
+- 详细归档：[`sessions/2026-10-02_reqai-sync-pricing-concise.md`](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
