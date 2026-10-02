@@ -28,7 +28,8 @@ Beginning a work session on a complex project requires full context. This skill 
    - `SnowmeetApi`
    - `snowmeet_wechat_mini`
    - `SnowmeetOfficialAccount`
-   - `reqai`（本机路径为 `/Users/cangjie/Projects/snowmeet/reqai/`，GitHub 为 `cangjie/snowmeet_reqai`）
+   - `reqai`（Mac 路径为 `/Users/cangjie/Projects/snowmeet/reqai/`，Windows 机为 `D:\source\snowmeet\snowmeet_reqai`，GitHub 为 `cangjie/snowmeet_reqai`）
+   - 本机出站 22 端口间歇被拦，`git fetch` 报 `github.com port 22: Connection timed out` 时，如实报告「远端状态未刷新」，ahead/behind 以本地已有的远端引用为准
    对每个可访问仓库检查分支、工作区是否干净、HEAD 短 hash、最近提交和相对远端的 ahead/behind；`reqai` 路径不存在或未挂载时必须明确报告，不能略过。
 
 4. **Format** as a scannable overview — use the exact structure from CLAUDE.md, include emojis (✅🚧⏳) to show status at a glance, and callout any blockers in bold

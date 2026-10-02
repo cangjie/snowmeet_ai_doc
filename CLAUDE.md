@@ -1,6 +1,23 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-09-30 晚）：Copilot 测试方案已交付（170 条用例）；待执行业务测试；小程序南山清理仍未提交
+## 当前状态（截至 2026-10-02）：旧版演示分包已生成（未提交、未编译），验证交给 Copilot；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+- **10-02：接口改动分析 + 旧版演示分包 + 库结构清单（Windows 机，详见 [会话记录](sessions/2026-10-02_api-diff-legacy-demo-schema-list.md)）**：
+  - **10-01 有一天工作没跑 end-work，本文件没有记录**：员工账号管理（`pages/staffadmin/`：一次性绑定码、公众号自助登记、超级管理员、权限等级），小程序 `fed5a59f`～`d5613602`、SnowmeetApi `446f955e`～`3c9dc278` 已提交；[`sql/2026-10-01_staff_bind_code.sql`](sql/2026-10-01_staff_bind_code.sql) 本次随文档仓库一起提交，**生产库未执行，必须先于这版 SnowmeetApi 部署**；公众号仓库 `OfficialAccountApi.cs` 两条入职回复的链接改到 `pages/staffadmin/selfreg/selfreg`，**未提交**，要和小程序一起发布（旧 `staff_reg` 页已删）。09-30 的南山删除 50 个改动已在小程序 `cb1513e1` 提交。
+  - ✅ 服务端 `ai` 分支改动分析：分支在 **2026-05-01** 从 `migrate_to_new_season`（最后提交 `9b4d35f1`，04-14，之后再没改过）开出。分支开出时有 381 个接口：37 个改了实现、7 个加了可选参数、0 个删除或改地址；新增 175 个。有几处改动会影响旧调用方：券转赠两个接口的返回格式、`MemberLogin` 不再自动建会员、商品去掉 `shop` 字段、`GetMySkipass` 只按 member_id 查、租赁状态计算重写。
+  - ✅ **旧版演示**（新版后台首页「【演示】进入旧版」，仅管理员可见）。旧版 = 小程序 `origin/master` `584b9466`，独立运行，接口连 `mini.snowmeet.com`。
+    - 生成器、检查器在 [`tools/legacy/`](tools/legacy/)；生成结果是 `snowmeet_wechat_mini/legacy/`，635 个文件、112 页，**不要手改**。
+    - 74 个没改过的单元直接共用新版主包。
+    - **新版零影响**：只有 3 处带 `legacy-demo` 标记的纯插入，去掉后与 HEAD 逐字节相同；运行时有独立的 `legacy_app.js`，进出都用 `reLaunch`，「返回新版」时释放旧版占用的蓝牙、socket、定时器和键盘监听；非管理员进入会被送回新版首页。
+    - 检查器全部通过；估算体积：主包 +4 KB（约 1812 KB），`legacy` 约 1271 KB；旧版 164 个 JS/WXS 语法检查通过；小程序测试 194/194。
+    - **小程序和文档仓库的这部分都未提交；开发者工具没编译过，编译通过前不要用这版上传。**
+  - ✅ Copilot 待办清单：[docs/legacy-demo/2026-10-02-legacy-demo-todo.md](docs/legacy-demo/2026-10-02-legacy-demo-todo.md)，包括编译和实际体积、新版回归、演示点测、删除演练。用户说服务器还没搭好，测试暂缓。
+  - ✅ 5 月起的库结构变更清单：[docs/db/2026-10-02-schema-changes-since-0501.md](docs/db/2026-10-02-schema-changes-since-0501.md)。新建 25 张表、2 个视图；10 张旧表加了约 40 列；约 22 列没有脚本存档。这些改动对旧版服务端都只是新增，演示服务器连当前库从结构上能跑。生产库只读核对被权限规则拦下，**❓ 项需要用户在 SSMS 跑第八节的查询**。
+  - 🚧 **下一步（负责人）**：
+    - 搭演示服务器：建议用 SnowmeetApi `migrate_to_new_season`；
+    - 小程序后台合法域名：request、uploadFile 加 `https://mini.snowmeet.com`，socket 加 `wss://mini.snowmeet.com`；
+    - 把 Copilot 待办交出去；
+    - 执行 `staff_bind_code` 后再部署 SnowmeetApi；
+    - 提交公众号仓库的改动。
 - **09-30 晚：Copilot 测试方案与执行交接（详见 [会话记录](sessions/2026-09-30_copilot-test-plan-handoff.md)）**：
   - ✅ [完整方案](docs/testing/2026-09-30-copilot-test-plan.md)、[Copilot 启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[JSON 用例索引](docs/testing/2026-09-30-copilot-test-cases.json) 已完成。170 条主用例（P0 92、P1 76、P2 2），其中 12 条人工验收；覆盖 16 个业务模块、9 项公共机制和全部 35 条历史回归。
   - ✅ 本轮实跑：前端既有测试 **167/167**；后端不含 DDL 的安全子集 **353/353**，排除 `FnbSqlServerIntegrationTests` 和含 SQLite `EnsureCreatedAsync` 的 `AdminAssistantControllerTests`。**这些不是 170 条新用例的执行结果**；B/C/D 业务验证本轮未跑。
@@ -8,7 +25,7 @@
   - **测试环境限制**：旧 `run_fnb_http_smoke.py` 导入的 SQL Server 运行器会读生产配置、访问生产结构并在同机建删测试库；`run_integration_localdb.py` 虽不读生产仍包含 DDL。Copilot 不直接执行或 import，B 类须由负责人先准备本地隔离库；小程序 C 类须在 App 启动前完成网络隔离，不能仅改域名。
   - ✅ 索引生成器 [`tools/qa/build_test_plan_index.cjs`](tools/qa/build_test_plan_index.cjs) 校验通过：170 个唯一用例、25 项章节映射、35 项回归映射；两段 PowerShell 语法、文档链接和原文七条安全规则均已检查。
   - 🚧 **下一步**：把启动指令交给 Copilot，先执行 S/A 并补缺失测试，再按环境闸门执行 B/C，真实支付、退款、订票及设备流程按 12 条 D 类由人工验收。测试运行器/完整业务测试套件仍需 Copilot 实现，不能将方案交付视为系统已通过测试。
-  - 本轮仅改文档仓；业务代码未改。小程序之前的 36 个已暂存删除 + 14 个未暂存修改仍保留，需开发者工具编译点测后由用户提交。
+  - 本轮仅改文档仓；业务代码未改。（10-02 核对：小程序之前的 50 个改动已由用户在 `cb1513e1` 提交。）
 - **09-30 晚：测试准备 + 删除南山代码（Windows 机，详见 [会话记录](sessions/2026-09-30_feature_inventory_and_nanshan_removal.md)）**：
   - **系统功能说明**：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)，约 870 行，逐页逐接口对照代码写。用户交给 ChatGPT 生成测试方案，再由 Copilot 执行。内含 7 条执行安全红线（本地后端默认连生产库、不许真实支付退款、不许调万龙雪票下单等）、各模块规则、35 条回归重点、上线前提、页面和接口附录。按用户要求已去掉全部南山内容。
   - **南山已关店（用户 09-30 告知）**：删除微信小程序里的南山代码，共 36 个文件约 83 KB，另有 14 个共用文件只删南山分支约 9 KB。共用的雪票选购页、`my_skipass`（万龙付款后的落地页）、租赁价格设置都保留。雪票选购页过滤后端返回的「南山」，旧链接带 `resort=南山` 时落到第一个雪场。自动检查全过（80 个注册页面文件齐全、JS 语法、WXML 配对、测试 167/167）。**开发者工具还没编译、没提交**，小程序仓 50 个文件改动在工作区。
@@ -4061,3 +4078,21 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 新增文档工具 `tools/qa/build_test_plan_index.cjs`，生成/校验用例索引，无业务或网络副作用。唯一ID、执行层、夹具、章节/回归引用及方案 PowerShell 语法/链接/安全规则均已验证。
 - 🚧 下一步：Copilot 按启动指令实际补写与执行测试；缺环境/缺工具/未实现接缝逐项报告，D 类由人工验收。此前小程序 50 个改动不纳入本次文档提交。
 - 详细归档：[`sessions/2026-09-30_copilot-test-plan-handoff.md`](sessions/2026-09-30_copilot-test-plan-handoff.md)。
+
+### 2026-10-02：服务端接口改动分析 + 旧版演示分包 + 库结构清单（Windows 机）
+
+- ✅ start-work 发现 10-01 员工账号管理那天没跑 end-work。代码两仓已提交；`staff_bind_code.sql` 本次随文档仓库提交（生产库未执行）；公众号仓库入职回复链接的改动未提交。
+- ✅ 服务端 `ai` 分支（05-01 从 `migrate_to_new_season` `9b4d35f1` 开出）的接口对比：按控制器方法逐个对比，不计只改空格、注释的。381 个老接口里 37 个改了实现、7 个加了可选参数、0 个删除或改地址；新增 175 个。另有 124 个老接口没改代码，但调用了改过的公共函数（如 `GetStaffBySessionKey`、`GetOrder`），或受模型里计算逻辑的影响（租赁状态重写）。
+- ✅ 旧版演示：用户要求「新版不能受任何影响」。生成器 [`tools/legacy/build_legacy.py`](tools/legacy/build_legacy.py) 从 `584b9466` 读旧版，按依赖关系判定哪些「复制」、哪些「共用」：与新版字节相同、新版主包也在用、不连服务器、依赖也不变的才共用；打印码表例外，用新版精简后的那份。改写规则：
+  - 路径、`/pages/` 跳转、`getApp()` → `legacy_app`、`Page()` 包装；
+  - 只有接口和上传的域名改成 `mini.snowmeet.com`；
+  - 旧版 `app.json` 的全局组件按 wxml 实际用到的注入到各文件。
+  
+  检查器 [`tools/legacy/check_legacy.py`](tools/legacy/check_legacy.py) 检查新版零改动、隔离和体积。新版后台首页入口仅管理员可见。业务两仓都未提交。
+- ✅ Copilot 待办清单 [docs/legacy-demo/2026-10-02-legacy-demo-todo.md](docs/legacy-demo/2026-10-02-legacy-demo-todo.md)；5 月起库结构清单 [docs/db/2026-10-02-schema-changes-since-0501.md](docs/db/2026-10-02-schema-changes-since-0501.md)。
+- ❌ 两次被 auto-mode 的「生产读取」规则拦下：开发者工具编译验证体积时用户叫停（服务器未搭好）；生产库只读核对表结构被拒，接着本地查文档记录也被拒，按规则停下，交给用户决定。
+- 🚧 待办：搭演示服务器 + 合法域名（含 `wss://`）→ Copilot 跑 C1～C4 → 用户提交；执行 `staff_bind_code` 后再部署 SnowmeetApi；在 SSMS 核实库结构清单里的 ❓ 项；给约 22 列没有脚本存档的改动补一个幂等汇总脚本。
+- 📌 教训 1：Edit 工具改 wxml 时，会顺手去掉原有行尾的空格，破坏「纯插入」。检查器按 HEAD 逐字节比对才发现，后来用二进制方式补回。
+- 📌 教训 2：判断「能不能共用」要按单元（同名的 js/json/wxml/wxss）和依赖闭包来判。文件级判断会漏：组件的 js 读 `getApp()`，但同名的 wxml/json 看起来无害。
+- 📌 教训 3：旧代码的全局副作用（WebSocket 最多 5 个、蓝牙连接、未注销的监听、定时器）会带进新版，「零影响」必须在退出时逐项释放。
+- 详细归档：[`sessions/2026-10-02_api-diff-legacy-demo-schema-list.md`](sessions/2026-10-02_api-diff-legacy-demo-schema-list.md)。
