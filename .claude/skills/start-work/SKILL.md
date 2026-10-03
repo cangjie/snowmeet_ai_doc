@@ -24,6 +24,7 @@ Beginning a work session on a complex project requires full context. This skill 
    - **Key Files** — The important files you'll be touching
    - **Next Steps** — The immediate priority work
    - **Known Issues** — Gotchas and constraints (things that burned us before)
+   - **reqai 需求动态**：照搬 CLAUDE.md 里 `<!-- reqai-digest:begin -->` 区块的要点，包括主题状态、⚠️ 冲突和等谁确认。再运行 `py snowmeet_ai_doc/.claude/skills/reqai-digest/scan.py --check`（Mac 用 `python3`），把它输出的那一行原样附上。如果有未分析的会话，提示用户可以运行 `/reqai-digest`；start-work 本身不做分析。
 
    启动状态核查必须覆盖当前 workspace 内的四个仓库，以及独立项目 `reqai`：
    - `snowmeet_ai_doc`
