@@ -1,6 +1,6 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03 晚）：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+## 当前状态（截至 2026-10-03 晚）：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验页已随 `534aad0c` 上线（签名接口线上核实正常），待真机打印；小程序养护打印弹窗改为「未连接按钮灰 + 打完不断开 + 掉线监听」（`b1d6bb02` 已 push，待上传）；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
 - **10-03 下午：上传文件迁移 AWS S3（Windows 机，详见 [会话记录](sessions/2026-10-03_s3-upload-migration.md)）**：
   - 用户要求：所有上传接口改存 S3，服务器上的文件全部迁进桶，并改库。用户拍板：**CloudFront + 新域名 `img.snowmeet.top`**；**库里继续存相对路径 `/upload/...`、显示域名集中配置**；**wanlonghuaxue 服务器已注销，上面的图片不要了**。
   - ✅ AWS 中国宁夏（账号 6737-5164-6617）：私有桶 `snowmeet-uploads-673751646617-cn-northwest-1-an`（版本控制开、SSE-S3、阻止公开访问）；mini 实例 `i-0c2e59977055013fa` 挂 IAM 角色 `snowmeet-api-ec2`（策略 `snowmeet-uploads-rw` 只有 List/Get/Put，内联 `upload-cloudfront-cert` 只能传 `/cloudfront/` 证书）；CloudFront `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`）经 OAI 读桶，桶策略**只放行 `upload/*`**；证书 `img.snowmeet.top-20270101`（TrustAsia，**2027-01-01 到期**）；阿里云 DNS `img` CNAME 到分配。
@@ -38,8 +38,14 @@
   - ✅ 实验页 [`wwwroot/wecom/ble_print_test/`](../SnowmeetApi/wwwroot/wecom/ble_print_test/index.html)，线上地址 `https://mini.snowmeet.top/wecom/ble_print_test/index.html`。打的是养护单 25693（`WF-260715-002`）的存根标签，数据写死在页面里（只留姓、手机号打码）；搜索 3 秒，按 printer 表挑信号最强的一台；页面带日志区和「高级」（每包字节、包间隔）。
   - ✅ 打印库三个文件从用户指定的 `D:\source\snowmeet\snowmeet_wechat_mini\utils\ble_label_printer\` 原样拷贝（含完整版 `encoding-indexes.js` 530 KB），`index.html` 内联加载脚本补浏览器环境。Node 比对：两种字体生成的字节与小程序 `getCommand` **逐字节一致**。
   - ✅ SnowmeetApi `ai@5a79820f`：食材过期提醒首页 [`fnb/mat_expire/index.html`](../SnowmeetApi/wwwroot/fnb/mat_expire/index.html) 最底部加**临时**按钮「【测试】蓝牙打印养护标签」，`wecom-ble-test begin/end` 标记包住的纯插入，测试完整段删除。
-  - 🚧 本次 start-work 已确认两个提交在 origin/ai（HEAD `5a79820f`）；历史记录的“未 push”已过期。publish 状态未重新核实；下一步确认部署 → 企业微信首页最底点按钮 → 张数填 2，iPhone/安卓实测，失败时保留日志。
-  - 📌 本机连不上 `mini.snowmeet.top`（curl 超时），部署结果只能靠用户在手机上看。
+  - ✅ **已上线**：两个提交随 10-03 14:33 发布的 SnowmeetApi `534aad0c` 一起上线（S3 那次发布从它们之上构建）。晚上经美国服务器核实：测试页 200；首页含 `wecom-ble-test` 按钮；签名接口对外域 URL 返回 code=1，对测试页 URL 返回 code=0 和两种签名，说明企业、应用两种 ticket 都能从企业微信取到。
+  - 🚧 **下一步**：企业微信里打开食材过期提醒首页，滑到最底点按钮 → 张数填 2，iPhone 和安卓各测一次；打不出来时保留页面日志。测完删掉首页那段 `wecom-ble-test` 临时入口。
+  - 📌 本机连不上 `mini.snowmeet.top`（curl 超时）；可经美国服务器 `ssh ubuntu@44.207.251.65 'curl …'` 核对线上页面和接口。
+- **10-03 晚：小程序养护标签打印弹窗（`b1d6bb02`，已 push，待上传）**：
+  - ✅ 用户要求：没有已连接的打印机时，打印按钮要灰掉。原按钮看的 `ready` 只在连上时置 true、从不复位。改为用 observer 从 `availablePrinters` 推出 `hasConnected`，有一行「已连接」才可点。
+  - ✅ 用户追加两项：① 打完**不再自动断开**，补打直接点打印；关闭弹窗（detached）时仍会断开。② 增加 `wx.onBLEConnectionStateChange` 掉线监听：打印机掉线时把对应行改回「未连接」，按钮随之变灰；detached 时 `off` 掉。整个新版只有这一处监听。
+  - ✅ Node 模拟 12 项场景全过，小程序测试 194/194。旧版演示用自己那份组件（`/legacy/components/care/`），不受影响。真机未试。
+  - 改的是 [`components/care/print_care_label.js`](../snowmeet_wechat_mini/components/care/print_care_label.js) 和 `.wxml`。
   - ⚠️ start-work 核对时发现：本机（Windows）小程序工作区是干净的，**没有**上面 10-02 记的「约 118 个旧版横幅生成文件改动」，`legacy/` 里只有 2 个页面有返回横幅（远端也一样）。那批改动可能在别的机器上，也可能已丢；[`build_legacy.py`](tools/legacy/build_legacy.py) 已入库，重跑可再生成。另外小程序远端多 2 个用户提交（`9a3434d1`、`023f7858`「show legacy」，加回 8 个空 JSON/WXSS），本机未拉。
   - 本机另有一份旧的 reqai 检出 `D:\source\snowmeet\snowmeet_reqai`（停在 `6131ea4`）；最新的是 `D:\source\snowmeet\ai\snowmeet_reqai`（`e1c8373`）。
 - **10-02：reqai 任意格式附件与历史原件（10-03 归档，详见 [会话记录](sessions/2026-10-02_reqai-attachment-history.md)）**：
@@ -4286,3 +4292,11 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 发现：库里引用的 14.6 万个文件只有 4,285 个在 mini 上；三张 `.top` 证书 10-14 到期；mini 私钥文件 777。
 - 🚧 用户上传新版小程序（先加 downloadFile 合法域名）；过几天删 mini `wwwroot/upload`。
 - 详细归档：[sessions/2026-10-03_s3-upload-migration.md](sessions/2026-10-03_s3-upload-migration.md)。
+
+### 2026-10-03（晚）：小程序养护标签打印弹窗 + 蓝牙实验页上线核实
+
+- ✅ 小程序 `b1d6bb02`（已 push，待上传）：养护标签打印弹窗没有「已连接」的打印机时打印按钮变灰（observer 推 `hasConnected`，取代从不复位的 `ready`）；打完不再自动断开，关弹窗才断；新增 `onBLEConnectionStateChange` 掉线监听，detached 时 `off`。Node 模拟 12 项场景全过，小程序测试 194/194；真机未试。
+- ✅ 核实企业微信蓝牙实验已上线：SnowmeetApi `534aad0c`（14:33 S3 发布）包含 `de6de506`/`5a79820f`。经美国服务器 curl：测试页 200、首页有临时按钮、签名接口拒绝外域并对测试页返回两种签名。
+- 🚧 用户在企业微信真机实测打印（张数 2，iPhone/安卓）；测完删首页临时入口。小程序 `b1d6bb02` 随下一次上传。
+- 📌 本机 22 端口仍间歇被拦：`ls-remote` 走 443（`ssh.github.com`，`HostKeyAlias=github.com`）才确认到小程序远端。
+- 详细归档：[`sessions/2026-10-03_wecom-h5-ble-print-test.md`](sessions/2026-10-03_wecom-h5-ble-print-test.md)（第 5、6 节）。

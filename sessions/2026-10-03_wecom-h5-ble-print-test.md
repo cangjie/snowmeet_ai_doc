@@ -112,7 +112,52 @@ printer 表里有效的打印机：`Printer_1048/73E7/B644/7371/CA10` 和 `GP-31
   - 非企业微信环境显示提示、按钮置灰、预览正确；
   - 375px 宽无横向滚动；
   - 首页临时按钮显示正常，点击能跳到测试页。
-- **没做**：真机打印（要等 publish）；push。
+- **没做**：真机打印（要等 publish）；push。（晚上已核实上线，见第 6 节）
+
+## 5. 小程序养护标签打印弹窗（晚，小程序 `b1d6bb02`）
+
+### 5.1 未连接时打印按钮灰掉
+
+用户发来养护订单「打印【标签存根】」弹窗截图，原话：
+
+> 小程序的这个界面，如果没有已连接的打印机，打印按钮应该灰掉。
+
+- 原因：按钮绑定 `disabled="{{ready!=true}}"`，`ready` 只在连接成功时置 true，之后从不复位。手动断开、连接失败、打印完自动断开之后，按钮都还亮着。
+- 改法：组件加 `observers.availablePrinters`，算出 `hasConnected`（列表里有一行「已连接」），按钮改为 `disabled="{{!hasConnected}}"`。每次状态变化都会 `setData({ availablePrinters })`，所以这一处就够了，和表格显示的状态一致。
+- 项目里没有用内联 WXS 的先例，所以用 JS observer，这在项目里常见。
+- 旧版演示用自己那份组件（`legacy/pages/admin/care/order_detail.json` 引用 `/legacy/components/care/print_care_label`）；新版组件只被 `care_order_detail` 用，改动不影响演示。
+
+### 5.2 打完不断开 + 掉线监听
+
+我说明了连带变化（原代码打完自动断开，按钮会随之变灰，补打要先点「连接」）以及中途掉线不会被发现。用户原话：
+
+> 打完不自动断开，再补上掉线监听，然后提交
+
+- `send()` 打完最后一张时，删掉原来的 `closeBLEConnection`；关闭弹窗（`detached`）时照旧断开。
+- `ready()` 里注册 `wx.onBLEConnectionStateChange`：`connected=false` 且对应行是「已连接」时改为「未连接」；若是当前连接的那台，`connectingIndex` 清空。`detached()` 里 `wx.offBLEConnectionStateChange`。
+- 不弹 toast：手动断开也会触发这个事件，弹「打印机已断开」会误导；表格状态和灰按钮已经能说明问题。
+- 全新版只有这一处注册该监听，基础库 3.5.8 支持 `off`，不会和别处冲突。
+
+### 5.3 验证
+
+- `node --check` 通过；diff 只有预期的几行。
+- Node 模拟整个组件（mock `wx`、`data`、`util`，`setData` 触发 observer），12 项全过：
+  - 初始按钮灰；自动连上后可点；
+  - 打完不断开、按钮仍可点；补打直接写、不重连；
+  - 别的设备掉线不影响；本机打印机掉线后状态改「未连接」、按钮灰、`connectingIndex` 清空；
+  - 手动重连可点、手动断开变灰；关闭弹窗后监听注销。
+- 小程序测试 194/194。真机未试。
+
+## 6. 上线核实（end-work 时）
+
+- 文档仓这期间多了其他会话的提交（S3 迁移、reqai-digest、端口转发）；end-work SKILL.md 新增「Git 长期授权」和 22 端口改走 443 的规则。
+- SnowmeetApi：`534aad0c`（S3 迁移，14:33 已发布）就在我的 `de6de506`、`5a79820f` 之上，与 origin 一致，所以蓝牙实验页**已随那次发布上线**。上午说的「没 push、没 publish」已过时。
+- 本机连不上 `mini.snowmeet.top`，经美国服务器 curl 核实：
+  - `/wecom/ble_print_test/index.html` 返回 200；
+  - 首页 HTML 里有 `wecom-ble-test` 标记（2 处，begin/end）；
+  - `GetJsSdkSignature?url=https://evil.example.com/` 返回 code=1「只能为 https://mini.snowmeet.top 下的页面签名」；
+  - 对测试页 URL 返回 code=0，corpId/agentId 和两种签名都有，说明两种 jsapi_ticket 都取到了。
+- 小程序：`b1d6bb02` 16:57 已 push。22 端口超时，用 443 `ls-remote` 确认远端就是 `b1d6bb02`。
 
 ## 关键改动文件
 
@@ -123,6 +168,8 @@ printer 表里有效的打印机：`Printer_1048/73E7/B644/7371/CA10` 和 `GP-31
 | `SnowmeetApi/wwwroot/wecom/ble_print_test/*` | 实验页 3 个文件 + 打印库 3 个原样拷贝 |
 | `SnowmeetApi/wwwroot/fnb/mat_expire/index.html` | 首页最底部临时入口（`wecom-ble-test` 标记） |
 | `ai/.claude/launch.json` | 本机静态预览配置（不在任何仓库里） |
+| `snowmeet_wechat_mini/components/care/print_care_label.js` | `hasConnected` observer；打完不断开；掉线监听及注销 |
+| `snowmeet_wechat_mini/components/care/print_care_label.wxml` | 打印按钮 `disabled="{{!hasConnected}}"` |
 
 ## 学到的小知识
 
@@ -132,3 +179,6 @@ printer 表里有效的打印机：`Printer_1048/73E7/B644/7371/CA10` 和 `GP-31
 4. **`encoding.js` 在浏览器里**：发现已有原生 `TextEncoder` 就不会挂自己的 GB18030 版，中文会静默变成 UTF-8 乱码；要先藏起原生的再加载。
 5. **vm 测试跨 realm**：把外部的 `Uint8Array` 注入 vm，`encoding.js` 的 `instanceof ArrayBuffer` 判断会失败，解码返回空串。
 6. **本机连不上 `mini.snowmeet.top`**：curl 超时；线上状态只能靠用户在手机上看。
+7. **组件状态别靠一次性标记**：`ready` 只置不复位，按钮状态和实际连接就会脱节；从显示用的列表推导（observer）才不会漏掉某条分支。
+8. **`onBLEConnectionStateChange` 对主动断开也会触发**：处理掉线时只认「已连接」→ 断开这一种变化，也别弹提示，否则手动断开会被当成掉线。
+9. **「已发布」要看构建所在的提交**：别的会话在你的提交之上发布，你的改动也就一起上线了；看 `git log` 的先后，别只信早先的「未部署」记录。
