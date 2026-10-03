@@ -1,6 +1,12 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03）：企业微信 H5 蓝牙打印实验页已完成（本地提交，待 push + publish 后真机测）；reqai 任意格式附件与原件历史下载已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；`staff_bind_code` 已在生产库（10-03 核实）
+## 当前状态（截至 2026-10-03）：reqai 每日会话/原件归档和网页手动入口已上线，五个北京时间时段已启用；企业微信 H5 蓝牙打印实验页已完成（本地提交，待 push + publish 后真机测）；reqai 任意格式附件与原件历史下载已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；`staff_bind_code` 已在生产库（10-03 核实）
+- **10-03：reqai 每日归档（详见 [会话记录](sessions/2026-10-03_reqai-daily-archive.md)）**：
+  - ✅ reqai `main@fefa3a4` 已推送部署。北京时间 **12:00、15:00、18:00、21:00、24:00** 自动归档；管理员「后台 → 每日归档」可手动执行并查看结果、提交和下次计划。
+  - ✅ `reqai_archives/YYYY-MM-DD/` 保存当天有活动的完整会话 Markdown/JSON 和原件，保留引用、附件关联及 SHA-256；同日更新，次日补齐后封存，启动补跑，失败 5 分钟重试。
+  - ✅ 专用 clone `/home/ubuntu/reqai-data/archive/repo`，不复用语料副本、不强推、不进需求检索，普通用户不能经文件浏览器读取全体归档。
+  - ✅ 首次真实归档 **3 个日期、5 份会话、22 条消息、3 份原件**，文档提交 `e87f5a0`，原件 3/3 字节及哈希通过。自动启动补跑成功，无重复提交；下次计划 10-03 12:00。服务 active、`NRestarts=0`，入口最终 200。
+  - ✅ Windows 相关回归 104 过/11 项环境用例排除，服务器隔离回归 110 过/5 项旧 Mac 路径用例排除；前端构建/lint、本地模拟页面按钮和线上权限 HTTP 验收通过。无 DB schema/业务库改动，原件目录权限不变。
 - **10-03：企业微信 H5 蓝牙打印实验（Windows 机，详见 [会话记录](sessions/2026-10-03_wecom-h5-ble-print-test.md)）**：
   - 目的：验证企业微信网页能否经 JS-SDK 蓝牙连上现有标签打印机，为食材管理最终的企业微信 H5 端探路。页面只有「张数 + 打印」。
   - ✅ SnowmeetApi `ai@de6de506`：[`FnbWeComController.GetJsSdkSignature(url)`](../SnowmeetApi/Controllers/Fnb/FnbWeComController.cs)，餐饮应用 1000009，一次返回企业签名（config）和应用签名（agentConfig）；只签 `https://mini.snowmeet.top` 的页面；两种 jsapi_ticket 进程内缓存到过期前 5 分钟。新增 `WeComJsSdkSignatureTests` 12 例，单元测试 382 全过。
