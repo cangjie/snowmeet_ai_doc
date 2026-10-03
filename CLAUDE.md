@@ -7,7 +7,7 @@
   - ✅ 代码：SnowmeetApi `534aad0c` 新增 [`Services/Storage/FileStorage.cs`](../SnowmeetApi/Services/Storage/FileStorage.cs)，5 处上传（UploadFile 三个、`FnbMaterial/UploadPhoto`、`TicketPoster/Generate`）改写 S3，新文件名随机；磁盘上没有的 `/upload/...` 302 到 img；食材 H5 改同源上传（原来传到已注销的 wanlonghuaxue，一直是坏的）。小程序 `f0afbf7d`：`IMAGE_HOST` 改 img，上传走 API。测试：服务端 420/420（新增 29），小程序 194/194。
   - ✅ 14:33 发布 API（停机约 80 秒）；mini 磁盘 4,326 个文件（1.3 GB，2024-11-07 起）已同步进桶，补同步后逐字节一致；改库 7,803 行（`care.images` 7,779 等 5 列）→ `https://img.snowmeet.top/upload/`，原值备份在 `bak_20261003_*`，脚本 [sql/2026-10-03_upload_urls_to_img_host.sql](sql/2026-10-03_upload_urls_to_img_host.sql)。用户实传一张（`mini_upload` 157724）已核对：只在 S3、img 200、旧地址 302。
   - 📌 库里引用的 14.6 万个文件只有 4,285 个在 mini 上，其余随 wanlonghuaxue 一起没了（滑雪学校 12.9 万张、2025–26 养护开单约 5,000 张等），用户说不要了，记录保留、显示裂图。
-  - 🚧 **下一步**：① 用户在小程序后台把 `https://img.snowmeet.top` 加进 **downloadFile 合法域名**，再上传 `f0afbf7d`（旧版靠 302 也能显示，不急）；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ⚠️ **mini/wxoa/wl 三张证书 2026-10-14 到期**（用户自己续）；三个私钥文件权限是 777，建议续证时改 600。
+  - 🚧 **下一步**：① ✅ 10-03 用户已上传新版小程序 `f0afbf7d`；待确认 downloadFile 合法域名已加 `https://img.snowmeet.top`，体验版点测上传/显示/海报保存后再提审发布；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ⚠️ **mini/wxoa/wl 三张证书 2026-10-14 到期**（用户自己续）；三个私钥文件权限是 777，建议续证时改 600。
 - **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
   - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
   - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
