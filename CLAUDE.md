@@ -1,6 +1,13 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03）：新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+## 当前状态（截至 2026-10-03 晚）：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+- **10-03 下午：上传文件迁移 AWS S3（Windows 机，详见 [会话记录](sessions/2026-10-03_s3-upload-migration.md)）**：
+  - 用户要求：所有上传接口改存 S3，服务器上的文件全部迁进桶，并改库。用户拍板：**CloudFront + 新域名 `img.snowmeet.top`**；**库里继续存相对路径 `/upload/...`、显示域名集中配置**；**wanlonghuaxue 服务器已注销，上面的图片不要了**。
+  - ✅ AWS 中国宁夏（账号 6737-5164-6617）：私有桶 `snowmeet-uploads-673751646617-cn-northwest-1-an`（版本控制开、SSE-S3、阻止公开访问）；mini 实例 `i-0c2e59977055013fa` 挂 IAM 角色 `snowmeet-api-ec2`（策略 `snowmeet-uploads-rw` 只有 List/Get/Put，内联 `upload-cloudfront-cert` 只能传 `/cloudfront/` 证书）；CloudFront `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`）经 OAI 读桶，桶策略**只放行 `upload/*`**；证书 `img.snowmeet.top-20270101`（TrustAsia，**2027-01-01 到期**）；阿里云 DNS `img` CNAME 到分配。
+  - ✅ 代码：SnowmeetApi `534aad0c` 新增 [`Services/Storage/FileStorage.cs`](../SnowmeetApi/Services/Storage/FileStorage.cs)，5 处上传（UploadFile 三个、`FnbMaterial/UploadPhoto`、`TicketPoster/Generate`）改写 S3，新文件名随机；磁盘上没有的 `/upload/...` 302 到 img；食材 H5 改同源上传（原来传到已注销的 wanlonghuaxue，一直是坏的）。小程序 `f0afbf7d`：`IMAGE_HOST` 改 img，上传走 API。测试：服务端 420/420（新增 29），小程序 194/194。
+  - ✅ 14:33 发布 API（停机约 80 秒）；mini 磁盘 4,326 个文件（1.3 GB，2024-11-07 起）已同步进桶，补同步后逐字节一致；改库 7,803 行（`care.images` 7,779 等 5 列）→ `https://img.snowmeet.top/upload/`，原值备份在 `bak_20261003_*`，脚本 [sql/2026-10-03_upload_urls_to_img_host.sql](sql/2026-10-03_upload_urls_to_img_host.sql)。用户实传一张（`mini_upload` 157724）已核对：只在 S3、img 200、旧地址 302。
+  - 📌 库里引用的 14.6 万个文件只有 4,285 个在 mini 上，其余随 wanlonghuaxue 一起没了（滑雪学校 12.9 万张、2025–26 养护开单约 5,000 张等），用户说不要了，记录保留、显示裂图。
+  - 🚧 **下一步**：① 用户在小程序后台把 `https://img.snowmeet.top` 加进 **downloadFile 合法域名**，再上传 `f0afbf7d`（旧版靠 302 也能显示，不急）；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ⚠️ **mini/wxoa/wl 三张证书 2026-10-14 到期**（用户自己续）；三个私钥文件权限是 777，建议续证时改 600。
 - **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
   - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
   - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
@@ -89,7 +96,7 @@
   - 核对代码时发现的疑点写进了测试文档第 6 章：后台菜单 6 个入口指向不存在的页面；9 个页面调用的 `/core/...` 路径在后端找不到路由；万龙雪票数量 N 时金额为单价 × N²；人事入口系统管理员看不到。
 - **09-28 ~ 09-30 三项修改（Windows 机，详见 [会话记录](sessions/2026-09-28_image_host_ocr_date_inbound_render.md)）**，已全部提交推送（小程序 `ai@0c712574`、SnowmeetApi `ai@18e0601a`）：
   - **入库页首屏 6.6 秒 → 日历改为用到才创建**：`date-range-picker` 里的 `van-calendar` 虽然藏在弹层里，但页面加载时就会创建全部月份子组件。入库页两个日期框共 252 个月（36 + 216），setData 1.7 MB。4 个接口只用了 110 ms，网络不是瓶颈。改为第一次点开才挂载（`calendarMounted`），9 个用该组件的页面一起受益。
-  - **图片上传/显示临时切到 `mini.snowmeet.top`**：`utils/data.js` 新增 `IMAGE_HOST` 常量，上传和 8 处显示统一读它。wanlonghuaxue 图片服务器修好后只改这一行，但切回前要先把这期间传到 mini 磁盘的照片拷过去。
+  - **图片上传/显示临时切到 `mini.snowmeet.top`**：`utils/data.js` 新增 `IMAGE_HOST` 常量，上传和 8 处显示统一读它。（10-03：wanlonghuaxue 已注销，改存 S3，`IMAGE_HOST` 现为 `https://img.snowmeet.top`，见上方 10-03 条。）
   - **OCR 日期**：`yyyy-MM-dd`（月日两位）前后粘着什么都能识别（如 `2025-08-0512:30`），带四位年份的明确日期排在所有候选前面。新增 `FnbOcrDateTests` 12 例，服务端单元 362 过。**需 publish SnowmeetApi 生效**。
   - 入库页还留着临时计时日志（`[入库页耗时]`），用户确认首屏变快后要删；批次号改为与目录数据并发请求；加载中/失败提示替换了误导的「去分类页添加」。
 - **09-28 操作指南 PPT + 小修（详见 [会话记录](sessions/2026-09-28_fnb_guide_screenshots_iphone_mirroring.md)）**：
@@ -214,7 +221,15 @@
 - 美国服务器 `44.207.251.65:2222` → `161.189.64.210:22`（SSH）。
 - 美国服务器 `44.207.251.65:1433` → `161.189.64.210:1433`（SQL Server）。
 - 已按用户明确授权配置公网监听及开机自动启动：`/etc/systemd/system/snowmeet-forward-{2222,1433}.{socket,service}`，使用系统内置 `systemd-socket-proxyd`；美国服务器自身的 SSH 22 端口与转发入口 2222 是不同连接目标。
-- 2026-10-03 本机公网验证通过：2222 返回目标 SSH 标识 `OpenSSH_8.9p1 Ubuntu-3ubuntu0.17`；1433 返回 SQL Server TDS prelogin 响应（43 字节，类型 4）。未进行 SSH 登录或数据库身份验证。
+- 2026-10-03 本机公网验证通过：2222 返回目标 SSH 标识 `OpenSSH_8.9p1 Ubuntu-3ubuntu0.17`；1433 返回 SQL Server TDS prelogin 响应（43 字节，类型 4）。同日下午 Windows 机用 `ssh -p 2222 ubuntu@44.207.251.65` 登录 mini 成功。
+- **mini 服务器（161.189.64.210）在 AWS 中国宁夏 cn-northwest-1**，实例 `i-0c2e59977055013fa`，Ubuntu 22.04，nginx 把 mini/wxoa/wl 三个 `.top` 域名反代到本机 5000/5001/5002（SnowmeetApi / 公众号 / 滑雪学校），`mini.snowmeet.com` 反代到 5003（旧版演示）。
+- **snowmeet.wanlonghuaxue.com（60.8.110.78）已注销（2026-10-03 用户告知）**，上面的图片不要了。阿里云 DNS 里 `media` 还指向这个 IP。
+
+## 上传文件存储（2026-10-03 起）
+
+- AWS 中国宁夏 S3 私有桶 `snowmeet-uploads-673751646617-cn-northwest-1-an`，对象键 `upload/yyyyMMdd/<文件名>`（`is_web=0` 的在 `private/` 下）。
+- 对外经中国区 CloudFront 分配 `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`），OAI 只能读 `upload/*`；域名 `img.snowmeet.top`（阿里云 DNS CNAME），证书 `img.snowmeet.top-20270101` 在 IAM `/cloudfront/` 下。
+- mini 服务器经实例角色 `snowmeet-api-ec2` 读写桶，无密钥。约定和坑见「已知遗留」里「上传文件存 S3 的约定」。
 
 ## 技术栈
 
@@ -273,7 +288,8 @@ dotnet run
 - `Models/` — 206+ 数据模型
 - `Data/ApplicationDBContext.cs` — EF DbContext
 - `Util.cs` — 全局工具方法
-- `wwwroot/` — 静态管理后台页面
+- `Services/Storage/FileStorage.cs` — 上传文件存储（S3 / Local），所有上传接口都经它写文件
+- `wwwroot/` — 静态管理后台页面（`wwwroot/upload` 是迁 S3 前的旧上传目录，只读保留）
 
 **公众号后台核心路径 (SnowmeetOfficialAccount)：**
 - `Program.cs` / `Startup.cs` — 入口 + 管道配置（`ConfigureServices` 里手动读 `config.sqlServer` 文件拼连接串，同 SnowmeetApi 的约定）
@@ -506,7 +522,7 @@ dotnet run
   - **待用户定**：到期日期日历可选范围仍是往回 3 年～往后 15 年（216 个月），第一次点开预计卡 5 秒左右。建议改成今天～往后 3 年（36 个月）。
   - publish SnowmeetApi（`18e0601a`，OCR 日期规则）；用户上次说的红圈图片没传过来，拿到后对照验证。
   - ~~南山雪票预约上传走 `xuexiaotupian.wanlonghuaxue.com`，要不要切待用户定~~ —— 09-30 南山关店，相关页面和 `uploadDomain` 已删，此项作废。
-  - wanlonghuaxue 图片服务器修好后：先把切换期间传到 mini 磁盘的照片拷过去，再把 `IMAGE_HOST` 改回。
+  - ~~wanlonghuaxue 图片服务器修好后：先把切换期间传到 mini 磁盘的照片拷过去，再把 `IMAGE_HOST` 改回。~~ —— 10-03 该服务器已注销，上传改存 S3，此项作废。
 - **食材管理上线（2026-09-23 交接，09-27 更新）**：
   - ⓪ **09-27 下次开工先做**：用户截图放进 `D:\source\snowmeet\ai\screenshots\` 后，更新操作指南 PPT。先用 Artifact `read` 取回 `project/deck.json` 和 `project/slides/*.html`，因为原文件在会话 scratchpad，已经没有了。再把截图批量上传为资源，替换示意图和文字页，最后发布到同一 URL。
   - ⓪′ 核实生产环境：三份 SQL 是否都已执行，服务端是否为 `9db5d2a9`，用量预警接口是否可用。之后再用真机走一遍。
@@ -611,8 +627,21 @@ dotnet run
 - **万龙雪票 `SkiPassController.ReserveSkiPass` 数量 N 时订单金额 = 单价 × N²**：`skipass.deal_price` 已乘数量，`order.total_amount` 又乘一次。界面固定 1 张所以没暴露，直接调接口 `count=2` 可复现。未修。
 - **`van-calendar` 藏在弹层里也会在页面加载时创建全部月份（2026-09-30 踩）**：每个月是一个 `month` 子组件，日期、类型、最小/最大日期等属性每变一次就重新生成当月格子并 setData。入库页两个日期框共 252 个月，首屏 6.6 秒、setData 1.7 MB。`date-range-picker` 已改为第一次点开才挂载（`calendarMounted`，挂载后保留）。新写日历/弹层类组件时，内容要在用到时才创建，不要只靠 `show` 隐藏。
 - **页面慢先看控制台的 setData 警告，再猜网络（2026-09-30）**：我先根据「本机查库每条 480 ms」和 IP 段推断是 API 服务器跨境查库，结果实测 4 个接口并发只用 110 ms。真正原因是开发者工具控制台里那条「setData 数据传输长度为 1693 KB」。本机到数据库慢不代表 API 服务器到数据库慢。
-- **图片上传/显示域名临时切到 `mini.snowmeet.top`（2026-09-28）**：统一读 [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 的 `IMAGE_HOST`。wanlonghuaxue 的老照片在切换期间显示不出来；切回前要先把切换期间传到 mini 磁盘的照片拷到 wanlonghuaxue。优惠券海报、次卡商品图不走这个常量（原南山雪票预约用的 `uploadDomain` 已随南山代码一起删除）。
-- **Windows 机（`D:\source\snowmeet\ai`）也连不上 `mini.snowmeet.top` 和 `snowmeet.wanlonghuaxue.com` 的 443**，github 的 22 端口也经常超时（fetch 失败时 ahead/behind 用的是本地缓存）。本机只有老的 `DRIVER={SQL Server}` ODBC 驱动，连生产库不要加 `Encrypt`。
+- **上传文件存 S3 的约定（2026-10-03 起）**：
+  - 所有上传都走 [`IFileStorage`](../SnowmeetApi/Services/Storage/FileStorage.cs)，不要再 `File.Create` 写 `wwwroot/upload`。库里只存相对路径 `/upload/yyyyMMdd/<随机名>.<ext>`，S3 对象键 = 去掉开头的 `/`；`is_web=0` 放 `private/` 前缀，CloudFront 读不到。
+  - 显示域名只在两处：小程序 [`utils/data.js`](../snowmeet_wechat_mini/utils/data.js) 的 `IMAGE_HOST`、服务端 `FileStorageOptions.PublicBaseUrl`（默认 `https://img.snowmeet.top`）。上传仍发给 API（`requestPrefix`），不要发给图片域名。
+  - 服务端凭证来自 EC2 实例角色 `snowmeet-api-ec2`，代码和配置里没有密钥；默认值就是生产配置。本机调试没有 AWS 凭证，上传会报错，可在 appsettings 设 `FileStorage:Provider=Local` 退回写磁盘。
+  - `Startup` 里 `UseUploadRedirect`：磁盘上没有的 `/upload/...` 302 到 img，旧版小程序和库里遗留的 mini 地址靠它继续能用。删 `wwwroot/upload` 之后所有老地址都走这条。
+  - 新服务器或新环境要访问桶：角色只给了 `ListBucket/GetObject/PutObject`，没有删除权限。
+- **img.snowmeet.top 证书要手动续（2027-01-01 到期）**：中国区 CloudFront 不支持 ACM，证书只能用命令行传到 IAM（控制台不能传），路径必须是 `/cloudfront/`。续期流程：拿到新证书 → mini 服务器上 `aws iam upload-server-certificate --region cn-northwest-1 --path /cloudfront/ ...`（证书正文和中间链要拆开传）→ CloudFront 分配「设置 → 编辑 → 自定义 SSL 证书」换新的。
+- **Windows 机（`D:\source\snowmeet\ai`）连不上 `mini.snowmeet.top` 的 443**，github 的 22 端口也经常超时。**但能经美国服务器转发登录 mini**：`ssh -p 2222 ubuntu@44.207.251.65`（本机 `~/.ssh/id_ed25519`，2026-10-03 验证）。本机只有老的 `DRIVER={SQL Server}` ODBC 驱动，连生产库不要加 `Encrypt`。
+- **mini 服务器发布 SnowmeetApi 的正确姿势（2026-10-03 踩坑）**：
+  - 标准脚本是 `/home/ubuntu/webs/SnowmeetApi/republish.sh`，**以 ubuntu 运行**：git pull → 停服务 → 删 `bin`/`obj` → 删 `SnowmeetApi.*.json` → `dotnet publish -r linux-x64 -c Release -o ./ --self-contained` → 启服务。停机就是整个编译时长（约 80 秒）。
+  - **不要 `sudo dotnet publish`**：root 没有 NuGet 缓存，会重新下载全部依赖，1.5 GB 余量当场写满磁盘（10-03 实测，已清理）。不删 `SnowmeetApi.*.json` 会报 NETSDK1152（输出目录就是项目目录）。
+  - 仓库 `.git` 属于 www-data，ubuntu 没有写权限；root 没有 GitHub 密钥。拉代码用：`sudo GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/id_rsa -o UserKnownHostsFile=/home/ubuntu/.ssh/known_hosts" git -c safe.directory=/home/ubuntu/webs/SnowmeetApi pull --ff-only origin ai`。
+  - 磁盘只剩约 1.4 GB（96%），发布前先 `df -h /`。
+- **中国区 AWS 命令行要带 `--region cn-northwest-1`**：连 IAM 这种全局服务也要带，不带会去海外端点，报 `InvalidClientTokenId`。服务器上的 `aws` 是 apt 装的 v1.22，够用。
+- **mini.snowmeet.top / wxoa / wl 三张证书 2026-10-14 到期（10-03 发现）**：都是 TrustAsia 90 天免费证书，放在 `/home/ubuntu/*_cert_chain.pem`，服务器上没有自动续期，用户说自己处理。三个私钥文件权限是 777。
 - **业务规则能在代码里实现，就不要让用户手动跑生产 SQL（2026-09-24 用户纠正）**：分类删除后同名重建报错，我先给了改唯一索引的 SQL，用户明确拒绝——要的是「只在未删除的分类中查重」。终版在代码里查重，并把已删除的同名分类改名让位（`FnbCategoryService.FreeNameAsync`）。结构性迁移（加删列）仍走 `sql/` 脚本由用户执行。
 - **本机 Windows 测试工具在 [`tools/windows_test/`](tools/windows_test/)（2026-09-25）**：
   - 小程序：`"C:\Program Files (x86)\Tencent\微信web开发者工具\node.exe" ../snowmeet_ai_doc/tools/windows_test/run_tests.js tests/*.test.js`（在 `snowmeet_wechat_mini` 下执行；开发者工具自带 node v16 没有 `node:test`，这个脚本代跑）。
@@ -636,7 +665,7 @@ dotnet run
 - **本机（Intel Mac）连不上生产 API 主机 `mini.snowmeet.top`（161.189.64.210:443）**：关闭沙箱也超时，github 正常。部署是否生效只能请用户在开发者工具里看 Network。生产库（config.sqlServer）可以直连做只读核对。
 - **reqai 模型价格已修正；历史估算仍保留旧金额（2026-10-02）**：09-11 发现的错价已在独立 reqai `456cf5b` 修正并部署：标准短上下文、未缓存输入/输出（美元/百万 tokens）Luna `$0.20/$1.20`、Terra `$2/$12`、Sol `$4/$20`，官方核价日期写进配置，新增 3 个费用回归测试。原价表导致 Sol 低估、Luna 高估；历史 `usage_log.cost_usd` 未改，不等于 OpenAI 真实账单。新估算和每日预算使用修正价格，但未按缓存 tokens 或长上下文分段精确计价。详见 [本次记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - **管理员自然语言查询里「门店」是唯一没有约束的字段（2026-09-10 审查发现，未修）**：`rent_status` 是 9 值 Literal 枚举、`cell_suffix` 有正则，唯独 `shop` 是自由字符串，**planner 的 prompt 里也没给门店清单**，模型只能从用户原话抄；而 `RentalOrderQueryExecutor` 是 `shop.name == 输入` **精确相等**，对不上就抛「租赁门店不支持」，前端统一显示「暂时无法获得回答」+ 重试按钮——用户看不到真因、重试永远失败。用户说「万龙店」而库里是「万龙服务中心」就会触发。2026-08 刚把 `product.shop` 自由文本退役改 `shop_id`，这条新链路又退回了按名字匹配。修法：门店清单进 prompt 当枚举 + 执行器加包含匹配兜底 + 匹配不上时把可选门店列进澄清 reply。另：11 个字段里**没有金额区间**，「金额超过 1000 的订单」表达不了。
-- **本机网络会间歇拦截出站 22 端口（2026-09-10/11 两天反复踩）**：`ssh` 到 reqai 服务器和 `github.com` 会同时超时，而两者 443 始终正常，`nc -z host 22` 直接不通，一度持续 10 分钟以上。**此前归档里记的「服务器 SSH 不稳」是误判，服务器一直是好的。** 排查先用 `nc -z -w 8 github.com 22` 对照，同样不通就是本地网络，别狂刷重试；绕过办法是切手机热点/VPN，git 走 SSH 可用 `ssh.github.com:443`，急着重启服务可让用户从 AWS 控制台 EC2 Instance Connect 执行。
+- **本机网络会间歇拦截出站 22 端口（2026-09-10/11 两天反复踩）**：`ssh` 到 reqai 服务器和 `github.com` 会同时超时，而两者 443 始终正常，`nc -z host 22` 直接不通，一度持续 10 分钟以上。**此前归档里记的「服务器 SSH 不稳」是误判，服务器一直是好的。** 排查先用 `nc -z -w 8 github.com 22` 对照，同样不通就是本地网络，别狂刷重试；绕过办法是切手机热点/VPN，git 走 SSH 可用 `ssh.github.com:443`，急着重启服务可让用户从 AWS 控制台 EC2 Instance Connect 执行。git 走 443 的写法（2026-10-03 Windows 机实测五个仓库都通）：`git -c core.sshCommand="ssh -o Hostname=ssh.github.com -o Port=443 -o HostKeyAlias=github.com" fetch`；**必须加 `HostKeyAlias=github.com`**，否则报 `Host key verification failed`。
 - **`request.is_disconnected()` 只能在 anyio 管辖的任务里调用（2026-09-12 踩，reqai）**：它靠「进入一个已取消的 `anyio.CancelScope`，让 `receive()` 立刻返回」来做非阻塞探测，这机制只对 anyio 结构化并发范围内的任务有效。把它丢进 `asyncio.ensure_future()` 起的裸 watcher task 里轮询会**直接死锁**——管理员助手 router 的每个请求都卡住，整个测试文件超时。症状极具迷惑性：没报错、没堆栈，`pytest -q` 连部分输出都不打（被 capture 攒着），看起来只是「跑得慢」。**定位方法留档**：`timeout -s ABRT 45 .venv/bin/python -X faulthandler -m pytest ...`，SIGABRT 会让 faulthandler 打出所有线程栈，一眼看到事件循环空转在 `selectors.select`。正解是**在处理函数自己的任务里轮询**（`asyncio.wait({task}, timeout=...)` 循环，每轮查一次断连），不要另起 task。见 `backend/app/routers/admin_assistant.py` 的 `_run_until_client_leaves`。
 - **`run_in_threadpool` 里的调用没法提前收工（2026-09-12，reqai）**：Python 线程不可取消——调用方早就走了，线程里的模型调用还会算到底，钱照烧、算力照占。凡是「要能中途停」的上游调用都必须走异步客户端（本次新增 `llm.acomplete_json`，用已有的 `AsyncOpenAI`），被 asyncio 取消时 httpx 才会真的断开上游连接。另外 **uvicorn 不会因为客户端断开就自动取消处理函数**，必须自己轮询。整条取消链是：小程序 `RequestTask.abort()` → nginx（`proxy_ignore_client_abort` 默认 off，会一并断上游）→ Kestrel `RequestAborted`（ASP.NET Core 把 action 上的 `CancellationToken` 参数自动绑定到它）→ `HttpClient.SendAsync` 取消 → reqai 轮询到断连 → 取消 LLM 调用。**排查时发现只有最后一环是断的，前面几环本来就通**，所以不要一上来就假设要改协议。
 - **需求范围熔断（2026-09-10）**：本次管理员帮助任务中，代理把审查提出的手机号/凭据极端脱敏持续升级为发布阻塞，造成多轮无谓实现、测试与审查。以后超出用户明确目标的非功能改造不得自行实施；超过一轮修复或预计增加 15 分钟时必须先让用户拍板。用户明确命令“合并/部署/结束”时只执行该动作，不追加检查或设计。
@@ -4246,3 +4275,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ end-work 新增规矩：摘要内容不抄到区块外。
 - 📌 当时另一场会话在改同一个 CLAUDE.md，我只把自己的改动放进暂存区提交（用 `hash-object` + `update-index`）。
 - 详细归档：[sessions/2026-10-03_reqai-digest-skill.md](sessions/2026-10-03_reqai-digest-skill.md)。
+
+### 2026-10-03（下午）：上传文件迁移 AWS S3 + img.snowmeet.top（Windows 机）
+
+- 用户要求：所有上传接口改存 AWS S3，带着一步步在 AWS 里设置，再改程序，最后把服务器上的文件放进桶并改库。拍板：CloudFront + `img.snowmeet.top`；库里存相对路径、显示域名集中配置；wanlonghuaxue 已注销、图片不要了。
+- ✅ AWS（用户在控制台操作，我给步骤和策略 JSON）：宁夏私有桶 → IAM 角色挂到 mini 实例 → 用户自己申请 img 证书，我在服务器上传 IAM → CloudFront（OAI 只读 `upload/*`）→ 阿里云 CNAME。
+- ✅ SnowmeetApi `534aad0c`：`Services/Storage`（S3/Local），5 处上传改写 S3，新文件名随机，缺失的 `/upload/...` 302 到 img，食材 H5 改同源上传。小程序 `f0afbf7d`：`IMAGE_HOST` → img。测试服务端 420/420、小程序 194/194。
+- ✅ 迁移 4,326 个文件（1.3 GB）逐字节核对；14:33 发布 API；改库 7,803 行（先备份到 `bak_20261003_*`）；用户实传一张核对通过。
+- 📌 踩坑：`sudo dotnet publish` 让 root 重下全部 NuGet 包，写满磁盘，立即清理恢复，改按 `republish.sh` 用 ubuntu 发布；CloudFront 建分配时没选自定义证书，边缘一直返回 `internal.cloudfront.cn`；分配 ID 和 OAI ID 都以 E 开头，桶策略填错报 Invalid principal；IAM 命令不带 `--region cn-northwest-1` 报 InvalidClientTokenId。
+- 📌 发现：库里引用的 14.6 万个文件只有 4,285 个在 mini 上；三张 `.top` 证书 10-14 到期；mini 私钥文件 777。
+- 🚧 用户上传新版小程序（先加 downloadFile 合法域名）；过几天删 mini `wwwroot/upload`。
+- 详细归档：[sessions/2026-10-03_s3-upload-migration.md](sessions/2026-10-03_s3-upload-migration.md)。

@@ -27,6 +27,7 @@ Closing a work session on an evolving project requires documenting what changed.
 
 1. **先同步**（避免 push 被拒 / 分叉）：`git -C snowmeet_ai_doc pull --ff-only`
    - 失败（网络 / 分叉 / 本地有未提交改动）不要静默：告诉用户「⚠️ 同步失败」+ 原因，仍继续整理，到第 6 步 push 前再处理分叉
+   - 报 `github.com port 22: Connection timed out`（本机 22 端口间歇被拦）时，pull 和第 6 步的 push 都改走 443 重试：加 `-c core.sshCommand="ssh -o Hostname=ssh.github.com -o Port=443 -o HostKeyAlias=github.com -o BatchMode=yes"`（`HostKeyAlias` 必须加）
 
 2. **Summarize** what was accomplished:
    - What files were created/modified?
