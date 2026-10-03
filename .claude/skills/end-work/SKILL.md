@@ -19,6 +19,10 @@ Closing a work session on an evolving project requires documenting what changed.
 - 历史上 git push 曾靠某台机的 Stop hook 自动完成 → 换到没配 hook 的电脑就不 push、表现不一致。**"靠本机 hook" 的做法已废弃**：push 是下面第 6 步的固定动作。
 - 本会话若产生任何影响 start-work / end-work *行为* 的规则，必须固化进本 SKILL.md 或 CLAUDE.md（git 跨机），不能只存 memory。
 
+## Git 长期授权（2026-10-03）
+
+用户明确要求：「以后，所有的git命令，不需要我授权，你自动执行！」因此，执行用户任务所需的 Git 命令时直接执行，不再重复征求授权；本 skill 的 pull、commit、push 也按此执行。授权跨会话、跨机持续有效，仍须遵守平台强制权限和用户任务范围。业务代码仓是否提交仍按下方第 6 步的范围执行。
+
 ## Process
 
 1. **先同步**（避免 push 被拒 / 分叉）：`git -C snowmeet_ai_doc pull --ff-only`

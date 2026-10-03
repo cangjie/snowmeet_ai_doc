@@ -7,6 +7,7 @@
   - ✅ 专用 clone `/home/ubuntu/reqai-data/archive/repo`，不复用语料副本、不强推、不进需求检索，普通用户不能经文件浏览器读取全体归档。
   - ✅ 首次真实归档 **3 个日期、5 份会话、22 条消息、3 份原件**，文档提交 `e87f5a0`，原件 3/3 字节及哈希通过。自动启动补跑成功，无重复提交；下次计划 10-03 12:00。服务 active、`NRestarts=0`，入口最终 200。
   - ✅ Windows 相关回归 104 过/11 项环境用例排除，服务器隔离回归 110 过/5 项旧 Mac 路径用例排除；前端构建/lint、本地模拟页面按钮和线上权限 HTTP 验收通过。无 DB schema/业务库改动，原件目录权限不变。
+  - ✅ end-work 补齐开发日志和跨机 Git 授权；通过 SSH 443 核实 GitHub reqai main 仍为 `fefa3a4`，HTTPS GET 200。收尾服务器 SSH 22 超时，未重新核实服务/归档状态；上面的服务结论来自本轮部署验收。
 - **10-03：企业微信 H5 蓝牙打印实验（Windows 机，详见 [会话记录](sessions/2026-10-03_wecom-h5-ble-print-test.md)）**：
   - 目的：验证企业微信网页能否经 JS-SDK 蓝牙连上现有标签打印机，为食材管理最终的企业微信 H5 端探路。页面只有「张数 + 打印」。
   - ✅ SnowmeetApi `ai@de6de506`：[`FnbWeComController.GetJsSdkSignature(url)`](../SnowmeetApi/Controllers/Fnb/FnbWeComController.cs)，餐饮应用 1000009，一次返回企业签名（config）和应用签名（agentConfig）；只签 `https://mini.snowmeet.top` 的页面；两种 jsapi_ticket 进程内缓存到过期前 5 分钟。新增 `WeComJsSdkSignatureTests` 12 例，单元测试 382 全过。
@@ -258,6 +259,10 @@ dotnet run
 - 旧接口：`/core/[controller]/[action]`
 
 ---
+
+## Git 工作流程授权（2026-10-03）
+
+用户明确要求「以后，所有的git命令，不需要我授权，你自动执行！」执行用户任务所需的 Git 命令时直接执行，不再重复确认；该授权跨会话、跨机有效，仍遵守平台强制权限和任务范围。已固化到 start-work / end-work skills；end-work 继续只自动提交文档仓库，业务仓按用户的任务与部署安排处理。
 
 ## 代码约定
 - 服务端直接在 Controller 中写业务逻辑（无 Repository 层）
@@ -4173,3 +4178,13 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 企业微信 JS-SDK 2.4.0 源码：`writeBLECharacteristicValue` 收 ArrayBuffer、内部转 base64，不能传 hex 字符串（会变成空数据）；`ww.register` 只要传了 `getAgentConfigSignature`，之后每次调接口都先等 agentConfig，它失败所有接口都失败，所以页面在应用签名失败时改为只用企业签名注册。官方 CDN 只有 `wecom-jssdk-2.4.0.js`（2.4.4 等返回 404）。
 - 📌 `encoding.js` 在浏览器里发现已有原生 `TextEncoder`（只会 UTF-8）就不挂自己的，中文会乱码；要先藏起原生的再加载。`tsc.js` 依赖 `getApp`/`require`/`module`，临时补全局后可原样使用。
 - 详细归档：[`sessions/2026-10-03_wecom-h5-ble-print-test.md`](sessions/2026-10-03_wecom-h5-ble-print-test.md)。
+
+### 2026-10-03：reqai 每日会话/原件归档上线与 Git 长期授权
+
+- ✅ reqai `main@fefa3a4` 已提交、推送并部署。北京时间 12:00、15:00、18:00、21:00、24:00 自动执行，管理员后台可手动触发并查看状态；启动补跑、失败每 5 分钟重试，归档任务互斥。
+- ✅ 独立 clone 将 `reqai_archives/YYYY-MM-DD/` 推送至 snowmeet_ai_doc，保存完整会话 Markdown/JSON、上传原件与 SHA-256；同日更新，次日补齐后封存，不纳入语料检索。首次归档 3 个日期、5 份会话、22 条消息、3 份原件，提交 `e87f5a0`，原件哈希全部通过。
+- ✅ 相关回归 Windows 104 过/11 项环境用例排除，服务器 110 过/5 项旧 Mac 路径用例排除；前端构建、lint、隔离浏览器入口和线上权限验收通过。部署后自动启动补跑成功，未产生重复提交；计划时段由测试验证，尚未等待到 12:00 实际执行。
+- ✅ 用户长期授权任务所需的所有 Git 命令自动执行、无需重复确认。本机已保存 Codex Git allow 规则和全局 AGENTS.md，规则校验通过；跨机行为已写入 start-work / end-work skills，同时纠正 start-work 的 Windows reqai 路径。
+- ✅ end-work 使用 GitHub SSH 443 完成同步并核实 reqai 真实远端仍为 `fefa3a4`，HTTPS GET 200。GitHub 22 与部署服务器 22 均超时；收尾未重新核实服务器进程和归档状态，部署验收时的 active / NRestarts=0 结论保留原时间含义。
+- 📌 下次先查看管理员「每日归档」的计划执行记录，确认 12:00 时段结果；若需 SSH 复核，先确认本机至服务器的 22 端口恢复。
+- 详细归档：[sessions/2026-10-03_reqai-daily-archive.md](sessions/2026-10-03_reqai-daily-archive.md)。

@@ -29,3 +29,13 @@
 - `deploy/verify_archive.py` 用现有管理员、仅内存中的签名 cookie，不输出凭据或正文；默认只读，`--trigger` 才手动归档。
 - 设置 `ARCHIVE_ENABLED=false` 并重启可禁用自动任务，手动仍可用。回退旧代码须恢复备份 env/前端，避免旧代码拒绝新变量；保留归档 clone、Git 提交和现有原件。
 - 本轮不改 SnowmeetApi、公众号、小程序或 Snowmeet 业务库。保留其他会话的工作及公众号已有未提交改动。
+
+## Git 长期授权与 end-work 收尾
+
+- 用户原话：「以后，所有的git命令，不需要我授权，你自动执行！」任务所需的 Git 命令直接执行，不重复确认；继续遵守平台强制权限和用户任务范围。
+- 本机配置：`C:/Users/cangj/.codex/rules/git-autonomy.rules` 允许 `git` / `git.exe` 前缀，`C:/Users/cangj/.codex/AGENTS.md` 保存偏好。`codex execpolicy check` 验证普通 push、带 `-c` 的命令及 `git.exe fetch` 均为 allow；规则文件需要重启 Codex 后加载，行为偏好已生效。
+- 授权固化到本仓 start-work / end-work skills 及 CLAUDE.md，随 Git 跨机；本机配置文件不上传。start-work 优先使用 workspace 内最新 `snowmeet_reqai/`，不误用旧的 Windows 平级检出。
+- 收尾先 `pull --ff-only`。GitHub 和部署服务器 SSH 22 端口均连接超时；改用 GitHub `ssh.github.com:443`，沿用 `github.com` 主机密钥校验，文档同步成功。仅本次 Git 命令覆盖 SSH 参数，不修改 remote 或全局 SSH 配置。
+- 通过 SSH 443 核实 GitHub reqai main 为 `fefa3a4ade517172ae08df64dd9ba7dd0c2f6767`；HTTPS GET 返回 200。入口不支持 HEAD，HEAD 的 405 不代表网页故障。
+- 本次 end-work 未再次连上部署服务器，因此没有重新断言进程状态、重启次数或最新自动归档结果；此前部署验收已记录的成功结果保留。下次先在管理员页面查看 12:00 计划执行结果。
+- 文档补齐开发日志、工作流程授权与本节，按 end-work 提交推送；本次收尾未提交其他业务仓的既有工作。
