@@ -1,6 +1,16 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03）：reqai 任意格式附件与原件历史下载已上线，同步、价格与简洁回答已完成；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+## 当前状态（截至 2026-10-03）：企业微信 H5 蓝牙打印实验页已完成（本地提交，待 push + publish 后真机测）；reqai 任意格式附件与原件历史下载已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；`staff_bind_code` 已在生产库（10-03 核实）
+- **10-03：企业微信 H5 蓝牙打印实验（Windows 机，详见 [会话记录](sessions/2026-10-03_wecom-h5-ble-print-test.md)）**：
+  - 目的：验证企业微信网页能否经 JS-SDK 蓝牙连上现有标签打印机，为食材管理最终的企业微信 H5 端探路。页面只有「张数 + 打印」。
+  - ✅ SnowmeetApi `ai@de6de506`：[`FnbWeComController.GetJsSdkSignature(url)`](../SnowmeetApi/Controllers/Fnb/FnbWeComController.cs)，餐饮应用 1000009，一次返回企业签名（config）和应用签名（agentConfig）；只签 `https://mini.snowmeet.top` 的页面；两种 jsapi_ticket 进程内缓存到过期前 5 分钟。新增 `WeComJsSdkSignatureTests` 12 例，单元测试 382 全过。
+  - ✅ 实验页 [`wwwroot/wecom/ble_print_test/`](../SnowmeetApi/wwwroot/wecom/ble_print_test/index.html)，线上地址 `https://mini.snowmeet.top/wecom/ble_print_test/index.html`。打的是养护单 25693（`WF-260715-002`）的存根标签，数据写死在页面里（只留姓、手机号打码）；搜索 3 秒，按 printer 表挑信号最强的一台；页面带日志区和「高级」（每包字节、包间隔）。
+  - ✅ 打印库三个文件从用户指定的 `D:\source\snowmeet\snowmeet_wechat_mini\utils\ble_label_printer\` 原样拷贝（含完整版 `encoding-indexes.js` 530 KB），`index.html` 内联加载脚本补浏览器环境。Node 比对：两种字体生成的字节与小程序 `getCommand` **逐字节一致**。
+  - ✅ SnowmeetApi `ai@5a79820f`：食材过期提醒首页 [`fnb/mat_expire/index.html`](../SnowmeetApi/wwwroot/fnb/mat_expire/index.html) 最底部加**临时**按钮「【测试】蓝牙打印养护标签」，`wecom-ble-test begin/end` 标记包住的纯插入，测试完整段删除。
+  - 🚧 **两个提交都没 push、没 publish**，用户 10-03 在线上首页看不到按钮即因此。下一步：push → 用户 publish SnowmeetApi → 企业微信里滑到首页最底点按钮 → 张数填 2 实测，iPhone/安卓各一次，打不出来带日志截图。
+  - 📌 本机连不上 `mini.snowmeet.top`（curl 超时），部署结果只能靠用户在手机上看。
+  - ⚠️ start-work 核对时发现：本机（Windows）小程序工作区是干净的，**没有**上面 10-02 记的「约 118 个旧版横幅生成文件改动」，`legacy/` 里只有 2 个页面有返回横幅（远端也一样）。那批改动可能在别的机器上，也可能已丢；[`build_legacy.py`](tools/legacy/build_legacy.py) 已入库，重跑可再生成。另外小程序远端多 2 个用户提交（`9a3434d1`、`023f7858`「show legacy」，加回 8 个空 JSON/WXSS），本机未拉。
+  - 本机另有一份旧的 reqai 检出 `D:\source\snowmeet\snowmeet_reqai`（停在 `6131ea4`）；最新的是 `D:\source\snowmeet\ai\snowmeet_reqai`（`e1c8373`）。
 - **10-02：reqai 任意格式附件与历史原件（10-03 归档，详见 [会话记录](sessions/2026-10-02_reqai-attachment-history.md)）**：
   - ✅ 任意格式均可上传，单文件 20 MB、每条消息最多 5 个，会话不再累计限 5 个。能解析的 PDF、DOCX（含表格）、XLSX、PPTX、文本进入模型上下文；有效 PNG/JPEG/GIF/WebP 走视觉模型。未知格式或解析失败保留完整原件，明确标注未解析，不猜测内容。
   - ✅ 历史消息保留附件关联，后续对话、编辑与重新生成沿用附件；会话附件和项目附件提供原件下载，Markdown/Word 导出包含下载地址。下载沿用所属会话权限，私有项目他人 403、匿名 401；长解析文本按预算截取并提示，原件字节不截断。
@@ -25,7 +35,7 @@
   - 10-02 后续修复「所有旧版页面都显示返回新版提示」：[`tools/legacy/build_legacy.py`](tools/legacy/build_legacy.py) 改为给旧版 app.json 注册的全部页面 WXML 注入横幅；[`tools/legacy/check_legacy.py`](tools/legacy/check_legacy.py) 增加全页面唯一横幅断言。已重新生成小程序 `legacy/`，112/112 注册页覆盖、检查器通过，主包估算体积无变化。客户端工作区约 118 个生成文件有改动（110 页新增横幅、8 个空 JSON/WXSS 被确定性重生成移除），**尚未编译/上传**。
   - 构建成功但有 875 条警告；服务器根盘剩约 1.5 GB（95% 已用），需尽快清理/扩容。回滚只停用演示 unit、移除演示 Nginx 配置并 reload；保留 `.top` 生产服务和数据库。
 - **10-02：接口改动分析 + 旧版演示分包 + 库结构清单（Windows 机，详见 [会话记录](sessions/2026-10-02_api-diff-legacy-demo-schema-list.md)）**：
-  - **10-01 有一天工作没跑 end-work，本文件没有记录**：员工账号管理（`pages/staffadmin/`：一次性绑定码、公众号自助登记、超级管理员、权限等级），小程序 `fed5a59f`～`d5613602`、SnowmeetApi `446f955e`～`3c9dc278` 已提交；[`sql/2026-10-01_staff_bind_code.sql`](sql/2026-10-01_staff_bind_code.sql) 本次随文档仓库一起提交，**生产库未执行，必须先于这版 SnowmeetApi 部署**；公众号仓库 `OfficialAccountApi.cs` 两条入职回复的链接改到 `pages/staffadmin/selfreg/selfreg`，**未提交**，要和小程序一起发布（旧 `staff_reg` 页已删）。09-30 的南山删除 50 个改动已在小程序 `cb1513e1` 提交。
+  - **10-01 有一天工作没跑 end-work，本文件没有记录**：员工账号管理（`pages/staffadmin/`：一次性绑定码、公众号自助登记、超级管理员、权限等级），小程序 `fed5a59f`～`d5613602`、SnowmeetApi `446f955e`～`3c9dc278` 已提交；[`sql/2026-10-01_staff_bind_code.sql`](sql/2026-10-01_staff_bind_code.sql) 本次随文档仓库一起提交，必须先于这版 SnowmeetApi 部署（**10-03 只读核实：用户已手动执行，表和两个索引都在生产库**）；公众号仓库 `OfficialAccountApi.cs` 两条入职回复的链接改到 `pages/staffadmin/selfreg/selfreg`，**未提交**，要和小程序一起发布（旧 `staff_reg` 页已删）。09-30 的南山删除 50 个改动已在小程序 `cb1513e1` 提交。
   - ✅ 服务端 `ai` 分支改动分析：分支在 **2026-05-01** 从 `migrate_to_new_season`（最后提交 `9b4d35f1`，04-14，之后再没改过）开出。分支开出时有 381 个接口：37 个改了实现、7 个加了可选参数、0 个删除或改地址；新增 175 个。有几处改动会影响旧调用方：券转赠两个接口的返回格式、`MemberLogin` 不再自动建会员、商品去掉 `shop` 字段、`GetMySkipass` 只按 member_id 查、租赁状态计算重写。
   - ✅ **旧版演示**（新版后台首页「【演示】进入旧版」，仅管理员可见）。旧版 = 小程序 `origin/master` `584b9466`，独立运行，接口连 `mini.snowmeet.com`。
     - 生成器、检查器在 [`tools/legacy/`](tools/legacy/)；生成结果是 `snowmeet_wechat_mini/legacy/`，635 个文件、112 页，**不要手改**。
@@ -39,7 +49,7 @@
     - 在微信开发者工具编译旧版演示分包，确认体积并按待办做新版回归、演示点测、删除演练；
     - 核验小程序后台 request/uploadFile `https://mini.snowmeet.com`、socket `wss://mini.snowmeet.com` 合法域名；
     - 先确认演示环境不会触发真实支付/退款/订票，再交接 Copilot 待办；
-    - 执行 `staff_bind_code` 后再部署 SnowmeetApi；
+    - ~~执行 `staff_bind_code` 后再部署 SnowmeetApi~~（10-03 核实 SQL 已执行，SnowmeetApi `ai` HEAD 可直接部署）；
     - 提交公众号仓库的改动。
 - **09-30 晚：Copilot 测试方案与执行交接（详见 [会话记录](sessions/2026-09-30_copilot-test-plan-handoff.md)）**：
   - ✅ [完整方案](docs/testing/2026-09-30-copilot-test-plan.md)、[Copilot 启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[JSON 用例索引](docs/testing/2026-09-30-copilot-test-cases.json) 已完成。170 条主用例（P0 92、P1 76、P2 2），其中 12 条人工验收；覆盖 16 个业务模块、9 项公共机制和全部 35 条历史回归。
@@ -4146,3 +4156,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ end-work 复核本机/远端/服务器提交一致、服务 active、HTTP 入口最终 200；本次仅更新项目文档和会话记录，不自动提交业务仓的既有改动。
 - 📌 `PrivateTmp=true` 下原件须在旧进程退出前从 `/proc/<PID>/root/tmp` 找到并迁移；普通主机 `/tmp` 空目录不能证明没有原件。后续备份同时覆盖数据库和原件。
 - 详细归档：[sessions/2026-10-02_reqai-attachment-history.md](sessions/2026-10-02_reqai-attachment-history.md)。
+
+### 2026-10-03：企业微信 H5 蓝牙打印实验页
+
+- ✅ 用户要求做一个企业微信 H5 空页面：填张数、点打印，经企业微信蓝牙打出一张养护标签；用户选「写死一单」，测试单为养护单 25693 / 订单 71887。
+- ✅ SnowmeetApi `ai@de6de506`：`FnbWeComController.GetJsSdkSignature`（企业 + 应用两种签名，ticket 缓存）+ `wwwroot/wecom/ble_print_test/`（实验页，打印库三个文件原样拷贝自用户指定目录）。单元测试 382 全过；H5 生成的字节与小程序 `getCommand` 逐字节一致；本机浏览器预览、手机宽度检查通过。
+- ✅ SnowmeetApi `ai@5a79820f`：食材过期提醒首页最底部的临时入口按钮（`wecom-ble-test` 标记，纯插入）。
+- ✅ 只读核实生产库：`staff_bind_code` 表和两个索引已存在（用户之前手动执行），此前「未执行」的记录已更正。
+- 🚧 两个提交未 push、未 publish；用户在线上首页看不到按钮即因此。真机打印未测。
+- 📌 企业微信 JS-SDK 2.4.0 源码：`writeBLECharacteristicValue` 收 ArrayBuffer、内部转 base64，不能传 hex 字符串（会变成空数据）；`ww.register` 只要传了 `getAgentConfigSignature`，之后每次调接口都先等 agentConfig，它失败所有接口都失败，所以页面在应用签名失败时改为只用企业签名注册。官方 CDN 只有 `wecom-jssdk-2.4.0.js`（2.4.4 等返回 404）。
+- 📌 `encoding.js` 在浏览器里发现已有原生 `TextEncoder`（只会 UTF-8）就不挂自己的，中文会乱码；要先藏起原生的再加载。`tsc.js` 依赖 `getApp`/`require`/`module`，临时补全局后可原样使用。
+- 详细归档：[`sessions/2026-10-03_wecom-h5-ble-print-test.md`](sessions/2026-10-03_wecom-h5-ble-print-test.md)。
