@@ -110,7 +110,7 @@
   - 修正脚本 [2026-09-23_fnb_restaurant_shop.sql](sql/2026-09-23_fnb_restaurant_shop.sql) 由用户执行，需填后厨员工 id。
 - 用户 09-23 表示会先完成「① 执行 SQL ② 部署 SnowmeetApi」，再开始人工测试。**线上部署仍未核实**：本机访问 `mini.snowmeet.top` 超时。
 
-<!-- reqai-digest:begin — 由 /reqai-digest 自动维护，手改会被覆盖 -->
+<!-- reqai-digest:begin — 由 /reqai-digest 自动维护，手改会被覆盖；reqai 检索时剥掉本区块 -->
 ## reqai 需求讨论动态（分析至 2026-10-02 归档）
 - 详情见 [reqai_digest/INDEX.md](reqai_digest/INDEX.md)。只有「已确认」是用户意见，其余是 reqai 提案。
 - ⏳ **餐饮物资、工具、存储区域与开门检查**（reqai 项目「多呆一会儿吧」）：10-02 产出 FSD 初稿、20 页手机端操作手册和对象关系图，**等崔洋确认，确认前不开发、不建表**；代码未开始。→ [详情](reqai_digest/topics/fnb-storage-tools-opening-check.md)

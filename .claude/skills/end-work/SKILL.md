@@ -41,6 +41,7 @@ Closing a work session on an evolving project requires documenting what changed.
    - 新增关键文件补进「关键文件」
    - 开发日志末尾加一条当天 dated entry
    - 「当前状态」日期戳前移
+   - `<!-- reqai-digest:begin/end -->` 区块归 /reqai-digest 维护，不要手改。reqai 需求摘要的内容（已确认决策、reqai 提案、待确认事项）也不要抄到区块外：区块外的 CLAUDE.md 会进 reqai 检索，区块内的会被 reqai 剥掉。开发日志里可以写「跑了 /reqai-digest」这类过程。
 
 4. **Memory 对账（固化进 doc）**:
    - 本会话写进 memory 的内容里，凡属*项目知识*（gotcha / 架构决策 / 状态）→ 确认 CLAUDE.md 有更完整版本，没有就补（memory 不跨机，doc 才是真源）
