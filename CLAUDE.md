@@ -1,10 +1,23 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03）：美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+## 当前状态（截至 2026-10-03）：新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
 - **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
   - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
   - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
   - ✅ start-work 已刷新文档、API、小程序远端：API `5a79820f` 与 origin/ai 一致，纠正文档中蓝牙提交“未 push”的旧结论；小程序 `c4216875` 落后 origin/ai 两个 `show legacy` 提交，工作区干净。公众号仍有未提交链接改动；reqai `fefa3a4` 工作区干净，但两仓启动时 fetch 超时，远端状态未刷新。
+- **10-03：reqai 归档分析 skill `/reqai-digest` + reqai 不读摘要（详见 [会话记录](sessions/2026-10-03_reqai-digest-skill.md)）**：
+  - ✅ 新 skill [`.claude/skills/reqai-digest/`](.claude/skills/reqai-digest/SKILL.md)：
+    - [`scan.py`](.claude/skills/reqai-digest/scan.py) 按「会话 id + 消息哈希」增量扫描 `reqai_archives/`，进度存在 `reqai_digest/state.json`（入库，跨机可续）；
+    - Claude 按需求主题写 [`reqai_digest/INDEX.md`](reqai_digest/INDEX.md) 和 `topics/*.md`，并整段替换下方 reqai-digest 区块，完成后只提交 `reqai_digest` 和 `CLAUDE.md`；
+    - start-work 新增「reqai 需求动态」：照搬区块，并附上 `scan.py --check` 的结果。
+  - ✅ 首次分析了会话 #1–#5（至 10-02 归档），结果只写在 `reqai_digest/` 和下方区块里。
+  - ✅ 用户决定：**reqai 不读摘要，提案与事实分开写**。reqai `main@8a7f7b7` 已部署（服务 active、`NRestarts=0`、健康检查 200）：
+    - `PRIVATE_DOC_DIRS = (reqai_archives, reqai_digest)`，语料同步、切分、文件浏览器三处共用；文件浏览器里非管理员看不到这两个目录；
+    - 切分 CLAUDE.md 前会剥掉 reqai-digest 区块；
+    - 11:00 的自动同步曾把区块读进索引，部署后的同步 #1291 已清掉；
+    - 新增测试 7 项全过（另有 6 项 Windows 路径用例是改动前就有的失败）。
+  - ⚠️ **规矩**：摘要内容（已确认决策、reqai 提案、待确认事项）只能放在 `reqai_digest/` 和区块内。区块外的 CLAUDE.md、`sessions/`、`docs/`、SKILL.md 都会进 reqai 检索。两条标记行要保持原样，否则 reqai 剥不掉。
+  - 📌 reqai 语料由 cron 每 30 分钟调用 `/api/admin/sync` 同步（异步，只返回 `started`），按文件 sha256 增量：改了切分规则，内容没变的文件不会重切。reqai 重启后约 20 秒才开始监听 8003。
 - **10-03：reqai 每日归档（详见 [会话记录](sessions/2026-10-03_reqai-daily-archive.md)）**：
   - ✅ reqai `main@fefa3a4` 已推送部署。北京时间 **12:00、15:00、18:00、21:00、24:00** 自动归档；管理员「后台 → 每日归档」可手动执行并查看结果、提交和下次计划。
   - ✅ `reqai_archives/YYYY-MM-DD/` 保存当天有活动的完整会话 Markdown/JSON 和原件，保留引用、附件关联及 SHA-256；同日更新，次日补齐后封存，启动补跑，失败 5 分钟重试。
@@ -4217,3 +4230,19 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 启动核查确认 API 蓝牙两个提交已在 origin/ai；小程序干净但落后两个 show legacy 提交，公众号链接仍未提交。文档中旧“未 push”状态已纠正。
 - 🚧 下一步使用目标私钥确认登录；蓝牙 publish/真机测试和旧版分包验收仍待确认。
 - 详细归档：[sessions/2026-10-03_us-server-port-forward.md](sessions/2026-10-03_us-server-port-forward.md)。
+
+### 2026-10-03：reqai 归档分析 skill `/reqai-digest` + reqai 不读摘要
+
+- ✅ 新 skill `.claude/skills/reqai-digest/`：
+  - `scan.py` 增量扫描 `reqai_archives/`：按会话 id + 消息哈希判断，标出失败回答和失败后的重发，支持 `--check` / `--show` / `--mark`；
+  - SKILL.md 定了三条底线、5 类消息、12 步流程和三套模板；
+  - 产出写在 `reqai_digest/`（INDEX、主题文件、`state.json`）和 CLAUDE.md 的 reqai-digest 区块；start-work 新增「reqai 需求动态」。
+- ✅ 首次分析会话 #1–#5，提交 `2ae7a54`。分析中有 1 个知识缺口顺手用代码核实了，结论在 INDEX 里。
+- ✅ 用户决定 reqai 不读摘要。reqai `8a7f7b7`：
+  - `PRIVATE_DOC_DIRS` 由语料同步、切分、文件浏览器三处共用；
+  - 切分 CLAUDE.md 前剥掉区块，缺结束标记时只剥区块所在那一节；
+  - 新增测试 7 项过。
+  - 已部署；改了文档里区块的开始标记让文件哈希变化，同步 #1291 后 CLAUDE.md 不再含摘要。文档提交 `2157bed`。
+- ✅ end-work 新增规矩：摘要内容不抄到区块外。
+- 📌 当时另一场会话在改同一个 CLAUDE.md，我只把自己的改动放进暂存区提交（用 `hash-object` + `update-index`）。
+- 详细归档：[sessions/2026-10-03_reqai-digest-skill.md](sessions/2026-10-03_reqai-digest-skill.md)。
