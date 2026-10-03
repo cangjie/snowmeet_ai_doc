@@ -1,6 +1,10 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-03）：reqai 每日会话/原件归档和网页手动入口已上线，五个北京时间时段已启用；企业微信 H5 蓝牙打印实验页已完成（本地提交，待 push + publish 后真机测）；reqai 任意格式附件与原件历史下载已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；`staff_bind_code` 已在生产库（10-03 核实）
+## 当前状态（截至 2026-10-03）：美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验提交已在远端，publish 与真机测试仍待确认；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+- **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
+  - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
+  - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
+  - ✅ start-work 已刷新文档、API、小程序远端：API `5a79820f` 与 origin/ai 一致，纠正文档中蓝牙提交“未 push”的旧结论；小程序 `c4216875` 落后 origin/ai 两个 `show legacy` 提交，工作区干净。公众号仍有未提交链接改动；reqai `fefa3a4` 工作区干净，但两仓启动时 fetch 超时，远端状态未刷新。
 - **10-03：reqai 每日归档（详见 [会话记录](sessions/2026-10-03_reqai-daily-archive.md)）**：
   - ✅ reqai `main@fefa3a4` 已推送部署。北京时间 **12:00、15:00、18:00、21:00、24:00** 自动归档；管理员「后台 → 每日归档」可手动执行并查看结果、提交和下次计划。
   - ✅ `reqai_archives/YYYY-MM-DD/` 保存当天有活动的完整会话 Markdown/JSON 和原件，保留引用、附件关联及 SHA-256；同日更新，次日补齐后封存，启动补跑，失败 5 分钟重试。
@@ -14,7 +18,7 @@
   - ✅ 实验页 [`wwwroot/wecom/ble_print_test/`](../SnowmeetApi/wwwroot/wecom/ble_print_test/index.html)，线上地址 `https://mini.snowmeet.top/wecom/ble_print_test/index.html`。打的是养护单 25693（`WF-260715-002`）的存根标签，数据写死在页面里（只留姓、手机号打码）；搜索 3 秒，按 printer 表挑信号最强的一台；页面带日志区和「高级」（每包字节、包间隔）。
   - ✅ 打印库三个文件从用户指定的 `D:\source\snowmeet\snowmeet_wechat_mini\utils\ble_label_printer\` 原样拷贝（含完整版 `encoding-indexes.js` 530 KB），`index.html` 内联加载脚本补浏览器环境。Node 比对：两种字体生成的字节与小程序 `getCommand` **逐字节一致**。
   - ✅ SnowmeetApi `ai@5a79820f`：食材过期提醒首页 [`fnb/mat_expire/index.html`](../SnowmeetApi/wwwroot/fnb/mat_expire/index.html) 最底部加**临时**按钮「【测试】蓝牙打印养护标签」，`wecom-ble-test begin/end` 标记包住的纯插入，测试完整段删除。
-  - 🚧 **两个提交都没 push、没 publish**，用户 10-03 在线上首页看不到按钮即因此。下一步：push → 用户 publish SnowmeetApi → 企业微信里滑到首页最底点按钮 → 张数填 2 实测，iPhone/安卓各一次，打不出来带日志截图。
+  - 🚧 本次 start-work 已确认两个提交在 origin/ai（HEAD `5a79820f`）；历史记录的“未 push”已过期。publish 状态未重新核实；下一步确认部署 → 企业微信首页最底点按钮 → 张数填 2，iPhone/安卓实测，失败时保留日志。
   - 📌 本机连不上 `mini.snowmeet.top`（curl 超时），部署结果只能靠用户在手机上看。
   - ⚠️ start-work 核对时发现：本机（Windows）小程序工作区是干净的，**没有**上面 10-02 记的「约 118 个旧版横幅生成文件改动」，`legacy/` 里只有 2 个页面有返回横幅（远端也一样）。那批改动可能在别的机器上，也可能已丢；[`build_legacy.py`](tools/legacy/build_legacy.py) 已入库，重跑可再生成。另外小程序远端多 2 个用户提交（`9a3434d1`、`023f7858`「show legacy」，加回 8 个空 JSON/WXSS），本机未拉。
   - 本机另有一份旧的 reqai 检出 `D:\source\snowmeet\snowmeet_reqai`（停在 `6131ea4`）；最新的是 `D:\source\snowmeet\ai\snowmeet_reqai`（`e1c8373`）。
@@ -191,6 +195,13 @@
 - `SnowmeetOfficialAccount/` — 微信**公众号**后台服务（ASP.NET Core 7.0 + C#，独立项目，2026-08-12 加入本仓库所在目录）
 
 ---
+
+## 服务器端口映射（2026-10-03 用户确认）
+
+- 美国服务器 `44.207.251.65:2222` → `161.189.64.210:22`（SSH）。
+- 美国服务器 `44.207.251.65:1433` → `161.189.64.210:1433`（SQL Server）。
+- 已按用户明确授权配置公网监听及开机自动启动：`/etc/systemd/system/snowmeet-forward-{2222,1433}.{socket,service}`，使用系统内置 `systemd-socket-proxyd`；美国服务器自身的 SSH 22 端口与转发入口 2222 是不同连接目标。
+- 2026-10-03 本机公网验证通过：2222 返回目标 SSH 标识 `OpenSSH_8.9p1 Ubuntu-3ubuntu0.17`；1433 返回 SQL Server TDS prelogin 响应（43 字节，类型 4）。未进行 SSH 登录或数据库身份验证。
 
 ## 技术栈
 
@@ -4197,3 +4208,12 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ end-work 使用 GitHub SSH 443 完成同步并核实 reqai 真实远端仍为 `fefa3a4`，HTTPS GET 200。GitHub 22 与部署服务器 22 均超时；收尾未重新核实服务器进程和归档状态，部署验收时的 active / NRestarts=0 结论保留原时间含义。
 - 📌 下次先查看管理员「每日归档」的计划执行记录，确认 12:00 时段结果；若需 SSH 复核，先确认本机至服务器的 22 端口恢复。
 - 详细归档：[sessions/2026-10-03_reqai-daily-archive.md](sessions/2026-10-03_reqai-daily-archive.md)。
+
+### 2026-10-03：美国服务器公网 SSH / SQL Server 端口转发
+
+- ✅ 用户明确授权公网开放及开机启动，已配置 `44.207.251.65:2222` → `161.189.64.210:22`、`44.207.251.65:1433` → `161.189.64.210:1433`，使用 systemd-socket-proxyd；四个 unit active，两个 socket enabled。
+- ✅ 本机公网 SSH 标识和 SQL TDS prelogin 验证通过，未进行目标登录、数据库认证或业务写操作。
+- 📌 用户 SSH 的 `Permission denied (publickey)` 是目标账号密钥认证失败；转发连接使用目标服务器用户名和私钥。接受新地址主机密钥的提示正常，截图显示密钥也属于 161.189.64.210。
+- ✅ 启动核查确认 API 蓝牙两个提交已在 origin/ai；小程序干净但落后两个 show legacy 提交，公众号链接仍未提交。文档中旧“未 push”状态已纠正。
+- 🚧 下一步使用目标私钥确认登录；蓝牙 publish/真机测试和旧版分包验收仍待确认。
+- 详细归档：[sessions/2026-10-03_us-server-port-forward.md](sessions/2026-10-03_us-server-port-forward.md)。
