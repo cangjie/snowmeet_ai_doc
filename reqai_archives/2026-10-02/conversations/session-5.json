@@ -1,0 +1,855 @@
+{
+  "attachments": [
+    {
+      "archive_path": "files/1_Weixin Image_20261002203450_83_283.jpg",
+      "bytes": 1515420,
+      "created_at": "2026-10-02T20:36:18+08:00",
+      "extracted_text": null,
+      "id": 1,
+      "mime_type": "image/jpeg",
+      "original_name": "Weixin Image_20261002203450_83_283.jpg",
+      "session_id": 5,
+      "sha256": "4bfae267416beb25186b9b6500f1cc4f91473e86e59a2bce9c5ef3f4fcbffa33",
+      "user_id": 1
+    },
+    {
+      "archive_path": "files/5_Weixin Image_20261002203450_83_283.jpg",
+      "bytes": 1515420,
+      "created_at": "2026-10-02T21:59:30+08:00",
+      "extracted_text": null,
+      "id": 5,
+      "mime_type": "application/octet-stream",
+      "original_name": "Weixin Image_20261002203450_83_283.jpg",
+      "session_id": 5,
+      "sha256": "4bfae267416beb25186b9b6500f1cc4f91473e86e59a2bce9c5ef3f4fcbffa33",
+      "user_id": 1
+    },
+    {
+      "archive_path": "files/6_snowmeet.pptx",
+      "bytes": 5421547,
+      "created_at": "2026-10-02T21:59:31+08:00",
+      "extracted_text": "## 第 1 页\n操作手册 · 手机端\n食材管理系统\n使用说明\n员工与店长的日常操作：开门检查、入库、开封、制作、出餐、临期处理、盘点，以及区域、工具、餐具的管理\n2026 年 10 月版\n## 第 2 页\n开始之前\n认识界面\n底部五个页签，打开就是「库存」首页\n库存\n在库食材与批次、今日检查状态、临期提醒、开封入口\n入库\n每天采购到货后登记\n开门检查\n每天营业前按区域逐项检查\n出餐\n订单出餐后自动扣减食材\n更多\n存储区域、工具、餐具、用量预警、分类、配方、半成品、盘点、销毁、看板\n右上角\n显示当前身份（员工或店长）和日期。部分操作只有店长能做，见下一页。\n## 第 3 页\n开始之前\n员工能做什么，店长另外能做什么\n员工\n所有在职员工\n· 开始、填写、提交开门检查 · 入库、开封、半成品制作 · 出餐扣减、临期报损、确认销毁 · 盘点录入 · 餐具入库、领用、报损 · 工具标记损坏 / 缺失 / 送修 / 找回、移动位置 · 给存储区域拍照\n店长\n员工能做的都能做，另外\n· 新增、停用、删除存储区域 · 新增、停用开门检查项 · 处理检查异常并确认检查单 · 报废工具、修改工具档案 · 修改用量预警规则 · 维护分类与菜品配方\n## 第 4 页\n一天的节奏\n每天的工作顺序\n1\n开门检查\n营业前，按区域逐项检查\n2\n入库\n到货就登记，拍照、选区域\n3\n备料制作\n做半成品，原料自动核销\n4\n开封\n要用的封装食材开一件\n5\n出餐\n按订单扣减食材\n6\n临期处理\n报损、确认销毁\n7\n盘点\n收档或按周期核对\n库存只会在\n入库、开封、制作、出餐、报损 / 销毁、盘点 \n这几个动作上变化，每一次都记录批次号、经办人和时间。开门检查只记录状态，不改库存。\n## 第 5 页\n01 开门检查\n填写今日检查\n1\n点底部「开门检查」→「开始今日检查」，系统按存储区域生成当天的检查单，每天一张\n2\n逐项选「正常 / 异常 / 不适用」；温度等数值项填实测值，超出标准自动判为异常\n3\n都没问题时点「\n一键全部通过 \n」：只填还没填的项，已填的结果不变，数值项仍要手填\n4\n标为异常必须写原因；拍照留证可选\n5\n中途可「保存草稿」；必填项都完成后点「提交检查」\n## 第 6 页\n01 开门检查\n处理异常，确认检查单\n店长操作\n1\n提交后状态变为「已提交」，异常项显示「待处理」\n2\n每条异常写处理说明，点「追加记录」；员工填的原始结果不会被改\n3\n异常全部有处理记录后，点「店长确认检查单」\n4\n涉及工具或餐具的异常，可从检查项直接跳到工具页登记状态、餐具页补货\n提交时提示「快照已过期」？ \n说明填写期间店长改过检查项。点「刷新检查项」，已填的结果会保留。\n## 第 7 页\n02 入库\n登记每日到货\n1\n选一级、二级分类\n2\n填食材名称并拍照建档（必填）\n3\n批次号由系统生成，可以手改\n4\n储存方式按分类默认，冷藏、冷冻、常温都能选\n5\n存放区域必选\n，浅蓝框是系统建议\n6\n选封装或散装；封装要填每件规格，如 1000 ml/瓶\n7\n数量与单位：个 / 公斤 / 克，按分类默认\n8\n生产日期、保质期、到期日期三项独立，可扫描包装识别\n点「加入」放进今日入库清单，可连续录多条，最后统一「确认入库」。按包装算已经过期的不能入库。\n## 第 8 页\n03 开封\n一次开一件\n1\n在「库存」点开食材，找到「封装未开封」的批次\n2\n点蓝色「开封」按钮\n3\n选开封后的存放区域\n（必选，已按开封后储存方式给出建议）\n4\n点「确认开封 1 瓶」：封装批次 −1 瓶，已开封余量 +1000 ml，开封后保质期从今天算起\n出餐和半成品制作只用\n散装、已开封、半成品\n，未开封的整件不会被扣减。\n## 第 9 页\n04 半成品制作\n做半成品，原料自动核销\n更多 → 半成品制作\n1\n选要做的半成品，如「Pizza 面团」，调整批数\n2\n核对每种原料的用量和可用量，可以改用量、加原料\n3\n点「确认制作并核销原料」：原料按先到期先出扣减，同时生成一个半成品批次\n半成品可以按重量或件数记，菜品配方里可以直接用。\n## 第 10 页\n05 菜品配方\n设置每道菜的用料\n更多 → 菜品配方\n1\n点开菜品，每道菜默认有一个「标准份」\n2\n需要时「新增规格」，如「大份」「12 寸」\n3\n每个规格单独「添加食材」并设用量，用 − / + 调整\n只能选\n散装、已开封、半成品\n食材；页面下方会估算单份成本。\n## 第 11 页\n06 出餐\n按订单扣减食材\n1\n「待出餐订单」由订单系统同步，显示订单号、桌号、时间和备注\n2\n点开订单，按配方列出要扣的食材；不够的标「库存不足」\n3\n按备注微调用量后，确认出餐\n4\n系统按先到期先出扣减批次；「扣减流水」里能查到每一笔对应的订单号和备注\n## 第 12 页\n07 临期处理\n看临期，及时报损\n库存 → 临期与过期批次\n已过期\n点「去销毁」，进入待销毁清单\n开封后临期\n优先用掉，用不完点「报损」\n未开封临期\n安排先开封、先用\n临期天数按二级分类设定。报损的数量进损耗台账，在数据看板里汇总。\n## 第 13 页\n07 临期处理\n确认过期食材已销毁\n1\n过期批次自动进入「待销毁」\n2\n实物处理掉之后，逐批点「确认已销毁」\n3\n「已销毁」页签保留记录：批次、数量、销毁时间\n没有确认销毁的过期批次会一直留在待销毁清单里，库存页也会持续提醒。\n## 第 14 页\n08 盘点\n核对系统数与实盘数\n更多 → 盘点核对\n1\n逐项在「实盘」里填实际称量或点数的结果\n2\n系统即时显示与系统数的差异\n3\n提交后以实盘数为准更新库存，差异记入损耗台账\n只盘\n散装和已开封的余量\n；未开封的整件按件清点即可，不参与差异计算。\n## 第 15 页\n09 存储区域\n维护区域与检查项\n更多 → 存储区域 · 增删改需店长\n1\n区域分两级，如「后厨 → 冷藏柜」；可新增一级或下级区域\n2\n每个区域可拍照，最多 6 张；第一张作为封面\n3\n点「检查项 ›」配置开门检查：是否 / 数值 / 拍照，必填或选填\n还有食材、工具、餐具或检查项绑定的区域\n只能停用，不能删除 \n。停用后新入库、新检查项选不到它，历史记录照常显示。\n## 第 16 页\n10 餐饮工具\n登记工具状态与位置\n更多 → 餐饮工具 · 点开一件工具操作\n正常\n→\n损坏\n→\n维修中 → 正常\n或\n→\n已报废（店长）\n正常\n→\n缺失\n→\n已找回（须写说明）\n· 在「所在区域」点选另一个区域即完成移动，自动记日志\n· 报废必须写原因；状态日志里能看到每次变化的人和时间\n## 第 17 页\n11 餐饮物资\n餐具入库、领用、报损\n更多 → 餐饮物资\n1\n上方切换「一次性餐具」和「可重复使用餐具」\n2\n点开物资，选「入库 / 领用 / 报损」；入库按箱、包填，自动换算成个\n3\n领用、报损要选原因；可重复使用餐具只有「补充」和「破损报损」\n录错了？最近一次入库在 \n10 分钟内\n、且之后没有新流水时，可以撤销。\n## 第 18 页\n12 用量预警\n快用完时提醒补货\n库存首页「用量预警」，或 更多 → 用量预警\n默认 · 按比例\n最近一次入库量 × 10%\n进 20 kg，低于 2 kg 提醒\n可改 · 固定值\n低于设定数量就提醒\n如打包盒低于 100 个\n· 两种方式只能选一种，食材和餐饮物资通用\n· 用「改为固定值 / 改为按比例」切换，− / + 调整；修改需店长\n## 第 19 页\n附录\n常见问题\n出餐为什么没扣我刚入库的番茄酱？\n封装的整瓶要先「开封」，开封后的余量才会被出餐扣减。\n入库的「加入」按钮是灰的？\n检查名称、拍照、存放区域是否都已填写，封装品还要填每件规格。\n开门检查提交不了？\n还有必填项没填，或异常没写原因；提示快照过期就点「刷新检查项」。\n存储区域删不掉？\n区域里还有食材、工具、餐具或检查项，只能停用。\n餐具入库填错了？\n10 分钟内可撤销最近一次入库；超过时间请用报损或再次入库修正。\n按钮提示「需要店长权限」？\n该操作只限店长，请店长登录后处理。\n## 第 20 页\n附录\n系统里的对象怎么关联\n· \n批次 \n是库存的最小单位，属于一个食材，放在一个存储区域 · 出餐、报损、盘点都落到批次上 · 区域同时承载工具、餐具和开门检查项\n高清原图另附：食材管理-对象关系图.png",
+      "id": 6,
+      "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "original_name": "snowmeet.pptx",
+      "session_id": 5,
+      "sha256": "bb58b928c2a766b21f357953bef7ff6ecc75d0666251747210865bfe3764090f",
+      "user_id": 1
+    }
+  ],
+  "messages": [
+    {
+      "attachment_ids": null,
+      "citations": null,
+      "content": "食材管理，需要增加对于餐饮工具的管理，餐具的管理（一次性餐具可否等同于食材？）然后，需要增加存储区域的管理。每天开门，员工需要按照存储区域进行相应的检查，（可否借鉴目前的盘点功能）。请结合已经实现的系统，整理一份FSD",
+      "context_chunks": null,
+      "created_at": "2026-10-02T15:09:22+08:00",
+      "id": 17,
+      "parent_id": null,
+      "role": "user",
+      "session_id": 5,
+      "status": "done",
+      "usage": null
+    },
+    {
+      "attachment_ids": null,
+      "citations": [
+        {
+          "anchor": "表清单",
+          "chunk_id": 3455,
+          "family": "spec",
+          "file_id": 706,
+          "heading": "食材管理数据库结构审阅稿 v4 > 表清单",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C13"
+        },
+        {
+          "anchor": "七项功能如何落表",
+          "chunk_id": 3457,
+          "family": "spec",
+          "file_id": 706,
+          "heading": "食材管理数据库结构审阅稿 v4 > 七项功能如何落表",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C6"
+        },
+        {
+          "anchor": "必须在后端实现的过账规则",
+          "chunk_id": 3458,
+          "family": "spec",
+          "file_id": 706,
+          "heading": "食材管理数据库结构审阅稿 v4 > 必须在后端实现的过账规则",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C5"
+        },
+        {
+          "anchor": "设计范围与选择",
+          "chunk_id": 3454,
+          "family": "spec",
+          "file_id": 706,
+          "heading": "食材管理数据库结构审阅稿 v4 > 设计范围与选择",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C1"
+        },
+        {
+          "anchor": "4.-小程序客户端",
+          "chunk_id": 3927,
+          "family": "session",
+          "file_id": 749,
+          "heading": "2026-09-23 食材管理：小程序客户端实现 + codex 服务端接口验证 > 4. 小程序客户端",
+          "path": "sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C19"
+        },
+        {
+          "anchor": "静态审查中的其他发现未改服务端客户端已绕开",
+          "chunk_id": 3920,
+          "family": "plan",
+          "file_id": 748,
+          "heading": "食材管理服务端接口验证报告 > 静态审查中的其他发现（未改服务端，客户端已绕开）",
+          "path": "docs/superpowers/plans/2026-09-23-fnb-inventory-api-verification.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C12"
+        },
+        {
+          "anchor": "4.-用量预警09-26",
+          "chunk_id": 4750,
+          "family": "session",
+          "file_id": 788,
+          "heading": "2026-09-25 ~ 09-27 食材管理第三轮打磨：半成品分类与配方、制作页开封、用量预警、操作指南 PPT > 4. 用量预警（09-26）",
+          "path": "sessions/2026-09-24_fnb_prepared_recipe_low_stock_and_guide.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C4"
+        },
+        {
+          "anchor": "关键改动文件",
+          "chunk_id": 4458,
+          "family": "session",
+          "file_id": 780,
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 关键改动文件",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C2"
+        },
+        {
+          "anchor": "背景与范围",
+          "chunk_id": 181,
+          "family": "spec",
+          "file_id": 9,
+          "heading": "食材过期提醒（fnb mat_expire）设计",
+          "path": "docs/superpowers/specs/2026-07-15-fnb-mat-expire-design.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C7"
+        },
+        {
+          "anchor": "2026-09-24-变更分类属性下沉到食材",
+          "chunk_id": 4743,
+          "family": "plan",
+          "file_id": 704,
+          "heading": "食材管理服务端 API 契约（小程序接入前审阅） > 2026-09-24 变更：分类属性下沉到食材",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C18"
+        },
+        {
+          "anchor": "2026-09-23-补充菜品接口与小程序客户端",
+          "chunk_id": 4742,
+          "family": "plan",
+          "file_id": 704,
+          "heading": "食材管理服务端 API 契约（小程序接入前审阅） > 2026-09-23 补充：菜品接口与小程序客户端",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C16"
+        },
+        {
+          "anchor": "实现方式",
+          "chunk_id": 3448,
+          "family": "plan",
+          "file_id": 705,
+          "heading": "食材管理服务器 API 开发计划（审阅稿） > 实现方式",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C20"
+        },
+        {
+          "anchor": "已确认的实施边界",
+          "chunk_id": 3452,
+          "family": "plan",
+          "file_id": 705,
+          "heading": "食材管理服务器 API 开发计划（审阅稿） > 已确认的实施边界",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C3"
+        },
+        {
+          "anchor": "6.-库存不够时怎么处理",
+          "chunk_id": 4456,
+          "family": "session",
+          "file_id": 780,
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 6. 库存不够时怎么处理",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C10"
+        },
+        {
+          "anchor": "兼容旧功能与数据接管",
+          "chunk_id": 3460,
+          "family": "spec",
+          "file_id": 706,
+          "heading": "食材管理数据库结构审阅稿 v4 > 兼容旧功能与数据接管",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "source": "snowmeet_ai_doc",
+          "tag": "C14"
+        }
+      ],
+      "content": "# 餐饮工具、餐具、存储区域与开门检查 FSD（初稿）\n\n## 1. 结论\n\n建议将新增能力拆成三个业务模块：\n\n1. **餐饮物资档案与库存**\n   - 食材：继续使用现有 `fnb_material_item` 与食材库存体系。\n   - 一次性餐具：不等同于食材，但可复用库存过账、批次、成本和预警能力。\n   - 餐饮工具：作为可重复使用的资产／工具管理，不直接按食材批次扣减。\n2. **存储区域管理**\n   - 给食材、一次性餐具、工具和检查项绑定 `storage_area`。\n   - 支持门店内的区域树、区域状态和区域负责人。\n3. **每日开门检查**\n   - 按存储区域生成检查任务。\n   - 借鉴盘点的“快照—填写—提交—并发校验”模式，但不能直接复用盘点单，因为开门检查不应修改库存。\n\n---\n\n## 2. 与现有系统的衔接\n\n### 2.1 已有能力\n\n当前食材库存已经具备以下可复用基础：\n\n- 食材品种档案为 `fnb_material_item`，批次库存扩展为 `fnb_material_batch_stock`，库存流水为 `fnb_stock_movement`。[[C13]]\n- 入库、开封、半成品制作、出餐、盘点和销毁均通过库存业务单据及流水处理。[[C6]]\n- 所有库存写入应在一个事务中完成，包括锁定库存、写入单据和流水、更新批次数量及状态。[[C5]]\n- 库存数量统一使用 `g`、`ml`、`piece`，包装单位保留输入单位和换算快照。[[C1]]\n- 现有盘点只盘可用的散装、已开封和半成品，使用系统快照和实盘数，并在提交时检查快照是否过期。[[C5]]\n- 小程序已有 `pages/fnbinv/stock`、`pages/fnbinv/count` 等库存和盘点页面，并存在 `stocktake.js`、`stock-view.js` 等公共模块。[[C19]]\n- 服务端已经存在盘点相关能力，但目前 `CreateSnapshot` 仅店长可调用，并且没有查询进行中盘点单的接口。[[C12]]\n- 现有库存低量预警已经支持按食材设置比例或固定数量，默认规则为最近一次入库数量的 10%。[[C4]]\n\n第二轮餐饮库存实现中，相关服务文件包括：\n\n- `SnowmeetApi/Services/Fnb/FnbServeService.cs`\n- `SnowmeetApi/Services/Fnb/FnbInventoryRules.cs`\n- `SnowmeetApi/Services/Fnb/FnbStockPostingService.cs`\n- `SnowmeetApi/Services/Fnb/FnbReceiptService.cs`\n- `SnowmeetApi/Controllers/Fnb/FnbKitchenController.cs`[[C2]]\n\n这些服务可以作为库存过账和餐饮业务权限的复用入口，但**目前资料没有确认它们已经支持“餐具”“工具”或“存储区域”字段**，不能直接假设现有接口无需改造。\n\n### 2.2 不建议直接复用的部分\n\n不建议把一次性餐具直接写进 `fnb_material_item`，也不建议把每日开门检查直接伪装成盘点：\n\n| 对象 | 是否进入食材档案 | 是否产生批次库存 | 是否允许库存扣减 | 是否适合盘点模型 |\n|---|---:|---:|---:|---:|\n| 食材 | 是 | 是 | 是 | 是 |\n| 一次性餐具 | 否，建议新建物资档案 | 是 | 是 | 部分适合 |\n| 可重复使用餐具 | 否 | 可选 | 通常不按消耗扣减 | 可盘数量，但不是库存出入库 |\n| 餐饮工具 | 否 | 否，建议资产档案 | 否 | 不适合按库存流水处理 |\n| 开门检查项 | 否 | 否 | 否 | 只借鉴快照机制 |\n\n一次性餐具与食材都属于“会消耗的物资”，但业务属性不同：\n\n- 食材有保质期、开封、FEFO、制作配方和成本追溯。\n- 一次性餐具通常只需要规格、包装换算、库存数量、低库存预警和领用／损耗记录。\n- 餐饮工具关注的是是否存在、是否可用、所在区域、责任人、维修或报废状态，而不是批次成本。\n\n因此，建议采用：\n\n> **统一物资库存底座，食材、一次性餐具作为不同物资类型；餐饮工具单独建立工具资产模型。**\n\n这是设计建议，当前文档没有记载已经作出该决策。\n\n---\n\n# 3. 业务范围\n\n## 3.1 本期目标\n\n本期实现：\n\n1. 餐饮物资分类扩展。\n2. 一次性餐具档案与库存管理。\n3. 餐饮工具档案与状态管理。\n4. 存储区域档案及物资位置绑定。\n5. 每日开门检查模板。\n6. 按存储区域生成开门检查任务。\n7. 员工填写、提交、补充说明和上传照片。\n8. 店长查看当天完成情况、异常项和历史记录。\n9. 对库存类检查项提供“库存异常”入口，但不在开门检查提交时直接调整库存。\n\n## 3.2 本期不做\n\n以下内容不应纳入本期：\n\n- 一次性餐具进入菜品配方。\n- 餐具参与厨房单扣料。\n- 工具自动折旧、财务资产核算。\n- 工具维修工单和供应商采购流程。\n- 自动判断设备是否真正正常运行。\n- 开门检查直接产生盘盈、盘亏或库存流水。\n- 复杂的跨门店区域权限。\n- 自动定时提醒任务。现有食材提醒设计曾明确本期不做定时任务，先支持手动触发；本期是否增加定时任务需要另行确认。[[C7]]\n\n---\n\n# 4. 核心概念\n\n## 4.1 物资类型\n\n新增统一物资类型 `material_type`：\n\n```text\nfood              食材\ndisposable        一次性餐具\nreusable_tableware 可重复使用餐具\n```\n\n建议不要将餐饮工具放入该类型，而是单独使用 `tool` 资产类型。\n\n### 食材\n\n沿用现有规则：\n\n- 批次管理。\n- 效期管理。\n- 开封和销毁。\n- FEFO 扣料。\n- 成本追溯。\n- 菜品配方关联。\n\n这些规则已经是现有食材库存的既有设计。[[C1]][[C5]]\n\n### 一次性餐具\n\n例如：\n\n- 一次性筷子。\n- 打包盒。\n- 打包袋。\n- 吸管。\n- 纸巾。\n- 一次性手套。\n- 外卖餐具包。\n\n业务特征：\n\n- 有库存数量。\n- 可按包装单位入库，例如箱、包、袋。\n- 应转换为 `piece` 作为基本数量。\n- 可以设置低库存预警。\n- 可以记录领用、报损、盘点调整。\n- 一般不需要效期、开封后保质期或 FEFO。\n\n这里的“通常不需要效期”是业务建议，个别物资仍应允许配置效期。\n\n### 可重复使用餐具\n\n例如：\n\n- 碗。\n- 盘。\n- 杯。\n- 勺。\n- 夹子。\n\n建议按两类场景处理：\n\n1. **普通消耗／周转数量**\n   - 只管理总数量和可用数量。\n   - 适合纳入物资库存。\n2. **高价值或需要逐件追踪的餐具**\n   - 建议单独建立资产编号。\n   - 本期可先不做逐件二维码。\n\n### 餐饮工具\n\n例如：\n\n- 菜刀。\n- 砧板。\n- 电子秤。\n- 量杯。\n- 漏勺。\n- 打蛋器。\n- 保鲜盒。\n- 温度计。\n- 开瓶器。\n\n工具应管理：\n\n- 工具名称。\n- 工具分类。\n- 编号或标签。\n- 所在存储区域。\n- 当前状态。\n- 责任岗位或责任人。\n- 是否需要每日检查。\n- 最近检查时间。\n- 报废或停用原因。\n\n工具不应通过 `fnb_stock_movement` 模拟每日“扣一件、补一件”，否则会制造大量没有业务意义的库存流水。这是设计建议。\n\n---\n\n# 5. 数据模型设计\n\n## 5.1 现有表的使用边界\n\n现有食材表继续承担食材业务：\n\n- `fnb_material_item`\n- `fnb_material_batch_stock`\n- `fnb_stock_document`\n- `fnb_stock_document_line`\n- `fnb_stock_movement`\n- `fnb_stocktake_line`[[C13]]\n\n不建议直接修改 `fnb_material_item` 来承载工具。当前资料只确认该表是食材品种档案，未记载其已经支持工具或餐具类型。[[C13]]\n\n## 5.2 建议新增表\n\n### `fnb_storage_area`\n\n存储区域主表。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 区域 ID |\n| `shop_id` | 门店 |\n| `parent_id` | 父区域，可为空 |\n| `name` | 区域名称 |\n| `area_type` | `kitchen`、`warehouse`、`front`、`cold_storage`、`other` |\n| `sort` | 排序 |\n| `valid` | 是否启用 |\n| `remark` | 备注 |\n| `created_by` | 创建人 |\n| `created_at` | 创建时间 |\n| `updated_at` | 修改时间 |\n| `row_version` | 并发控制 |\n\n建议区域支持两级或多级树，例如：\n\n```text\n后厨\n  冷藏柜\n  冷冻柜\n  调料架\n前台\n  打包区\n  餐具柜\n仓库\n  一次性用品区\n  工具区\n```\n\n但首版建议限制为最多两级，降低员工选择成本。\n\n### `fnb_supply_item`\n\n统一餐饮非食材物资档案。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 物资 ID |\n| `shop_id` | 门店；如果物资需要共享，可另行设计共享档案 |\n| `supply_type` | `disposable`、`reusable_tableware` |\n| `name` | 名称 |\n| `specification` | 规格 |\n| `base_unit_code` | 基本单位，通常为 `piece` |\n| `display_unit_code` | 显示单位 |\n| `pack_size` | 包装换算数量 |\n| `default_storage_area_id` | 默认存储区域 |\n| `low_stock_ratio` | 低库存比例 |\n| `low_stock_qty` | 固定预警数量 |\n| `valid` | 是否启用 |\n| `remark` | 备注 |\n\n`low_stock_ratio` 与 `low_stock_qty` 不应同时有值，这与现有食材预警约束一致。[[C4]]\n\n### `fnb_supply_batch`\n\n一次性餐具和可重复使用餐具的入库批次。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 批次 ID |\n| `supply_item_id` | 物资 |\n| `shop_id` | 门店 |\n| `batch_no` | 批次号 |\n| `received_at` | 入库时间 |\n| `quantity` | 基本单位数量 |\n| `remaining_quantity` | 剩余数量 |\n| `unit_cost` | 单位成本，可为空或明确为 0 |\n| `storage_area_id` | 当前存储区域 |\n| `status` | `available`、`depleted`、`disposed` |\n| `remark` | 备注 |\n\n若选择复用现有库存过账底座，成本规则仍需遵循现有“明确确认 0 成本，不把缺失单价当作免费”的原则。[[C5]]\n\n### `fnb_tool`\n\n餐饮工具档案。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 工具 ID |\n| `shop_id` | 门店 |\n| `category_id` | 工具分类 |\n| `name` | 工具名称 |\n| `specification` | 规格型号 |\n| `asset_no` | 工具编号 |\n| `quantity` | 数量 |\n| `storage_area_id` | 所在区域 |\n| `status` | `normal`、`missing`、`damaged`、`repairing`、`disposed` |\n| `check_required` | 是否需要开门检查 |\n| `check_frequency` | `daily` 或其他 |\n| `responsible_staff_id` | 责任人，可为空 |\n| `image_ids` | 图片 |\n| `valid` | 是否启用 |\n| `remark` | 备注 |\n\n如果工具需要逐件管理，应增加 `fnb_tool_instance`，但建议后置。本期先按“工具品种＋数量”管理。\n\n### `fnb_opening_check_template`\n\n开门检查模板。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 模板 ID |\n| `shop_id` | 门店 |\n| `name` | 模板名称 |\n| `business_date` | 不存具体日期 |\n| `valid` | 是否启用 |\n| `version` | 模板版本 |\n| `created_by` | 创建人 |\n| `created_at` | 创建时间 |\n\n### `fnb_opening_check_item`\n\n检查项定义。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 检查项 ID |\n| `template_id` | 模板 |\n| `storage_area_id` | 存储区域 |\n| `item_type` | `supply`、`tool`、`environment`、`safety` |\n| `supply_item_id` | 关联一次性餐具，可为空 |\n| `tool_id` | 关联工具，可为空 |\n| `name` | 检查项名称 |\n| `check_method` | `yes_no`、`quantity`、`text`、`photo` |\n| `expected_value` | 期望值 |\n| `required` | 是否必须填写 |\n| `sort` | 排序 |\n| `valid` | 是否启用 |\n\n### `fnb_opening_check`\n\n每日开门检查单。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 检查单 ID |\n| `shop_id` | 门店 |\n| `business_date` | 营业日期 |\n| `template_id` | 使用的模板 |\n| `status` | `draft`、`in_progress`、`submitted`、`confirmed` |\n| `started_by` | 开始员工 |\n| `submitted_by` | 提交员工 |\n| `submitted_at` | 提交时间 |\n| `confirmed_by` | 店长确认人 |\n| `confirmed_at` | 确认时间 |\n| `snapshot_fingerprint` | 提交时模板／对象摘要 |\n| `remark` | 整单备注 |\n\n### `fnb_opening_check_line`\n\n每日检查结果。\n\n| 字段 | 说明 |\n|---|---|\n| `id` | 明细 ID |\n| `check_id` | 检查单 |\n| `storage_area_id` | 区域 |\n| `check_item_id` | 检查项 |\n| `expected_value` | 检查时的期望值 |\n| `actual_value` | 实际填写值 |\n| `result` | `pass`、`abnormal`、`na` |\n| `abnormal_reason` | 异常原因 |\n| `photo_ids` | 异常照片 |\n| `handled` | 是否已处理 |\n| `handling_remark` | 处理说明 |\n| `row_version` | 并发控制 |\n\n---\n\n# 6. 一次性餐具是否等同于食材\n\n## 6.1 结论\n\n**业务上不等同，技术上可以复用部分库存能力。**\n\n建议：\n\n```text\n食材：fnb_material_item + 食材批次规则 + 配方／效期／FEFO\n一次性餐具：fnb_supply_item + 物资库存批次 + 低库存预警\n工具：fnb_tool + 工具状态\n```\n\n## 6.2 可以复用的部分\n\n一次性餐具可以复用：\n\n- 入库。\n- 库存数量。\n- 包装单位换算。\n- 领用。\n- 报损。\n- 盘点。\n- 低库存预警。\n- 存储区域。\n- 成本统计。\n\n现有系统已经将库存数量、成本、流水和盘点作为独立能力设计，这些部分适合抽象为公共库存底座。[[C5]][[C6]]\n\n## 6.3 不应复用的部分\n\n一次性餐具不应默认接入：\n\n- 菜品配方。\n- `CreateAndServe` 厨房单扣料。\n- 食材开封。\n- 食材保质期规则。\n- 半成品制作。\n- 食材 FEFO。\n- 食材临期／过期处置。\n\n当前厨房单是按已发布菜品配方扣料，且配方用料关联食材品种。[[C6]][[C18]]如果将一次性餐具加入配方，会把“出餐用料”和“厨房加工食材”混在一起，除非后续明确要求按订单自动扣除餐具，否则本期不接入。\n\n---\n\n# 7. 存储区域管理\n\n## 7.1 区域规则\n\n1. 区域必须属于一个 `shop_id`。\n2. 员工只能查看和操作有权限门店的区域。\n3. 区域停用不删除历史检查记录。\n4. 有绑定物资或检查项时，不允许物理删除。\n5. 停用区域后：\n   - 历史入库、库存、检查记录继续显示原区域名称。\n   - 新建入库和新建检查项不能再选择该区域。\n6. 区域名称只在同一门店、同一父级下查重。\n7. 存储区域调整只影响当前位置，不改变历史库存流水的原始记录。\n\n现有分类已经采用“只对有效同级查重、已删除名称让位”的处理方式，可作为区域名称处理的参考。[[C2]][[C16]][[C18]]\n\n## 7.2 物资位置\n\n同一物资可能分布在多个区域，因此不建议只在物资主档保存一个 `storage_area_id`。\n\n建议：\n\n```text\nfnb_supply_item\n  └── fnb_supply_location\n        ├── supply_item_id\n        ├── storage_area_id\n        ├── quantity\n        └── is_default\n```\n\n对于食材，位置应绑定到批次或库存扩展，而不是只绑定食材品种，否则同一种食材放在冷藏柜和仓库时无法准确展示。\n\n建议新增：\n\n```text\nfnb_material_batch_storage\n```\n\n或在 `fnb_material_batch_stock` 增加当前位置字段。最终选哪一种，要结合当前生产库 schema 和现有批次库存代码确认；资料没有提供这两个对象的完整字段，不能直接确定改表方案。\n\n---\n\n# 8. 每日开门检查\n\n## 8.1 检查流程\n\n```text\n店长配置区域\n    ↓\n店长配置检查模板和检查项\n    ↓\n员工进入“开门检查”\n    ↓\n系统按当前营业日期生成检查单\n    ↓\n按存储区域分组展示检查项\n    ↓\n员工逐项填写／拍照／备注\n    ↓\n提交\n    ↓\n系统校验必填项和检查单快照\n    ↓\n提交成功\n    ↓\n异常项进入待处理列表\n    ↓\n店长查看并确认\n```\n\n## 8.2 检查项类型\n\n### A. 工具状态检查\n\n例如：\n\n- 菜刀是否在位。\n- 砧板是否可用。\n- 电子秤是否正常。\n- 温度计是否可用。\n- 保鲜盒是否齐全。\n\n结果：\n\n```text\n正常\n异常\n缺失\n不适用\n```\n\n### B. 一次性餐具库存检查\n\n例如：\n\n- 打包盒是否达到最低数量。\n- 一次性筷子是否够用。\n- 纸巾是否需要补充。\n\n检查方式可以是：\n\n- 只判断“正常／不足”。\n- 填写实际数量。\n- 系统显示当前库存，员工确认。\n- 拍照作为异常凭证。\n\n### C. 环境检查\n\n例如：\n\n- 冷藏柜温度是否正常。\n- 冷冻柜门是否关闭。\n- 区域是否整洁。\n- 地面是否有积水。\n- 食材是否放在正确区域。\n\n### D. 安全检查\n\n例如：\n\n- 消毒设备是否关闭。\n- 燃气阀门状态。\n- 插座和电源。\n- 灭火器是否在位。\n\n安全检查涉及实际运营责任，具体项目需要由业务方确认，不能由系统自动推断。\n\n## 8.3 检查项与库存的关系\n\n库存类检查项可以显示：\n\n```text\n系统库存：20 包\n最低库存：10 包\n员工确认：正常\n```\n\n或者：\n\n```text\n系统库存：3 包\n最低库存：10 包\n系统提示：库存不足\n员工选择：\n  - 已补充\n  - 尚未补充\n  - 数量无误\n```\n\n但员工提交开门检查时，不应自动改变库存。\n\n如果确实发生了补充、领用或报损，应通过相应库存业务单据完成。现有库存设计要求库存变化通过单据、流水和批次余额在同一事务中完成，不能从检查结果直接写库存数量。[[C5]]\n\n---\n\n# 9. 是否借鉴现有盘点功能\n\n## 9.1 可以借鉴的机制\n\n可以借鉴：\n\n1. 按门店和营业日期生成业务单。\n2. 进入检查时形成快照。\n3. 提交时校验模板和对象是否发生变化。\n4. 使用 `snapshot_fingerprint` 防止过时页面覆盖新数据。\n5. 记录操作员工和操作时间。\n6. 按权限限制创建、提交和确认。\n7. 保存历史记录，不覆盖过去的检查结果。\n\n现有盘点已经明确采用快照、最新流水 ID、批次集合、版本、数量、效期和状态摘要，并在提交时重新计算比较。[[C5]]\n\n## 9.2 不能直接复用的机制\n\n开门检查不应：\n\n- 写入 `fnb_stocktake_line`。\n- 产生盘盈或盘亏流水。\n- 修改批次数量。\n- 修改成本。\n- 自动将“工具缺失”转成库存损耗。\n- 自动将“餐具不足”转成盘亏。\n\n盘点的结果是库存调整；开门检查的结果是运营状态记录。二者虽然都有“预期值—实际值—异常”，但业务后果不同。\n\n## 9.3 推荐抽象\n\n建议抽象一个公共的“检查快照”机制，而不是让开门检查复用整张盘点单：\n\n```text\n公共能力：\n  - snapshot_fingerprint\n  - row_version\n  - business_date\n  - submit validation\n  - operator audit\n\n盘点：\n  - 结果可以产生库存过账\n\n开门检查：\n  - 结果只产生检查记录和异常事项\n```\n\n这是推荐的技术方向，当前文档没有记载已有公共快照服务，需要开发前检查现有代码是否已经抽取。\n\n---\n\n# 10. API 规格\n\n以下接口命名沿用当前项目的 `api/[controller]/[action]` 约定，新增写操作使用 POST，查询使用 GET。[[C20]]\n\n## 10.1 存储区域\n\n```text\nGET  FnbStorage/ListAreas?sessionKey=&shopId=\nPOST FnbStorage/SaveArea?sessionKey=\nPOST FnbStorage/DeleteArea?sessionKey=\n```\n\n`SaveArea`：\n\n```json\n{\n  \"shop_id\": \"1\",\n  \"id\": \"0\",\n  \"parent_id\": \"10\",\n  \"name\": \"一次性用品区\",\n  \"area_type\": \"warehouse\",\n  \"sort\": 10,\n  \"valid\": true,\n  \"remark\": \"\"\n}\n```\n\n## 10.2 餐饮物资\n\n```text\nGET  FnbSupply/ListItems?sessionKey=&shopId=&supplyType=\nGET  FnbSupply/GetItem?sessionKey=&shopId=&id=\nPOST FnbSupply/SaveItem?sessionKey=\nPOST FnbSupply/DisableItem?sessionKey=\nPOST FnbSupply/SaveLowStockAlert?sessionKey=\n```\n\n所有前端请求字段使用 `snake_case`，与项目既有约定一致。项目现有食材接口已经使用类似 `shopId` 的文档参数描述，但前端请求字段约定要求使用 snake_case；正式 API 契约应以实际代码为准，并在接口核对时重点确认这一点。[[C20]]\n\n这里存在一个需要核实的命名风险：文档示例中的请求字段有 `shopId`、`requestId`，而项目约定要求前端发送 snake_case。文档与项目约定不完全一致，不能直接照抄文档字段，需检查现有 Controller 的实际绑定行为。\n\n## 10.3 一次性餐具库存\n\n如果复用现有库存过账服务，建议提供独立的业务入口：\n\n```text\nPOST FnbSupply/CreateReceipt?sessionKey=\nPOST FnbSupply/PostReceipt?sessionKey=\nPOST FnbSupply/CreateIssue?sessionKey=\nPOST FnbSupply/PostIssue?sessionKey=\nPOST FnbSupply/PostWaste?sessionKey=\nPOST FnbSupply/DeleteReceipt?sessionKey=\n```\n\n不建议让客户端直接调用食材 `PostReceipt`，因为食材入库还包含效期、照片和食材规则等校验。当前 `DeleteReceipt` 已存在于食材库存接口，并限制在入库后 10 分钟内、没有后续流水或引用时删除。[[C18]]一次性餐具是否采用相同删除窗口，可复用该原则，但需要重新确认业务。\n\n## 10.4 餐饮工具\n\n```text\nGET  FnbTool/List?sessionKey=&shopId=&storageAreaId=&status=\nGET  FnbTool/Get?sessionKey=&shopId=&id=\nPOST FnbTool/Save?sessionKey=\nPOST FnbTool/ChangeStatus?sessionKey=\nPOST FnbTool/MoveArea?sessionKey=\n```\n\n工具状态变更应保留历史日志，不能只覆盖当前状态。\n\n## 10.5 开门检查\n\n```text\nGET  FnbOpeningCheck/GetToday?sessionKey=&shopId=\nPOST FnbOpeningCheck/Start?sessionKey=\nPOST FnbOpeningCheck/SaveDraft?sessionKey=\nPOST FnbOpeningCheck/Submit?sessionKey=\nGET  FnbOpeningCheck/List?sessionKey=&shopId=&fromDate=&toDate=\nGET  FnbOpeningCheck/Get?sessionKey=&shopId=&id=\nPOST FnbOpeningCheck/Confirm?sessionKey=\nPOST FnbOpeningCheck/HandleAbnormal?sessionKey=\n```\n\n### `Start`\n\n```json\n{\n  \"shop_id\": \"1\"\n}\n```\n\n返回：\n\n```json\n{\n  \"check_id\": \"1001\",\n  \"business_date\": \"2026-10-02\",\n  \"areas\": [\n    {\n      \"area_id\": \"20\",\n      \"area_name\": \"一次性用品区\",\n      \"items\": []\n    }\n  ],\n  \"status\": \"in_progress\"\n}\n```\n\n### `Submit`\n\n```json\n{\n  \"shop_id\": \"1\",\n  \"check_id\": \"1001\",\n  \"snapshot_fingerprint\": \"...\",\n  \"lines\": [\n    {\n      \"check_item_id\": \"301\",\n      \"actual_value\": \"normal\",\n      \"result\": \"pass\",\n      \"abnormal_reason\": \"\",\n      \"photo_ids\": []\n    }\n  ],\n  \"remark\": \"\"\n}\n```\n\n提交失败时应返回明确原因：\n\n- 检查项已被停用。\n- 区域已被删除或停用。\n- 模板版本已变化。\n- 检查单已提交。\n- 必填项未填写。\n- 快照已过期，需要刷新。\n\n---\n\n# 11. 权限设计\n\n沿用当前餐饮模块的权限分层：\n\n- 在职员工：查看区域、执行开门检查、填写检查结果、查看自己的操作结果。\n- `title_level >= 200`：维护物资档案、工具档案、存储区域、检查模板、确认异常和查看完整历史。\n- 店长或管理权限：确认检查单、处理异常、调整库存规则。\n\n当前服务端计划中，日常操作由在职员工执行，`title_level >= 200` 管理档案、发布配方、确认盘点、销毁和查看成本。[[C3]]新模块可以沿用这一权限边界，但“店长”是否等同于 `title_level >= 200`，需要以实际授权代码核实。\n\n---\n\n# 12. 前端页面建议\n\n建议继续放在餐饮分包 `pages/fnbinv/` 下，避免重新建设一套餐饮后台入口。现有餐饮管理页面已经位于该分包，包含库存、批次、制作、配方、厨房单和盘点等页面。[[C19]]\n\n新增页面：\n\n```text\npages/fnbinv/storage/\npages/fnbinv/supply/\npages/fnbinv/tool/\npages/fnbinv/opening/\npages/fnbinv/opening-history/\npages/fnbinv/components/area-picker/\npages/fnbinv/components/check-result/\n```\n\n## 12.1 库存首页\n\n新增入口卡片：\n\n```text\n餐饮物资\n  一次性餐具\n  可重复使用餐具\n  工具\n  存储区域\n  今日开门检查\n```\n\n库存页继续显示现有的临期过期和用量预警卡片。现有库存页已经有这两类提醒入口。[[C4]]\n\n## 12.2 开门检查页\n\n页面按区域分组：\n\n```text\n今日开门检查\n\n[后厨]\n  冷藏柜\n    □ 温度正常\n    □ 门关闭\n  调料架\n    □ 区域整洁\n\n[仓库]\n  一次性用品区\n    □ 打包盒库存正常\n    □ 一次性筷子库存正常\n\n[工具区]\n  □ 菜刀齐全\n  □ 砧板无明显损坏\n```\n\n异常时显示：\n\n- 异常原因。\n- 照片上传。\n- 是否已处理。\n- 处理备注。\n\n---\n\n# 13. 关键业务规则\n\n## 13.1 区域变更\n\n- 物资移动区域必须记录操作人和时间。\n- 移动不会生成食材成本流水。\n- 已提交的开门检查保留原区域名称和 ID。\n- 当前库存展示使用最新区域。\n- 区域停用后不能新建检查项，但不能影响历史记录。\n\n## 13.2 一次性餐具入库\n\n- 以 `piece` 作为基本单位。\n- 例如 1 箱、每箱 500 个，入库数量为 500。\n- 保留原包装单位和换算快照。\n- 单价按基本单位保存，或者同时保存包装单位单价和换算结果。\n- 入库确认后才产生可用库存。\n- 错误入库的删除必须受后续流水、盘点和领用引用限制。\n\n单位和包装换算沿用现有库存设计的基本原则。[[C1]]\n\n## 13.3 餐具领用\n\n建议本期先支持手动领用：\n\n```text\n领用原因：\n  - 日常使用\n  - 外卖打包\n  - 员工领用\n  - 其他\n```\n\n不自动与厨房单关联。当前厨房单已经按菜品配方扣减食材并支持欠料补扣。[[C10]][[C18]]餐具是否随订单自动扣减，属于另一个业务决策，不应在本期隐式加入。\n\n## 13.4 工具异常\n\n工具状态变更：\n\n```text\nnormal → damaged\nnormal → missing\ndamaged → repairing\nrepairing → normal\ndamaged → disposed\nmissing → normal\n```\n\n“missing → normal”必须要求备注，避免员工直接恢复丢失工具而没有解释。\n\n## 13.5 开门检查提交\n\n- 员工可以保存草稿。\n- 必填项完成后才能提交。\n- 异常项必须填写原因。\n- 配置要求照片时必须上传照片。\n- 提交后普通员工不能修改。\n- 店长可以确认，但不应直接修改员工原始结果。\n- 更正应通过“处理记录”追加，而不是改写原始检查结果。\n- 同一天、同一门店默认只有一张正式开门检查单。\n- 重新检查使用补充检查或异常复核，不创建第二张互相冲突的正式单据。\n\n---\n\n# 14. 与盘点的关系\n\n| 项目 | 盘点 | 开门检查 |\n|---|---|---|\n| 目的 | 确认实物数量并调整库存 | 确认门店是否具备营业条件 |\n| 是否产生库存流水 | 是 | 否 |\n| 是否修改库存 | 是 | 否 |\n| 是否记录快照 | 是 | 是 |\n| 是否需要区域分组 | 可选 | 必须 |\n| 是否检查工具 | 不适合 | 适合 |\n| 是否检查环境 | 不适合 | 适合 |\n| 是否可以填写数量 | 是 | 可选 |\n| 是否有异常处理 | 有库存调整 | 有整改记录 |\n| 是否允许员工执行 | 当前盘点创建受店长权限限制 | 建议在职员工执行 |\n| 是否需要店长确认 | 现有盘点由管理权限确认 | 建议异常项需要确认 |\n\n当前盘点创建权限只有店长，且小程序把 `documentId` 按门店存在本地；开门检查不建议沿用这个限制，应允许员工创建和提交，店长负责模板与异常确认。[[C12]]\n\n---\n\n# 15. 实施顺序\n\n## 第一期：基础档案\n\n1. 核对生产库 schema 和现有 EF 模型。\n2. 新增 `fnb_storage_area`。\n3. 新增 `fnb_supply_item`。\n4. 新增 `fnb_tool`。\n5. 完成区域、物资、工具的 CRUD。\n6. 增加门店权限和有效状态校验。\n\n## 第二期：一次性餐具库存\n\n1. 新增物资入库。\n2. 新增领用、报损。\n3. 新增库存查询。\n4. 新增低库存预警。\n5. 增加区域库存展示。\n6. 增加库存流水和成本查询。\n\n## 第三期：开门检查\n\n1. 新增检查模板。\n2. 新增检查项。\n3. 生成当日检查单。\n4. 按区域展示。\n5. 草稿、提交、确认。\n6. 异常照片和处理记录。\n7. 增加历史查询和完成率统计。\n\n## 第四期：盘点衔接\n\n1. 在现有盘点中加入一次性餐具。\n2. 评估是否加入可重复使用餐具。\n3. 不将工具直接接入库存盘盈盘亏。\n4. 建立“开门检查异常 → 创建库存业务单／工具处理单”的跳转。\n5. 复用快照校验和并发控制，但不复用库存过账结果。\n\n---\n\n# 16. 必须先确认的问题\n\n以下问题不应由开发自行猜测：\n\n1. 一次性餐具是否需要按门店分别建档，还是使用共享档案？\n2. 一次性餐具是否需要成本统计？\n3. 餐具是否要随厨房单或外卖订单自动扣减？\n4. 可重复使用餐具按总数量管理，还是需要逐件编号？\n5. 餐饮工具是否需要责任人、维修和报废流程？\n6. 哪些工具必须每日检查？\n7. 开门检查是否必须每天完成才能进入其他系统？\n8. 员工是否可以提交异常但继续营业？\n9. 开门检查异常是否需要店长确认后才能关闭？\n10. 存储区域是否允许跨门店共享？\n11. 是否需要定时提醒未完成开门检查？\n12. 低库存的默认规则是否继续采用现有“最近一次入库数量 × 10%”？\n13. 一次性餐具是否需要效期字段？\n14. 工具和餐具是否需要二维码？\n15. 是否允许一天多次检查，还是每天只保留一张正式检查单？\n\n---\n\n# 17. 需要重点核查的现有实现风险\n\n1. **现有数据库是否允许扩展非食材物资**  \n   当前文档只确认食材相关表和库存流水表，未确认 `fnb_stock_document` 是否已经通过类型字段支持非食材。需要看生产库 schema 和 EF 映射后再决定是复用还是新增表。[[C13]]\n\n2. **前端字段命名存在文档不一致**  \n   项目约定要求前端向后端发送 snake_case，但近期 API 契约示例使用了 `shopId`、`requestId` 等 camelCase。文档与约定不一致，必须以实际 Controller 和客户端 `api.js` 为准。[[C16]][[C19]][[C20]]\n\n3. **盘点快照能力是否已经抽象**  \n   现有盘点有快照规则，但资料没有证明已经存在可供开门检查直接调用的公共服务。应先检查代码，避免复制一套快照校验。[[C5]][[C12]]\n\n4. **现有库存位置模型不明确**  \n   资料说明了门店、批次和库存扩展，但没有提供批次库存位置字段。存储区域必须先确认是扩展 `fnb_material_batch_stock`，还是新建位置关联表，不能直接在食材主档增加单一位置字段。[[C1]][[C13]]\n\n5. **旧入口兼容问题**  \n   现有旧批次入口不能绕过新的库存过账规则；同样，新增餐具库存后不能让旧接口直接修改库存数量。旧写入口需要明确禁用、转发或增加物资类型分支。[[C14]]\n\n## 最终建议\n\n本需求不要做成“把餐具全部塞进食材管理”，而应采用：\n\n```text\n餐饮物资统一入口\n├── 食材：现有食材库存体系\n├── 一次性餐具：复用库存过账底座，但独立档案和业务规则\n├── 可重复使用餐具：按数量库存或后续资产化\n└── 餐饮工具：独立工具状态管理\n\n存储区域\n└── 作为食材、餐具、工具和开门检查的共同维度\n\n每日开门检查\n└── 借鉴盘点快照机制，但不产生库存流水\n```\n\n这样既能复用现有库存、低库存预警、门店权限和盘点快照能力，又不会把食材效期、厨房扣料和工具状态混为一体。",
+      "context_chunks": [
+        {
+          "chunk_id": 3454,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 设计范围与选择",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C1"
+        },
+        {
+          "chunk_id": 4458,
+          "family": "session",
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 关键改动文件",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C2"
+        },
+        {
+          "chunk_id": 3452,
+          "family": "plan",
+          "heading": "食材管理服务器 API 开发计划（审阅稿） > 已确认的实施边界",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C3"
+        },
+        {
+          "chunk_id": 4750,
+          "family": "session",
+          "heading": "2026-09-25 ~ 09-27 食材管理第三轮打磨：半成品分类与配方、制作页开封、用量预警、操作指南 PPT > 4. 用量预警（09-26）",
+          "path": "sessions/2026-09-24_fnb_prepared_recipe_low_stock_and_guide.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C4"
+        },
+        {
+          "chunk_id": 3458,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 必须在后端实现的过账规则",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C5"
+        },
+        {
+          "chunk_id": 3457,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 七项功能如何落表",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C6"
+        },
+        {
+          "chunk_id": 181,
+          "family": "spec",
+          "heading": "食材过期提醒（fnb mat_expire）设计",
+          "path": "docs/superpowers/specs/2026-07-15-fnb-mat-expire-design.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C7"
+        },
+        {
+          "chunk_id": 3446,
+          "family": "plan",
+          "heading": "食材管理服务器 API 开发计划（审阅稿）",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C8"
+        },
+        {
+          "chunk_id": 3453,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C9"
+        },
+        {
+          "chunk_id": 4456,
+          "family": "session",
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 6. 库存不够时怎么处理",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C10"
+        },
+        {
+          "chunk_id": 4459,
+          "family": "session",
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 学到的小知识",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C11"
+        },
+        {
+          "chunk_id": 3920,
+          "family": "plan",
+          "heading": "食材管理服务端接口验证报告 > 静态审查中的其他发现（未改服务端，客户端已绕开）",
+          "path": "docs/superpowers/plans/2026-09-23-fnb-inventory-api-verification.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C12"
+        },
+        {
+          "chunk_id": 3455,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 表清单",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C13"
+        },
+        {
+          "chunk_id": 3460,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 兼容旧功能与数据接管",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C14"
+        },
+        {
+          "chunk_id": 4457,
+          "family": "session",
+          "heading": "2026-09-24 食材管理第二轮打磨：分类属性下沉、入库简化、厨房单按菜品配方扣料与欠料补扣 > 7. 验证",
+          "path": "sessions/2026-09-24_fnb_category_inbound_kitchen_orders.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C15"
+        },
+        {
+          "chunk_id": 4742,
+          "family": "plan",
+          "heading": "食材管理服务端 API 契约（小程序接入前审阅） > 2026-09-23 补充：菜品接口与小程序客户端",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C16"
+        },
+        {
+          "chunk_id": 3479,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 查询视图",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C17"
+        },
+        {
+          "chunk_id": 4743,
+          "family": "plan",
+          "heading": "食材管理服务端 API 契约（小程序接入前审阅） > 2026-09-24 变更：分类属性下沉到食材",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-contract.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C18"
+        },
+        {
+          "chunk_id": 3927,
+          "family": "session",
+          "heading": "2026-09-23 食材管理：小程序客户端实现 + codex 服务端接口验证 > 4. 小程序客户端",
+          "path": "sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C19"
+        },
+        {
+          "chunk_id": 3448,
+          "family": "plan",
+          "heading": "食材管理服务器 API 开发计划（审阅稿） > 实现方式",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C20"
+        }
+      ],
+      "created_at": "2026-10-02T15:09:31+08:00",
+      "id": 18,
+      "parent_id": 17,
+      "role": "assistant",
+      "session_id": 5,
+      "status": "done",
+      "usage": {
+        "completion_tokens": 9108,
+        "cost_usd": 0.1079325,
+        "prompt_tokens": 13482
+      }
+    },
+    {
+      "attachment_ids": null,
+      "citations": null,
+      "content": "今天的输出，等待崔洋确认！",
+      "context_chunks": null,
+      "created_at": "2026-10-02T20:36:32+08:00",
+      "id": 19,
+      "parent_id": null,
+      "role": "user",
+      "session_id": 5,
+      "status": "done",
+      "usage": null
+    },
+    {
+      "attachment_ids": null,
+      "citations": [],
+      "content": "收到。**2026-10-02 餐饮管理系统对象关系图本版输出，当前状态：等待崔洋确认。**\n\n在确认前，先不据此进入开发、建表或调整关系。",
+      "context_chunks": [
+        {
+          "chunk_id": 6624,
+          "family": "devlog",
+          "heading": "CLAUDE.md > 开发日志 > 2026-07-14 — 养护核销全链路（会员身份核验+储值实扣+卡券核销）+ 安全检查默认值持久化修复 + 装备取消功能（三轮迭代）+ 取消弹窗校验 bug 排查中",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C1"
+        },
+        {
+          "chunk_id": 1787,
+          "family": "code_page",
+          "heading": "rent/rent_report.js > getData",
+          "path": "pages/admin/rent/rent_report.js",
+          "pinned": false,
+          "source": "snowmeet_wechat_mini",
+          "tag": "C2"
+        },
+        {
+          "chunk_id": 247,
+          "family": "session",
+          "heading": "2026-05-13 晚 ~ 2026-05-14 凌晨：租赁订单接口排查 + 对账重做 + skill 落地 > 6. 增加「临时订单」列",
+          "path": "sessions/2026-05-13_rent_order_diff_and_skill.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C3"
+        },
+        {
+          "chunk_id": 1936,
+          "family": "code_client",
+          "heading": "utils/matExpire.js",
+          "path": "utils/matExpire.js",
+          "pinned": false,
+          "source": "snowmeet_wechat_mini",
+          "tag": "C4"
+        },
+        {
+          "chunk_id": 409,
+          "family": "session",
+          "heading": "2026-06-12 settle 支付完成弹窗 + 全版本域名统一 + 「等待扫码」不刷新长排查 > 备注",
+          "path": "sessions/2026-06-12_settle_onpaid_domain_unify_live_status_debug.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C5"
+        },
+        {
+          "chunk_id": 3928,
+          "family": "session",
+          "heading": "2026-09-23 食材管理：小程序客户端实现 + codex 服务端接口验证 > 5. 收尾状态",
+          "path": "sessions/2026-09-23_fnb_miniprogram_client_and_api_verification.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C6"
+        },
+        {
+          "chunk_id": 6499,
+          "family": "current_state",
+          "heading": "CLAUDE.md > 当前状态（截至 2026-10-02）：reqai 同步、价格修正与简洁回答已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C7"
+        },
+        {
+          "chunk_id": 435,
+          "family": "session",
+          "heading": "2026-06-20 支付身份/订单详情/列表 多个修复：alipay open_id 落库 + 代付 cell + choose_identity:direct + 去支付按钮 + 未支付/未开始区分 + 退租日期回退",
+          "path": "sessions/2026-06-20_alipay_openid_cell_rent_status_fixes.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C8"
+        },
+        {
+          "chunk_id": 6654,
+          "family": "session",
+          "heading": "2026-10-02 reqai 同步与部署：价格修正和默认简洁回答 > 4. 默认回答精简",
+          "path": "sessions/2026-10-02_reqai-sync-pricing-concise.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C9"
+        },
+        {
+          "chunk_id": 2748,
+          "family": "plan",
+          "heading": "管理员帮助系统结构化指令协议 Implementation Plan > Global Constraints > Task 9: 跨仓验证、开关验收与发布记录",
+          "path": "docs/superpowers/plans/2026-09-10-admin-assistant-command-protocol.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C10"
+        },
+        {
+          "chunk_id": 325,
+          "family": "session",
+          "heading": "2026-05-27 PaymentIdentity 决策时机迁回 notify + 真机测试核查清单 + 小程序解除 pages/template 引用 > 1. 进度盘点：支付前身份验证当前状态",
+          "path": "sessions/2026-05-27_payment_identity_notify_migration_and_template_decouple.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C11"
+        },
+        {
+          "chunk_id": 6525,
+          "family": "current_state",
+          "heading": "CLAUDE.md > 租赁开单历史状态（截至 2026-09-12）",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C12"
+        },
+        {
+          "chunk_id": 394,
+          "family": "session",
+          "heading": "2026-06-03 4 业务财年报表退款列扩展：加退款账号 + 退款人 + 支付流水操作人 > 4. 抽样验证",
+          "path": "sessions/2026-06-03_refund_account_staff_cols.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C13"
+        },
+        {
+          "chunk_id": 186,
+          "family": "spec",
+          "heading": "食材过期提醒（fnb mat_expire）设计 > 后端接口（新建 `Controllers/Fnb/FnbMaterialController.cs`）",
+          "path": "docs/superpowers/specs/2026-07-15-fnb-mat-expire-design.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C14"
+        },
+        {
+          "chunk_id": 3765,
+          "family": "skill",
+          "heading": "export_care_order_fiscal_year > Export Care Order (Fiscal Year) Skill > 输出结构（单 sheet「年度养护」，5 段，63 列实测）",
+          "path": "skills/export_care_order_fiscal_year/SKILL.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C15"
+        },
+        {
+          "chunk_id": 499,
+          "family": "session",
+          "heading": "2026-07-04 会员管理增强日：合并权限收紧 + contact 联系手机号原则 + 开卡礼包 + 充值四字段 + 储值账户管理系统 > 学到的小知识",
+          "path": "sessions/2026-07-04_member_perms_contact_deposit_admin.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C16"
+        },
+        {
+          "chunk_id": 6547,
+          "family": "devlog",
+          "heading": "CLAUDE.md > 开发日志 > 2026-05-14（深夜） — Claude Code hook 配置：start-work 前自动 pull / end-work 后自动 push",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C17"
+        },
+        {
+          "chunk_id": 6650,
+          "family": "session",
+          "heading": "2026-10-02 reqai 同步与部署：价格修正和默认简洁回答",
+          "path": "sessions/2026-10-02_reqai-sync-pricing-concise.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C18"
+        },
+        {
+          "chunk_id": 3448,
+          "family": "plan",
+          "heading": "食材管理服务器 API 开发计划（审阅稿） > 实现方式",
+          "path": "docs/superpowers/plans/2026-09-22-fnb-inventory-api-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C19"
+        },
+        {
+          "chunk_id": 1574,
+          "family": "code_page",
+          "heading": "ocr_scan_layer/ocr_scan_layer.js > onChipTap…onCameraStop",
+          "path": "components/fnb/ocr_scan_layer/ocr_scan_layer.js",
+          "pinned": false,
+          "source": "snowmeet_wechat_mini",
+          "tag": "C20"
+        }
+      ],
+      "created_at": "2026-10-02T20:36:37+08:00",
+      "id": 20,
+      "parent_id": 19,
+      "role": "assistant",
+      "session_id": 5,
+      "status": "done",
+      "usage": {
+        "completion_tokens": 186,
+        "cost_usd": 0.0063058,
+        "prompt_tokens": 30413
+      }
+    },
+    {
+      "attachment_ids": [
+        5,
+        6
+      ],
+      "citations": null,
+      "content": "文件有更新仅仅记录下。",
+      "context_chunks": null,
+      "created_at": "2026-10-02T21:59:45+08:00",
+      "id": 23,
+      "parent_id": null,
+      "role": "user",
+      "session_id": 5,
+      "status": "done",
+      "usage": null
+    },
+    {
+      "attachment_ids": null,
+      "citations": [],
+      "content": "已记录本轮文件更新，**暂不解读、不据此进入开发**，继续等待崔洋确认。\n\n- `Weixin Image_20261002203450_83_283.jpg`：原件已保存，未提取文本；原件下载：[`/api/attachments/5/download`](/api/attachments/5/download)\n- `snowmeet.pptx`：已保存并提取第 1–20 页文本；原件下载：[`/api/attachments/6/download`](/api/attachments/6/download)\n- PPT 末页提到的高清原图「食材管理-对象关系图.png」本轮未作为独立附件提供，暂不猜测其内容。",
+      "context_chunks": [
+        {
+          "chunk_id": 545,
+          "family": "session",
+          "heading": "2026-07-19 mat_expire 收尾打磨 + 养护列表店铺筛选 bug 修复：staff 闸门、每批次推送、OCR 三期扫描、shop_selector 时序漏洞 > 3. mat_expire：生产日期/保质期→到期日联动 bug（本轮耗时最长的排查）",
+          "path": "sessions/2026-07-19_mat_expire_polish_and_shop_selector_fix.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C1"
+        },
+        {
+          "chunk_id": 212,
+          "family": "spec",
+          "heading": "管理员后台「优惠券管理」 > 无库表变更",
+          "path": "docs/superpowers/specs/2026-08-15-coupon-admin-design.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C2"
+        },
+        {
+          "chunk_id": 812,
+          "family": "schema",
+          "heading": "表 web_api_log",
+          "path": "web_api_log.md",
+          "pinned": false,
+          "source": "schema",
+          "tag": "C3"
+        },
+        {
+          "chunk_id": 640,
+          "family": "sql",
+          "heading": "2026-07-15_fnb_material_batch.sql",
+          "path": "sql/2026-07-15_fnb_material_batch.sql",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C4"
+        },
+        {
+          "chunk_id": 5753,
+          "family": "session",
+          "heading": "2026-10-02 接口改动分析、旧版演示分包、库结构清单：服务端 ai 分支到底改了多少，以及让新旧版能并排对比 > 5. 5 月起的数据库结构变更",
+          "path": "sessions/2026-10-02_api-diff-legacy-demo-schema-list.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C5"
+        },
+        {
+          "chunk_id": 4928,
+          "family": "code_page",
+          "heading": "care_order_detail/care_order_detail.js > _fetchSafeCheckHistory",
+          "path": "pages/admin/care/care_order_detail/care_order_detail.js",
+          "pinned": false,
+          "source": "snowmeet_wechat_mini",
+          "tag": "C6"
+        },
+        {
+          "chunk_id": 351,
+          "family": "session",
+          "heading": "2026-05-29（续）MemberLogin 孤儿清理 + socialAccountForJob 强制覆盖删除 + pay-identity-confirm 软授权方案反复 > 关键改动文件",
+          "path": "sessions/2026-05-29_orphan_cleanup_removal_and_soft_auth_unwinding.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C7"
+        },
+        {
+          "chunk_id": 3459,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 效期、时区与未定业务口径",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C8"
+        },
+        {
+          "chunk_id": 427,
+          "family": "session",
+          "heading": "2026-06-15 租赁订单详情：编辑弹窗自动清空 + 超时费 rental 级单条 + 租赁物明细卡按模版重构 + UpdateRentalDayCharges 静默不存根因（NoTracking） > 2. 超时费改 rental 级单条存（后端 `UpdateRentalDayChargesByStaff`）",
+          "path": "sessions/2026-06-15_rent_detail_card_redesign_and_notracking_fix.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C9"
+        },
+        {
+          "chunk_id": 508,
+          "family": "session",
+          "heading": "2026-07-08 养护开单联调修复日：默认店铺 + 保存守卫 + 序列化/跟踪两处后端崩溃 + 上传链路 + 历史装备弹窗 > 关键改动文件",
+          "path": "sessions/2026-07-08_care_reception_debug_and_history_equipment.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C10"
+        },
+        {
+          "chunk_id": 6652,
+          "family": "session",
+          "heading": "2026-10-02 reqai 同步与部署：价格修正和默认简洁回答 > 2. 美国部署与语料同步",
+          "path": "sessions/2026-10-02_reqai-sync-pricing-concise.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C11"
+        },
+        {
+          "chunk_id": 330,
+          "family": "session",
+          "heading": "2026-05-27 PaymentIdentity 决策时机迁回 notify + 真机测试核查清单 + 小程序解除 pages/template 引用 > 学到的小知识",
+          "path": "sessions/2026-05-27_payment_identity_notify_migration_and_template_decouple.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C12"
+        },
+        {
+          "chunk_id": 269,
+          "family": "session",
+          "heading": "2026-05-15 财年导出加「次卡」列 + 次卡相关表勘察 > 关键改动文件",
+          "path": "sessions/2026-05-15_cika_column_and_punch_card_tables.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C13"
+        },
+        {
+          "chunk_id": 304,
+          "family": "session",
+          "heading": "2026-05-19 总部零售财年导出 + 孤儿核对纳入总部：四店升五店",
+          "path": "sessions/2026-05-19_headquarters_retail_export_and_orphan_update.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C14"
+        },
+        {
+          "chunk_id": 6602,
+          "family": "devlog",
+          "heading": "CLAUDE.md > 开发日志 > 2026-06-21 — 储值付租金退押金不退 + ¥0 储值支付垃圾记录 + 找回中断订单变空单（三修）",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C15"
+        },
+        {
+          "chunk_id": 3458,
+          "family": "spec",
+          "heading": "食材管理数据库结构审阅稿 v4 > 必须在后端实现的过账规则",
+          "path": "docs/superpowers/specs/2026-09-21-fnb-inventory-schema-review.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C16"
+        },
+        {
+          "chunk_id": 2766,
+          "family": "session",
+          "heading": "2026-09-10 管理员帮助结构化指令协议",
+          "path": "sessions/2026-09-10_admin_assistant_command_protocol.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C17"
+        },
+        {
+          "chunk_id": 2763,
+          "family": "spec",
+          "heading": "管理员帮助系统：答复与操作指令协议设计 > 15. 预计改动范围",
+          "path": "docs/superpowers/specs/2026-09-10-admin-assistant-command-protocol-design.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C18"
+        },
+        {
+          "chunk_id": 6536,
+          "family": "devlog",
+          "heading": "CLAUDE.md > 开发日志 > 2026-05-04（上午） — Rental 级完整性 + 底部交互压缩 + 日历选择",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C19"
+        },
+        {
+          "chunk_id": 6507,
+          "family": "current_state",
+          "heading": "CLAUDE.md > 2026-08-12 会话归档",
+          "path": "CLAUDE.md",
+          "pinned": false,
+          "source": "snowmeet_ai_doc",
+          "tag": "C20"
+        }
+      ],
+      "created_at": "2026-10-02T21:59:50+08:00",
+      "id": 24,
+      "parent_id": 23,
+      "role": "assistant",
+      "session_id": 5,
+      "status": "done",
+      "usage": {
+        "completion_tokens": 254,
+        "cost_usd": 0.0045518,
+        "prompt_tokens": 21235
+      }
+    }
+  ],
+  "owner": {
+    "display_name": "苍杰(私)",
+    "id": 1
+  },
+  "project": {
+    "archived_at": null,
+    "created_at": "2026-10-02T15:06:14+08:00",
+    "id": 2,
+    "instructions": "餐饮管理系统，首先是食材管理，其次是日常用具的管理，再次是员工每天开门关门的例行检查。出行小程序已经上线。",
+    "is_shared": true,
+    "name": "多呆一会儿吧",
+    "owner_id": 1
+  },
+  "session": {
+    "archived_at": null,
+    "created_at": "2026-10-02T15:07:38+08:00",
+    "history_summary": null,
+    "id": 5,
+    "mode": "chat",
+    "model": null,
+    "owner_id": 1,
+    "project_id": 2,
+    "reasoning_effort": null,
+    "title": "等待崔洋确认今日输出",
+    "updated_at": "2026-10-02T21:59:54+08:00"
+  }
+}
