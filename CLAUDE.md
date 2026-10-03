@@ -1,6 +1,13 @@
 # Snowmeet AI — 项目上下文
 
-## 当前状态（截至 2026-10-02）：reqai 同步、价格修正与简洁回答已上线；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+## 当前状态（截至 2026-10-03）：reqai 任意格式附件与原件历史下载已上线，同步、价格与简洁回答已完成；旧版演示 API 已部署至 mini.snowmeet.com；小程序分包仍未编译/验收；5 月起的库结构变更已整理；10-01 员工账号工作未归档
+- **10-02：reqai 任意格式附件与历史原件（10-03 归档，详见 [会话记录](sessions/2026-10-02_reqai-attachment-history.md)）**：
+  - ✅ 任意格式均可上传，单文件 20 MB、每条消息最多 5 个，会话不再累计限 5 个。能解析的 PDF、DOCX（含表格）、XLSX、PPTX、文本进入模型上下文；有效 PNG/JPEG/GIF/WebP 走视觉模型。未知格式或解析失败保留完整原件，明确标注未解析，不猜测内容。
+  - ✅ 历史消息保留附件关联，后续对话、编辑与重新生成沿用附件；会话附件和项目附件提供原件下载，Markdown/Word 导出包含下载地址。下载沿用所属会话权限，私有项目他人 403、匿名 401；长解析文本按预算截取并提示，原件字节不截断。
+  - ✅ 独立 reqai 仓本机、GitHub `main` 和美国服务器均为 `e1c83735412996a773adbb6f57a52aa16b1d0bdb`。10-03 收尾复核服务 active、`NRestarts=0`，`http://ai.snowmeet.top/` 经现有跳转返回 200；本次没有更改 TLS 或域名跳转。
+  - ✅ **仅 reqai 自有 MySQL** schema 5→6，新增 nullable `messages.attachment_ids JSON`，迁移重复执行通过；原件目录为 `/home/ubuntu/reqai-data/attachments`。已按 SHA-256 迁移 1 份服务私有临时目录原件，10-03 哈希仍一致；收尾时现有原件 3/3 可用。两处 reqai Nginx 上传限额由 8m 改为 22m。
+  - ✅ 附件测试 17 过；本机及服务器隔离库相关回归各 79 过；完整后端 322 过/13 个既有失败/1 跳过。前端构建、lint 无错误（保留既有警告）；线上 9 MB 任意文件、损坏 PDF、文本解析、原样下载、项目/消息历史、导出与权限通过，未调用模型，临时验收记录已清理。无可用浏览器，未做实际浏览器点测。
+  - 本轮未改业务代码、部署 SnowmeetApi 或执行 Snowmeet 业务库 DDL；小程序 118 个既有改动保留。后续按真实使用反馈完善格式识别，备份须同时覆盖 reqai 数据库与原件目录。
 - **10-02：reqai 同步、模型价格与简洁回答（详见 [会话记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)）**：
   - ✅ 独立 reqai 仓 `main@56b59cd` 已提交推送；美国服务器 `44.207.251.65:/home/ubuntu/reqai` 同版，`reqai` 服务 active、`NRestarts=0`。实际入口为 `http://ai.snowmeet.top/`，现有 Nginx 自动跳转 HTTPS 后返回 200；本次未改证书或反代。
   - ✅ reqai 从 `95354a3` 同步到 `6131ea4`；自己的语料副本同步到最新源码（SnowmeetApi `3c9dc278`、小程序 `023f7858`、文档 `d3251f9`、公众号 `4c9c0a6`）。同步验收时 959 个有效文件、2,792 个有效片段，文件哈希全部匹配、无缺失向量；检索已能找到 10-01 员工绑定码和自助登记代码。**静态 schema 导出未刷新，不能据此认定生产库新 DDL 已执行。**
@@ -368,6 +375,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
 - reqai 成本与输出规则：[价格配置](../../reqai/backend/app/config.py)、[费用回归测试](../../reqai/backend/tests/test_pricing.py)、[对话提示词](../../reqai/backend/app/prompts/)、[检索上下文装配](../../reqai/backend/app/retrieval.py)；[同步/部署及验收记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - 雪季 Copilot 测试交接（2026-09-30）：[测试方案](docs/testing/2026-09-30-copilot-test-plan.md)、[启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[用例索引](docs/testing/2026-09-30-copilot-test-cases.json)；[索引生成器](tools/qa/build_test_plan_index.cjs) 仅读写文档，不运行业务测试。
 - 雪季测试用系统功能说明：[`docs/testing/2026-09-30-system-feature-inventory.md`](docs/testing/2026-09-30-system-feature-inventory.md)（交给 ChatGPT 生成测试方案、Copilot 执行；功能或规则有变时同步更新它）。
@@ -538,6 +546,7 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **reqai 原件不要存服务私有 `/tmp`（2026-10-02 已修）**：`PrivateTmp=true` 下主机普通 `/tmp` 查不到服务的原件；迁移须在旧进程退出前从 `/proc/<MainPID>/root/tmp/reqai-attachments` 核对并复制。重启会清理私有临时目录；现用 `/home/ubuntu/reqai-data/attachments`，备份要与数据库配套。17 项附件测试通过不等于完整后端全过，另有 13 项旧文件路径/旧模型测试失败。
 - **2026-09-30 测试运行器不能按名字判断隔离性**：`SnowmeetApi.Tests/run_fnb_http_smoke.py` 会 import `run_fnb_sqlserver_integration.py`，读取仓根 `config.sqlServer`，以 `snowmeet_new` 为结构源并在同一服务器 CREATE/DROP DATABASE；不要直接执行/import。Windows LocalDB 运行器不读生产但同样执行 DDL，按功能说明限制由负责人负责。详见 [测试方案环境闸门](docs/testing/2026-09-30-copilot-test-plan.md)。
 - **2026-09-30 前端测试网络与旧 Node 命令**：`run_tests.js` 不展开 `tests/*.test.js`，PowerShell 要先枚举文件。App 的登录、独立图片/上传地址与 Socket 可在首次加载时触发；C 类隔离必须先于 App 启动，不能启动后只改 `requestPrefix`。`Util.GetSqlServerConnectionString/GetDbContext` 按工作目录读取配置，后端仅换环境变量也不够。
 - **南山已关店（2026-09-30 用户告知）**：微信小程序里的南山业务代码已删——店员端 7 个南山雪票页（预定、预定明细、取票扫码、验票、消费、退押金、退押金明细）、顾客端南山预订页 `ski_pass_reserve` 和南山加票页、后台 4 个南山菜单、`util.js` 里 3 段南山购票文案、`app.js` 的 `uploadDomain`、租赁价格设置（`shop_price_matrix` 等）里的南山门店。不要再为南山写功能或测试。**仍有残留、未清理**：后端 `SkiPass/GetResorts` 写死返回「万龙」「南山」（小程序 `ski_pass_selector` 在前端过滤，旧链接带 `resort=南山` 落到第一个雪场，防止用万龙下单流程卖南山的票）、`NanshanSkipass` 控制器；支付宝小程序首页的南山标签；公众号南山扫码场景；`shop_list` 南山记录。
@@ -4127,3 +4136,13 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 收尾核实 reqai 本机、GitHub 和美国服务器同版；服务 active、PID 308721、重启次数 0。小程序既有 118 个文件改动保留；本次不提交业务仓其他工作。
 - 📌 提示词通过 `llm.prompt()` 每次读取并 `.strip()`，不需重启；校验时分别比较文件原始哈希与运行时去空白文本。全套测试的旧路径/旧模型失败不可写成全部通过。
 - 详细归档：[`sessions/2026-10-02_reqai-sync-pricing-concise.md`](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
+
+
+### 2026-10-03：归档 reqai 任意格式附件与历史原件（10-02 完成）
+
+- ✅ `main@e1c8373` 已推送并部署美国服务器；支持任意格式上传、解析失败保留原件、项目/会话历史下载、编辑与重新生成保留附件。
+- ✅ reqai 自有 MySQL schema 5→6；`messages.attachment_ids` 保存关联。原件迁入 `/home/ubuntu/reqai-data/attachments`，迁移的 1 份按 SHA-256 校验，10-03 仍一致；收尾现有原件 3/3 可用。两处 reqai Nginx 上传限额改为 22m，TLS/跳转及其他站点配置不变。
+- ✅ 附件测试 17 过，相关回归本机/服务器各 79 过；完整后端 322 过/13 个既有失败/1 跳过。前端 build/lint 无错误；线上 9 MB 文件、损坏 PDF、文本解析、原样下载、历史/导出与权限验收通过，未调用模型；无可用浏览器，未点测 UI。
+- ✅ end-work 复核本机/远端/服务器提交一致、服务 active、HTTP 入口最终 200；本次仅更新项目文档和会话记录，不自动提交业务仓的既有改动。
+- 📌 `PrivateTmp=true` 下原件须在旧进程退出前从 `/proc/<PID>/root/tmp` 找到并迁移；普通主机 `/tmp` 空目录不能证明没有原件。后续备份同时覆盖数据库和原件。
+- 详细归档：[sessions/2026-10-02_reqai-attachment-history.md](sessions/2026-10-02_reqai-attachment-history.md)。
