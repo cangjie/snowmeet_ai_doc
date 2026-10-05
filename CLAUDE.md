@@ -1,5 +1,11 @@
 # Snowmeet AI — 项目上下文
 
+## 最新状态（2026-10-05）：微信支付商户 1615235183 证书更换已完成
+
+- ✅ `wepay_key.id=3` 已更新商户证书序列号和私钥，新证书至 2031-10-04 到期；新增 `platform_certificates` 字段保存两份平台证书的序列号及完整 PEM。数据库重读后微信只读接口 HTTP 200、平台证书解密与响应验签通过。
+- ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
+- 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
+
 ## 当前状态（截至 2026-10-03 晚）：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验页已随 `534aad0c` 上线（签名接口线上核实正常），待真机打印；小程序养护打印弹窗改为「未连接按钮灰 + 打完不断开 + 掉线监听」（`b1d6bb02` 已 push，待上传）；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
 - **10-03 下午：上传文件迁移 AWS S3（Windows 机，详见 [会话记录](sessions/2026-10-03_s3-upload-migration.md)）**：
   - 用户要求：所有上传接口改存 S3，服务器上的文件全部迁进桶，并改库。用户拍板：**CloudFront + 新域名 `img.snowmeet.top`**；**库里继续存相对路径 `/upload/...`、显示域名集中配置**；**wanlonghuaxue 服务器已注销，上面的图片不要了**。
