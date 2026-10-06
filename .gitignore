@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Local cleanup manifests and machine-specific runtime files
+.local/
+
 # Excel 临时锁文件（文件被打开时由 Excel/WPS 创建，关闭后消失）
 ~$*.xlsx
 ~$*.xls

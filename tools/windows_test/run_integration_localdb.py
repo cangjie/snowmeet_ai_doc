@@ -105,6 +105,10 @@ def main():
         if mismatches:
             raise RuntimeError("EF/SQL 字段不一致：" + str(mismatches))
         print("EF 模型与新增 19 张表字段全部一致；脚本不含非新增操作")
+        if "--verify-clear-test-data" in sys.argv:
+            from verify_clear_food_test_data import verify
+            verify(connection, ef)
+            return 0
         env = os.environ.copy()
         env["SNOWMEET_FNB_TEST_SQLSERVER"] = rf"Server=(localdb)\MSSQLLocalDB;Database={database};Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=30"
         # 测试输出实时显示；只运行测试程序集，不运行生产 Startup/读取 config.sqlServer。
