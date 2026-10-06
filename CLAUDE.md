@@ -1,6 +1,27 @@
 # Snowmeet AI — 项目上下文
 
-## 最新状态（2026-10-05）：微信支付商户 1615235183 证书更换已完成
+## 最新状态（2026-10-06）：食材管理 v4 推翻重建——服务端计划已出，交给 Codex 实现
+
+- **背景**：用户依据 Claude Design 的「食材管理 v4」原型和「从零上手操作说明」（32 步）决定**推翻重来**：
+  - 现有食材数据全部不要；
+  - 只复用店员登录认证体系、部分表结构和部分接口；
+  - 前端（小程序 + 企业微信 H5）基本重做。
+- **范围**（用户定）：
+  - 做 v4 里除 10/02 那批（存储区域、开门检查、餐饮物资、餐饮工具）以外的全部；
+  - 美团订单导入这次不做，但各模块做完后一定接上；
+  - 分类属性：分类给默认值，食材可以单独改。
+- **计划**：[docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md](docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md)，内容包括：
+  - 数据库重建；
+  - 按 v4 页面分模块的接口；
+  - 小程序与企业微信 H5 双端兼容；
+  - 分三期实施，用 32 步做集成验收。
+
+  用户本周额度只剩约 7%，改由 Codex 按期实现：先做第 1 期，做完停下来审阅。
+- 🚧 **上线切换由用户执行**：先在后台隐藏旧食材入口 → 在生产库执行重建脚本 → 发布 API → 发布两个新客户端。**重建脚本一执行，旧的 fnbinv、mat_expire 页面和旧 H5 立即失效**。
+- ⚠️ **10-05 下午有 5 个提交没记进文档**：API `fd18e479`、`0e9388c0`，小程序 `9a042897`、`ad4928dd`、`579a1ba9`，内容是养护选店和万龙服务中心定价。是否已发布未知，下次补记。
+- 会话记录：[sessions/2026-10-06_fnb-v4-rebuild-plan.md](sessions/2026-10-06_fnb-v4-rebuild-plan.md)
+
+## 2026-10-05：微信支付商户 1615235183 证书更换已完成
 
 - ✅ `wepay_key.id=3` 已更新商户证书序列号和私钥，新证书至 2031-10-04 到期；新增 `platform_certificates` 字段保存两份平台证书的序列号及完整 PEM。数据库重读后微信只读接口 HTTP 200、平台证书解密与响应验签通过。
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
@@ -522,6 +543,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **2026-10-06 当前优先：食材 v4 重建**。Codex 按 [计划](docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md) 先做第 1 期，用户审阅后再做第 2、3 期。上线前由用户隐藏旧入口、执行重建脚本。v4 落地后，下方「食材管理上线」「mat_expire」相关的旧待办全部作废。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
 - **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
 - **09-30 晚 雪季测试 + 南山清理**：
@@ -628,6 +650,17 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **怎么读 Claude Design 设计稿（2026-10-06）**：
+  - claude.ai/design 的分享链接要登录才能看。用内置浏览器，由用户本人登录。
+  - 登录后，在 claude.ai 页面里用 fetch POST `https://claude.ai/design/anthropic.omelette.api.v1alpha.OmeletteService/ListFiles` 或 `/GetFile`：请求体 JSON `{projectId, path}`，请求头 `connect-protocol-version: 1`，返回的 content 是 base64。用它可以拿到 `.dc.html` 原文。
+  - 原型的业务数据（形态链、进货规格、分类、菜品、订单样例）在页面脚本的常量里，如 `ROUTES0`、`SUBS0`、`ITEMS0`。模板里的文字只是 `{{ }}` 占位。
+  - DesignSync 工具只能配合 /design-sync 使用，不要拿来读设计稿。
+- **旧食材表结构的几个坑（2026-10-06 盘点，重建时避开）**：
+  - `fnb_material_batch_stock` 的 CK_7 是双向约束：非 opened 的批次，parent、opened_date 必须为空。
+  - `vw_fnb_material_stock.available_qty` 只排除 sealed，新加的任何不可扣形态都会被算成可用。
+  - 「可用量」现有三种算法：视图和 GetStock 不含整件，ListLowStock 含整件，GetDeductStock 只算可扣部分。
+  - 企业微信应用密钥硬编码在 `FnbWeComController.cs:30`。
+  - 企业微信 H5 没有「我是谁」接口：OAuthLogin 只返回 sessionKey 和 userid。新库存接口的会话解析（`FnbAccess.ResolveActorAsync`）本来就兼容两种会话。
 - **reqai 原件不要存服务私有 `/tmp`（2026-10-02 已修）**：`PrivateTmp=true` 下主机普通 `/tmp` 查不到服务的原件；迁移须在旧进程退出前从 `/proc/<MainPID>/root/tmp/reqai-attachments` 核对并复制。重启会清理私有临时目录；现用 `/home/ubuntu/reqai-data/attachments`，备份要与数据库配套。17 项附件测试通过不等于完整后端全过，另有 13 项旧文件路径/旧模型测试失败。
 - **2026-09-30 测试运行器不能按名字判断隔离性**：`SnowmeetApi.Tests/run_fnb_http_smoke.py` 会 import `run_fnb_sqlserver_integration.py`，读取仓根 `config.sqlServer`，以 `snowmeet_new` 为结构源并在同一服务器 CREATE/DROP DATABASE；不要直接执行/import。Windows LocalDB 运行器不读生产但同样执行 DDL，按功能说明限制由负责人负责。详见 [测试方案环境闸门](docs/testing/2026-09-30-copilot-test-plan.md)。
 - **2026-09-30 前端测试网络与旧 Node 命令**：`run_tests.js` 不展开 `tests/*.test.js`，PowerShell 要先枚举文件。App 的登录、独立图片/上传地址与 Socket 可在首次加载时触发；C 类隔离必须先于 App 启动，不能启动后只改 `requestPrefix`。`Util.GetSqlServerConnectionString/GetDbContext` 按工作目录读取配置，后端仅换环境变量也不够。
@@ -4306,3 +4339,12 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 用户在企业微信真机实测打印（张数 2，iPhone/安卓）；测完删首页临时入口。小程序 `b1d6bb02` 随下一次上传。
 - 📌 本机 22 端口仍间歇被拦：`ls-remote` 走 443（`ssh.github.com`，`HostKeyAlias=github.com`）才确认到小程序远端。
 - 详细归档：[`sessions/2026-10-03_wecom-h5-ble-print-test.md`](sessions/2026-10-03_wecom-h5-ble-print-test.md)（第 5、6 节）。
+
+### 2026-10-06：食材管理 v4 推翻重建——服务端计划（交给 Codex）
+
+- start-work：文档仓拉取无更新；五个仓库全部与远端一致（其中三个走 443）；公众号仍有 1 个改动未提交。发现 10-05 下午有 5 个养护相关提交没记进文档。reqai 归档里会话 #5 有未分析的内容。
+- 用户给出 Claude Design v4 原型和「从零上手操作说明」。内置浏览器登录后，经 OmeletteService/GetFile 读到 v4、操作说明、形态流转方案三份原文。v4 的核心是：形态链路（采购态 → 中间态 → 出品态，相邻形态之间只走一个作业）、进货规格（决定从哪一层入库、扫条码自动选中）、作业台（含耗时作业、建议作业）、二级分类属性回归、半成品按每批产出 × 批数、「出品与配方链路」报表。
+- 后台两个只读 Explore：盘点了现有 fnb 表结构和接口。结论是新库存接口已经兼容两种会话，但企业微信端缺「我是谁」接口；旧表还有 CK_7 双向约束、可用量三种算法等坑（已写进「已知遗留」）。
+- 计划先按兼容迭代写了一版（只做 10/05 批、旧数据保留）。随后用户决定**推翻重来**，计划改为整体重建：一份重建脚本删旧表、建新表；`fnb_batch` 取代旧的两张批次表；新增形态、进货规格、作业记录三张表；按 v4 页面分 12 个模块的接口；双端兼容 8 条；分三期实施，用 32 步做验收。计划已存入 [docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md](docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md)。
+- 用户周额度已用 93%（北京时间 10-06 23:00 重置），实测后判断做不完，决定交给 Codex 实现。给 Codex 的指令见会话记录。本次没有改任何业务代码。
+- 详细归档：[sessions/2026-10-06_fnb-v4-rebuild-plan.md](sessions/2026-10-06_fnb-v4-rebuild-plan.md)。
