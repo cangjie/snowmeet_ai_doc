@@ -1,12 +1,14 @@
 # Snowmeet AI — 项目上下文
 
-## 最新状态（2026-10-06）：食材管理 v4 完整客户端与后端均已生产发布（测试阶段）
+## 最新状态（2026-10-06）：食材管理 v4 已生产发布（测试阶段），新版带图教程已完成
 
 - **范围扩展与发布**：用户明确要求全部 v4 后端，已补第 2/3 期，以及原排除的区域、检查、物资、工具；认证、OCR、上传、蓝牙继续复用。用户审阅 [扩展 SQL](sql/2026-10-06_fnb_v4_operations.sql) 并要求立刻部署后，已于北京时间 18:29 在生产新增 13 张表、18 个索引，未写旧数据或改旧表，再经原 `republish.sh` 发布 `ai@e97190e2`。服务 active/running、NRestarts=0，86 个 v4 动作已注册，原 518 条路由及 470 个受保护文件保留。原第一期 SQL 未修改，库存区域用伴随表保存。见 [生产部署记录](sessions/2026-10-06_fnb-v4-operations-production-deploy.md) 和 [完整接口契约](docs/fnb/2026-10-06-fnb-v4-operations-api.md)。H5 运营占位已在后续本次发布中替换为真实接口接入，见下条。
 - **完整 H5 客户端**：用户反馈客户端仍是旧样子后，已补齐库存、入库、作业、出餐、配方、盘点、报表、区域、检查、物资、工具及标签接入，于 19:34 通过原 republish.sh 发布 `ai@4a5b3fa1`；9 个公网资源哈希匹配、587 条路由保留，服务正常。构建 0 错误、467 项回归、12 项 H5 及完整浏览器流程通过。无新增 SQL、无清理数据，认证/OCR/蓝牙继续复用，企业微信首页地址不变；已打开页面关闭重进。见 [开发记录](sessions/2026-10-06_fnb-v4-h5-complete.md) 和 [生产记录](sessions/2026-10-06_fnb-v4-h5-complete-production-deploy.md)。真实硬件与 OAuth 待验收；测试阶段不等于正式业务启用。
 - **清理工具同步**：临时 skill 的精确食材白名单增加这 13 张扩展表，总计 50 张新旧食材/单位表，并纳入区域和检查照片。没有执行生产清理；之前待确认的 DSN 来源和 S3 删除权限条件仍未解决，不能自动读取配置或删除文件。生命周期仍 testing，正式上线后永久 retire。
 - **存储区域折叠**：按用户要求，一级区域可独立展开/收起二级区域，显示下级数量，切页及保存编辑后保留当前状态，整页刷新恢复展开；`ai@5ccd7c0b` 已于 20:37 经原 republish.sh 发布。12 项 H5 测试与完整浏览器流程通过，编译 0 错误、服务正常，9 个公网资源哈希匹配、587 条路由保留，无 SQL。仅清理发布生成的 bin/obj 缓存，回滚备份和数据保留，磁盘约 735 MB 可用。见 [记录](sessions/2026-10-06_fnb-v4-area-collapse.md)。
 - **入库分类联动**：补齐一级→二级→食材筛选，切换清除旧规格/批号/单位/到期预览，扫码同步回填两级分类；`ai@9c5d46c9` 已于 21:04 经原 republish.sh 发布，12 项 H5 与新增分类浏览器流程及完整回归通过。编译 0 错误、服务正常，9 个公网资源哈希匹配、587 条路由保留，无 SQL。删除本次 bin/obj 缓存后磁盘约 512 MB 可用（99%），不足下次完整备份+500 MiB 预留，后续发布前须先释放空间或扩容；回滚备份保留。见 [记录](sessions/2026-10-06_fnb-v4-inbound-categories.md)。
+
+- **新版带图上手教程（45 页）**：用户要求替换与当前系统不符的旧 PPT，并选择从零配置、入库、作业、配方到出餐扣减的完整路径。已按当前 `SnowmeetApi ai@9c5d46c9` 重新制作 [PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx) 和 [配套说明](docs/fnb/training/README.md)，文档交付提交 `feb7e86` 已推送。截图使用当前 H5 代码及隔离演示数据，未连接生产或操作业务数据；45 页逐页渲染、包结构/布局/字体/原生表格和最终文件重新导入检查通过，未执行原生 PowerPoint 软件验收。发现新建食材后列表偶尔未刷新，已列为待修复。详见 [本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 
 以下为此前第一期及 H5 发布记录；“后两期未开发”和 10/02 排除项已被最新范围覆盖。
 
@@ -498,6 +500,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
 - reqai 成本与输出规则：[价格配置](../../reqai/backend/app/config.py)、[费用回归测试](../../reqai/backend/tests/test_pricing.py)、[对话提示词](../../reqai/backend/app/prompts/)、[检索上下文装配](../../reqai/backend/app/retrieval.py)；[同步/部署及验收记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - 雪季 Copilot 测试交接（2026-09-30）：[测试方案](docs/testing/2026-09-30-copilot-test-plan.md)、[启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[用例索引](docs/testing/2026-09-30-copilot-test-cases.json)；[索引生成器](tools/qa/build_test_plan_index.cjs) 仅读写文档，不运行业务测试。
@@ -563,7 +566,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- **2026-10-06 当前优先：食材 v4 重建**。Codex 按 [计划](docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md) 先做第 1 期，用户审阅后再做第 2、3 期。上线前由用户隐藏旧入口、执行重建脚本。v4 落地后，下方「食材管理上线」「mat_expire」相关的旧待办全部作废。
+- **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
 - **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
 - **09-30 晚 雪季测试 + 南山清理**：
@@ -670,6 +673,7 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **食材 v4 新建食材后列表可能未刷新（2026-10-06，本机隔离演示发现，尚未修复）**：`wwwroot/fnb/v4/app.js` 新建成功后修改 `location.hash` 并调用 `renderPage(true)`；疑似与 `hashchange` 触发的缓存渲染并发，旧的空列表覆盖刷新结果。重新进入“形态链路”可显示刚建的食材。下一次先从空列表复现并检查渲染代次/刷新逻辑，再补浏览器回归；本次仅制作教程，未改业务代码或核实生产复现。
 - **怎么读 Claude Design 设计稿（2026-10-06）**：
   - claude.ai/design 的分享链接要登录才能看。用内置浏览器，由用户本人登录。
   - 登录后，在 claude.ai 页面里用 fetch POST `https://claude.ai/design/anthropic.omelette.api.v1alpha.OmeletteService/ListFiles` 或 `/GetFile`：请求体 JSON `{projectId, path}`，请求头 `connect-protocol-version: 1`，返回的 content 是 base64。用它可以拿到 `.dc.html` 原文。
@@ -4368,3 +4372,12 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 计划先按兼容迭代写了一版（只做 10/05 批、旧数据保留）。随后用户决定**推翻重来**，计划改为整体重建：一份重建脚本删旧表、建新表；`fnb_batch` 取代旧的两张批次表；新增形态、进货规格、作业记录三张表；按 v4 页面分 12 个模块的接口；双端兼容 8 条；分三期实施，用 32 步做验收。计划已存入 [docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md](docs/superpowers/plans/2026-10-06-fnb-v4-rebuild-plan.md)。
 - 用户周额度已用 93%（北京时间 10-06 23:00 重置），实测后判断做不完，决定交给 Codex 实现。给 Codex 的指令见会话记录。本次没有改任何业务代码。
 - 详细归档：[sessions/2026-10-06_fnb-v4-rebuild-plan.md](sessions/2026-10-06_fnb-v4-rebuild-plan.md)。
+
+### 2026-10-06：食材管理 v4 完整带图上手教程重做
+
+- 用户要求重新阅读旧版 39 页操作说明，按当前实际系统制作从零配置到出餐扣减的 PPT，并明确选择完整带图路径。
+- ✅ 新版 45 页已交付并以文档提交 `feb7e86` 推送：两级区域与分类、食材形态链和进货规格、入库与作业、每份配方、手动厨房单、总用料预览、确认出餐及余额核对；补充标签/蓝牙、半成品、开门检查、盘点和数据看板。
+- ✅ 鲜牛奶案例：入库 4000 ml；开盖 2000 ml 实产 1960 ml、损耗 40 ml；出餐两杯扣 400 ml；剩采购态 2000 ml、出品态 1560 ml，可再出 7 杯。全部为本机隔离演示，未连接生产库、创建生产数据或部署。
+- ✅ 45 页逐页渲染检查；最终 PPTX 包结构、布局、字体、3 张原生可编辑表格及重新导入通过。没有原生 PowerPoint 或真机 OAuth/OCR/蓝牙验收，不能将演示视为生产验收。
+- 🚧 新建食材后列表可能未刷新：本机发现，疑似 hashchange 与强制刷新并发，重新进入页面可恢复；未修复，已记入遗留和下一步。
+- 详细归档：[sessions/2026-10-06_fnb-v4-training-guide.md](sessions/2026-10-06_fnb-v4-training-guide.md)。
