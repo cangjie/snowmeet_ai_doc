@@ -105,6 +105,10 @@ def main():
         if mismatches:
             raise RuntimeError("EF/SQL 字段不一致：" + str(mismatches))
         print("EF 模型与新增 19 张表字段全部一致；脚本不含非新增操作")
+        if "--verify-drop-legacy-fnb" in sys.argv:
+            from verify_drop_legacy_fnb import verify
+            verify(connection, (SQL_DIR / "2026-10-06_fnb_drop_legacy_objects.sql").read_text(encoding="utf-8"))
+            return 0
         if "--verify-clear-test-data" in sys.argv:
             from verify_clear_food_test_data import verify
             verify(connection, ef)
