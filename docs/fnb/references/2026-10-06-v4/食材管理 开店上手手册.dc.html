@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="./doc-page.js"></script>
+<style>
+  doc-page:not(:defined) { visibility: hidden; }
+  body { margin: 0; }
+  a { color: #2563EB; text-decoration: none; }
+  a:hover { color: #1D4ED8; }
+  table { border-collapse: collapse; width: 100%; }
+  tr { break-inside: avoid; }
+</style>
+</helmet>
+<doc-page margin="0.7in">
+<div style="font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; color: #111827; font-size: 16px; line-height: 1.7;">
+
+  <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 22px; border-bottom: 3px solid #2563EB; margin-bottom: 28px;">
+    <div style="font-size: 13px; font-weight: 700; letter-spacing: 3px; color: #2563EB;">食材管理系统 · 操作手册</div>
+    <h1 style="margin: 0; font-size: 34px; line-height: 1.25;">开店上手：从零配置到第一张报表</h1>
+    <div style="font-size: 16px; color: #6B7280;">示例门店只卖两样：帕斯雀牛肉披萨（9 寸，¥78）和热拿铁（400 ml，¥28）。照着本手册从空系统开始，一步步填完，开业第一天收档后就能导出附带的 Excel 报表。</div>
+  </div>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">0　开始之前</h2>
+  <p style="margin: 0 0 12px 0;">系统里的数据按依赖顺序填：<b>区域 → 分类 → 食材与链路 → 半成品配方 → 菜品配方 → 物资 → 检查项 → 预警线</b>，之后才进入每天的入库、作业、出餐、盘点。前 8 步只做一次，需要<b>店长</b>身份（右上角切换）；第 9 步起员工即可操作。</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">阶段</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">步骤</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">入口</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">身份</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="8">一次性配置</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">1 存储区域</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 存储区域</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">2 食材分类</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 分类维护</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">3 食材链路与进货规格</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 进货规格与链路</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">4 半成品配方</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 半成品制作</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">5 菜品配方</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 菜品配方</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">6 餐饮物资</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 餐饮物资</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">7 开门检查项</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">存储区域 → 检查项</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">8 用量预警线</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 用量预警</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="4">日常运营</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">9 开业前一天：入库、拆箱、解冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">入库 / 作业</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">员工</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">10 开业当天早上：检查、备料</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">开门检查 / 作业</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">员工</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">11 出餐</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">出餐</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">员工</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">12 收档：盘点、为明天备料</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 盘点核对 / 作业</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">员工</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">报表</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">13 导出报表</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">更多 → 数据看板</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">店长</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0; break-before: page;">1　建存储区域</h2>
+  <p style="margin: 0 0 12px 0;">先点「新增一级区域」，再在一级下点「+ 下级」。每个区域建好后拍 1–2 张照片，新员工按照片找位置。后面入库、作业都要选区域，所以必须第一个建。</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">一级区域</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">下级区域</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">类型</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">放什么</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="2">仓库</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">干货架</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">仓库</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">整袋面粉、整桶橄榄油、整箱咖啡豆</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷库</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏冷冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">整箱牛肉、整箱鲜奶</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="2">后厨</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷冻柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏冷冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">马苏里拉整箱、冷冻芝士砖</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏冷冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">真空牛肉原块、解冻中的芝士砖</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="2">披萨区</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏抽屉</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏冷冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">肉片、芝士丝、饼底、芝麻菜（出品态）</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">备料台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">后厨</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">挤压瓶橄榄油、披萨垫纸</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="4">吧台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏冷冻</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">鲜奶独立桶、液体鲜奶</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">干货柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">前台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">拆出来的咖啡豆密封袋</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">豆仓</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">前台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">磨豆机豆仓里的咖啡豆</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">杯架</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">前台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">纸杯、杯盖</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">2　建食材分类</h2>
+  <p style="margin: 0 0 12px 0;">分类决定批次号前缀、默认计量、默认储存方式和保质期规则。默认值只是提示，入库时三种储存方式都能选。</p>
+  <table style="margin-bottom: 26px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">一级</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">二级</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">编码</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">计量</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">默认储存 · 保质期</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">临期提醒</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">肉禽水产</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">牛肉类</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">BEF</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">重量</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷藏 30 天（真空包装）</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;" rowspan="2">乳制品</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">奶酪</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">CHS</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">重量</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷冻 180 天 / 冷藏 30 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">鲜奶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">MLK</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">体积</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷藏 14 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;" rowspan="2">米面粮油</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">面粉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">FLR</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">重量</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">常温 180 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">30 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">食用油</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">OIL</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">体积</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">常温 540 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">30 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">生鲜</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">叶菜</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">VEG</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">重量</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷藏 3 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">咖啡茶饮</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">咖啡豆</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">COF</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">重量</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">常温 365 天 · 开袋后 14 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">7 天</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">半成品</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">面团饼底</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">DGH</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">件数</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷藏 2 天</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 天</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0; break-before: page;">3　建食材、形态链路和进货规格</h2>
+  <p style="margin: 0 0 10px 0;">这一步最关键。每种食材先定<b>出品态</b>（配方实际用的样子），再往回推<b>采购态</b>和中间要经过的作业。出成率填标准值，作业时会和实际称重比较。</p>
+  <p style="margin: 0 0 14px 0;">操作：更多 → 进货规格与链路 → 选食材 →「形态」页签逐层添加形态和作业 →「进货规格」页签添加规格、选入口形态、扫条码。芝麻菜这种没有链路的散装食材不用配，入库即出品态。</p>
+
+  <table style="margin-bottom: 18px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">食材</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">形态链路（→ 作业 · 换算 · 出成率 →）</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">出品态单位</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">帕斯雀牛肉</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">整箱（冷藏）→ 拆箱 · 1 箱 = 5 袋 · 100% → 真空原块 2 kg（冷藏）→ 拆包、修剪切片 · 1 袋 = 2000 g · 95% → <b>散装肉片</b>（保鲜盒冷藏，作业后 3 天）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">g</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">马苏里拉</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">冷冻整箱 → 拆箱 · 1 箱 = 4 块 · 100% → 冷冻芝士砖 3 kg → 冷藏解冻 · <b>耗时 24 小时</b> → 解冻芝士砖（冷藏 5 天）→ 机器刨丝 · 1 块 = 3000 g · 98% → <b>芝士丝</b>（密封袋冷藏 3 天）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">g</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">高筋面粉</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">整袋 25 kg → 拆袋 · 100% → <b>散装面粉</b>（面粉桶常温）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">g</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">初榨橄榄油</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">整桶 5 L → 开盖倒入分装瓶 · 99% → <b>挤压瓶橄榄油</b>（备料台常温）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">ml</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">拼配咖啡豆</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">整箱 → 拆箱 · 1 箱 = 10 袋 → 密封单向阀袋 1 kg → 剪开入豆仓 · 1 袋 = 1000 g · 100% → <b>豆仓咖啡豆</b>（开袋后 14 天）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">g</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">鲜牛奶</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">整箱 → 拆箱 · 1 箱 = 6 桶 → 独立桶 2 L → 拧开瓶盖倒出 · 1 桶 = 2000 ml · 98% → <b>液体鲜奶</b>（原桶旋盖冷藏 3 天）</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">ml</td></tr>
+      <tr><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">芝麻菜</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">不配链路 · 散装入库即出品态</td><td style="padding: 7px 8px; border-bottom: 1px solid #E5E7EB;">g</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin: 0 0 10px 0;"><b>进货规格</b>决定从链路的哪一层入库。同一种食材有几种买法就建几个规格：</p>
+  <table style="margin-bottom: 14px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">食材</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">规格名称</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">包装说明</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">入口形态</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">到出品态还要</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">5 袋 × 2 kg</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 步</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">马苏里拉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷冻整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">4 块 × 3 kg</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷冻整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">3 步（含 24 h 解冻）</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">高筋面粉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">25 kg / 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 步</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">初榨橄榄油</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">5 L / 桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 步</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">拼配咖啡豆</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">10 袋 × 1 kg</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 步</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;" rowspan="2">鲜牛奶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">6 桶 × 2 L</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 步</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">单桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 L / 桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;"><b>独立桶</b>（跳过拆箱）</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 步</td></tr>
+    </tbody>
+  </table>
+  <div style="background: #EFF4FF; border-radius: 12px; padding: 14px 18px; margin-bottom: 26px; font-size: 15px; color: #1E3A8A; break-inside: avoid;">每个规格都扫一下包装条码。以后入库扫码，系统会自动选中对应规格，不会把单桶当整箱录。</div>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">4　半成品配方：发酵披萨饼底</h2>
+  <p style="margin: 0 0 12px 0;">饼底由几种原料做成，用「半成品制作」（多原料作业）。先在分类「半成品 › 面团饼底」下建食材「发酵披萨饼底」，单位选「个」，再到 更多 → 半成品制作 设配方：</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">每批产出</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">原料（只能选出品态）</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">用量</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="2">6 个</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">散装面粉</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">1000 g</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">挤压瓶橄榄油</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">20 ml</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">5　菜品配方</h2>
+  <p style="margin: 0 0 12px 0;">更多 → 菜品配方 → 新增菜品。每道菜默认有一个规格，把规格名改成「9 寸」「400 ml」；需要大份时再「新增规格」，每个规格单独设料。配方只能选出品态（含半成品）。</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">菜品 · 规格</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">用料（出品态）</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">每份用量</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="5"><b>帕斯雀牛肉披萨</b><br />9 寸 · ¥78 · 披萨区</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">发酵披萨饼底（半成品）</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">1 个</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">散装肉片</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">65 g</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">芝士丝</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">120 g</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">挤压瓶橄榄油</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">10 ml</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">芝麻菜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">15 g</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;" rowspan="2"><b>热拿铁</b><br />400 ml · ¥28 · 咖啡区</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">豆仓咖啡豆</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">18 g</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">液体鲜奶</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">250 ml</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">6　餐饮物资</h2>
+  <p style="margin: 0 0 12px 0;">垫纸、杯子、杯盖不是食材：不进配方，不随出餐扣减，按领用记录。更多 → 餐饮物资 → 一次性餐具 → 新增：</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">名称</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">包装</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">存放区域</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">预警</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">一次性披萨垫纸</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">100 张 / 包</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">披萨区·备料台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">固定 50 张</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">定制印花纸杯 400 ml</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">50 只 / 条</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">吧台·杯架</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">按比例 10%</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">配套防漏杯盖</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">50 只 / 条</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">吧台·杯架</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">按比例 10%</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">7　开门检查项</h2>
+  <p style="margin: 0 0 12px 0;">存储区域 → 选区域 → 检查项 → 新增。只配真正每天要看的项目；数值项填标准范围，超出自动判异常。</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">区域</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">检查项</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">方式</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">仓库·冷库 / 后厨·冷藏柜 / 披萨区·冷藏抽屉 / 吧台·冷藏柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷藏温度</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">数值 0–5 ℃ · 必填</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">后厨·冷冻柜</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">冷冻温度</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">数值 −22 至 −15 ℃ · 必填</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">披萨区·备料台</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">烤炉点火正常、刨丝机清洁</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">是否 · 必填</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">吧台·豆仓</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">磨豆机校准、咖啡机压力正常</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">是否 · 必填</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">8　用量预警线</h2>
+  <p style="margin: 0 0 12px 0;">预警只看<b>出品态</b>库存。低于预警线时，作业台会自动建议从上一层转换。更多 → 用量预警 → 改为固定值：</p>
+  <table style="margin-bottom: 26px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">出品态食材</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">预警线</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">约等于</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">散装肉片</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">500 g</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">7 份披萨</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">芝士丝</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">1000 g</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">8 份披萨</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">发酵披萨饼底</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">6 个</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">1 批</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">豆仓咖啡豆</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">300 g</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">16 杯</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">液体鲜奶</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">2000 ml</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">8 杯</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0; break-before: page;">9　开业前一天（10/04）：入库、拆箱、解冻</h2>
+  <p style="margin: 0 0 10px 0;">以「鲜牛奶 · 整箱」为例，入库页逐项填写：</p>
+  <ol style="margin: 0 0 14px 0; padding-left: 24px;">
+    <li>分类选「乳制品 › 鲜奶」，名称选「鲜牛奶」，拍照建档。</li>
+    <li>扫箱上条码，<b>进货规格</b>自动选中「整箱」，提示「入库后落在整箱（采购态），还要经过 2 步作业」。</li>
+    <li>储存方式默认冷藏；批次号自动生成 261004-MLK-01，可改。</li>
+    <li>生产日期、保质期、到期日期拍包装 OCR 识别，三项独立，填其中两项即可。</li>
+    <li>存放区域选「仓库·冷库」；数量 2 箱，系统换算为 24000 ml。</li>
+    <li>点「加入入库单」，所有到货录完后点「确认入库」。</li>
+  </ol>
+  <table style="margin-bottom: 16px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">食材</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">进货规格</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">数量</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">落在</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">存放区域</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·冷库</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">马苏里拉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷冻整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 冷冻整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">后厨·冷冻柜</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">高筋面粉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 整袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·干货架</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">初榨橄榄油</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 整桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·干货架</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">拼配咖啡豆</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·干货架</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">鲜牛奶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">采购态 · 整箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·冷库</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">鲜牛奶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">单桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;"><b>中间态 · 独立桶</b></td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">吧台·冷藏柜</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 0 0 12px 0;">入库完成后，到底部「作业」页签，在「可作业批次」里找马苏里拉：</p>
+  <ol style="margin: 0 0 14px 0; padding-left: 24px;">
+    <li>冷冻整箱点「拆箱」：投入 1 箱，产出 4 块冷冻芝士砖，区域保持后厨·冷冻柜，确认。</li>
+    <li>冷冻芝士砖点「冷藏解冻」：投入 1 块，区域选后厨·冷藏柜，确认。它进入「进行中」，24 小时后才能刨丝。</li>
+  </ol>
+  <div style="background: #FEF3C7; border-radius: 12px; padding: 14px 18px; margin-bottom: 26px; font-size: 15px; color: #92400E; break-inside: avoid;"><b>为什么要前一天做：</b>芝士丝要先解冻 24 小时。开业当天才拆箱，中午没有芝士丝，披萨做不了。以后每天收档都要为第二天解冻 1 块（见第 12 步）。</div>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">10　开业当天早上（10/05）：检查与备料</h2>
+  <p style="margin: 0 0 10px 0;"><b>先做开门检查。</b>开门检查 → 开始今日检查 → 填 5 个温度 → 其余点「一键全部通过」→ 提交。店长确认后再开始备料。</p>
+  <p style="margin: 0 0 10px 0;"><b>再按作业台顺序备料。</b>出品态库存为 0 时，作业台「建议作业」会逐项列出。按下表从上到下做，每步都填实际称重：</p>
+  <table style="margin-bottom: 14px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">时间</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">作业</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">投入 → 实际产出</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">出成率</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">产出放到</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:00</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉 · 拆箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 箱 → 5 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">100%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">后厨·冷藏柜</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:05</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉 · 修剪切片</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 袋 → 1880 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB; color: #B45309; font-weight: 700;">94%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">披萨区·冷藏抽屉</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:15</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">马苏里拉 · 机器刨丝</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 块 → 2940 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">98%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">披萨区·冷藏抽屉</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:20</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">高筋面粉 · 拆袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 袋 → 25000 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">100%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">仓库·干货架</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:22</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">橄榄油 · 开盖分装</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 桶 → 4950 ml</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">99%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">披萨区·备料台</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:30</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">发酵披萨饼底 · 半成品制作 2 批</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">面粉 2000 g + 橄榄油 40 ml → 12 个</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">—</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">披萨区·冷藏抽屉</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:40</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">咖啡豆 · 拆箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 箱 → 10 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">100%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">吧台·干货柜</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:42</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">咖啡豆 · 剪开入豆仓</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 袋 → 1000 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">100%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">吧台·豆仓</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">09:46</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">鲜牛奶 · 开盖</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 桶 → 1960 ml</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">98%</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">吧台·冷藏柜</td></tr>
+    </tbody>
+  </table>
+  <ul style="margin: 0 0 26px 0; padding-left: 24px;">
+    <li>牛肉切片出成率 94%，比标准低 1 个点，系统要求填原因（如「筋膜较多」），差出的 120 g 记为作业损耗。</li>
+    <li>鲜牛奶这次没有先拆整箱：单桶规格入库的 2 桶已经在「独立桶」层，按先到期先出直接开盖其中一桶。</li>
+    <li>每次作业生成新批次，批次号带来源，如 261004-BEF-01-BS，可一路追溯到采购批次。</li>
+  </ul>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">11　出餐</h2>
+  <p style="margin: 0 0 12px 0;">订单从订单系统同步过来。出餐页点开订单，核对按配方算出的扣减量，按备注微调后确认。系统只扣出品态，按先到期先出扣到具体批次。</p>
+  <table style="margin-bottom: 14px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">订单</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">内容 · 备注</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">扣减</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">SO1005-0001<br />12:05 · A1 桌</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉披萨 ×2，热拿铁 ×2<br />备注：一份不要芝麻菜</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">饼底 2 个 · 肉片 130 g · 芝士丝 240 g · 橄榄油 20 ml · 芝麻菜 <b>15 g</b>（按备注减一份）· 咖啡豆 36 g · 鲜奶 500 ml</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">SO1005-0002<br />12:20 · 外带</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">热拿铁 ×1</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">咖啡豆 18 g · 鲜奶 250 ml</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 0 0 26px 0;">垫纸、纸杯、杯盖按实际在餐饮物资里做「领用」，不在出餐里扣。</p>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0;">12　收档：盘点与为明天备料</h2>
+  <ol style="margin: 0 0 14px 0; padding-left: 24px;">
+    <li><b>盘点。</b>更多 → 盘点核对，只盘出品态余量（散装、已开封、半成品）。本例肉片、芝士丝、鲜奶各差 10 g / ml，提交后以实盘为准，差异记入损耗。</li>
+    <li><b>处理预警。</b>液体鲜奶只剩 1200 ml，低于预警 2000 ml，作业台建议「开盖 1 桶」。打烊前不开，明早开门后再做。</li>
+    <li><b>为明天解冻。</b>作业台 → 冷冻芝士砖 →「冷藏解冻」1 块。今天早上已经做过的话，这里会显示「进行中」。</li>
+  </ol>
+  <div style="background: #EFF4FF; border-radius: 12px; padding: 14px 18px; margin-bottom: 26px; font-size: 15px; color: #1E3A8A; break-inside: avoid;">库存首页每种食材显示一条形态横条：采购态 · 中间态 · 出品态各有多少。「可出餐份数」只按出品态算，决定今天还能卖多少。</div>
+
+  <h2 style="font-size: 24px; margin: 0 0 12px 0; break-before: page;">13　导出报表</h2>
+  <p style="margin: 0 0 12px 0;">店长在 更多 → 数据看板 → 导出，得到和上传的「26-27 餐饮管理系统」同结构的 Excel。本例导出的文件见附件 <b>pizza-latte-report.xlsx</b>，共 3 张表：</p>
+  <table style="margin-bottom: 18px; font-size: 14px;">
+    <thead><tr><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">工作表</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">内容</th><th style="text-align: left; padding: 7px 10px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">数据来自</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">出品与配方链路</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">每道菜 × 每种用料一行：出品信息 · 配方用量 · 采购态 · 转化阶段 1 / 2 / 3（作业、形态、单位、存储、出成率）</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">第 3、4、5、6 步</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">首日流水</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">10/04–10/05 的每一笔入库、作业、半成品制作、出餐、盘点，带出成率、区域、经办人</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">第 9–12 步</td></tr>
+      <tr><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">日终库存（按形态）</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">每种食材在采购态 / 中间态 / 出品态各剩多少，可出餐份数，预警状态</td><td style="padding: 6px 10px; border-bottom: 1px solid #E5E7EB;">收档后的库存</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 0 0 10px 0;">「出品与配方链路」节选（披萨用的两种肉奶类）：</p>
+  <table style="margin-bottom: 18px; font-size: 12.5px;">
+    <thead><tr><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">商品</th><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">出品态 · 用量</th><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">采购态</th><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">阶段 1</th><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">阶段 2</th><th style="text-align: left; padding: 6px 6px; background: #2563EB; color: #FFFFFF;">阶段 3</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉披萨 9 寸</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">散装肉片 65 g</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">整箱 5 袋 × 2 kg · 冷藏</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">拆箱 → 真空原块 袋 · 100%</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">修剪切片 → 散装肉片 g · 95%</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">—</td></tr>
+      <tr><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉披萨 9 寸</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">芝士丝 120 g</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">冷冻整箱 4 块 × 3 kg · −18 ℃</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">拆箱 → 冷冻芝士砖 块 · 100%</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">冷藏解冻 24 h → 解冻芝士砖 块</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">机器刨丝 → 芝士丝 g · 98%</td></tr>
+      <tr><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">热拿铁 400 ml</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">液体鲜奶 250 ml</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">整箱 6 桶 × 2 L · 冷藏<br />（或单桶 2 L）</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">拆箱 → 独立桶 · 100%<br />（单桶跳过此步）</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">开盖 → 液体鲜奶 ml · 98%</td><td style="padding: 6px; border-bottom: 1px solid #E5E7EB;">—</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 0 0 10px 0;">「日终库存」结论：</p>
+  <table style="margin-bottom: 18px; font-size: 13.5px;">
+    <thead><tr><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">食材</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">采购态</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">中间态</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">出品态</th><th style="text-align: left; padding: 7px 8px; background: #EFF4FF; color: #1E3A8A; border-bottom: 1px solid #C7D8F7;">可出餐</th></tr></thead>
+    <tbody>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">帕斯雀牛肉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">0 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">4 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1740 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">26 份</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">马苏里拉</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">0 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">冷冻 2 块 · 解冻中 1 块</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2690 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">22 份</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">发酵披萨饼底</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">—</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">—</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">10 个</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700;">10 份</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">拼配咖啡豆</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">0 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">9 袋</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">946 g</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">52 杯</td></tr>
+      <tr><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">鲜牛奶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">2 箱</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1 桶</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB;">1200 ml</td><td style="padding: 6px 8px; border-bottom: 1px solid #E5E7EB; color: #EF4444; font-weight: 700;">4 杯 · 预警</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 0;">读法：明天披萨最多卖 10 份，卡在饼底，早上要先做饼底；拿铁卡在液体鲜奶，开门后先开盖剩下的 1 桶（约可做 12 杯），独立桶用完后再拆整箱。</p>
+
+</div>
+</doc-page>
+</x-dc>
+</body>
+</html>

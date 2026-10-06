@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin: 0; background: #1A2233; }
+  a { color: #2563EB; text-decoration: none; }
+  a:hover { color: #1D4ED8; }
+</style>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section data-label="封面" data-screen-label="01" data-speaker-notes="这份说明从一个完全空白的系统开始，以只卖披萨和拿铁的门店为例，一步一屏地演示每个操作。" style="background: #111827; color: #FFFFFF; font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; padding: 110px 120px; display: flex; flex-direction: column; justify-content: center; gap: 44px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -260px; right: -220px; width: 820px; height: 820px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,.38), rgba(37,99,235,0) 68%);"></div>
+    <div style="position: relative; display: flex; align-items: center; gap: 20px;"><div style="width: 72px; height: 6px; background: #2563EB;"></div><div style="font-size: 28px; font-weight: 600; letter-spacing: 6px; color: #7CB9F4;">界面操作说明 · 从零开始</div></div>
+    <div style="position: relative; display: flex; flex-direction: column; gap: 18px;">
+      <div style="font-size: 116px; font-weight: 700; line-height: 1.05;">食材管理系统</div>
+      <div style="font-size: 72px; font-weight: 700; color: #C7D2E0;">开店上手：一步一屏</div>
+    </div>
+    <div style="position: relative; font-size: 34px; line-height: 1.55; color: #C7D2E0; max-width: 1400px;">示例门店只卖两样：帕斯雀牛肉披萨（9 寸）和热拿铁（400 ml）。从空系统开始建区域、分类、链路、配方，跑完开业第一天，最后导出报表。</div>
+    <div style="position: relative; display: flex; gap: 28px; font-size: 26px; color: #8FA3BF;"><div>红框 + 编号 = 依次点击 / 填写的位置</div><div>·</div><div>共 32 个操作</div></div>
+  </section>
+
+  <sc-for list="{{ slides }}" as="s" hint-placeholder-count="6">
+    <section data-label="{{ s.label }}" data-speaker-notes="{{ s.notes }}" style="background: {{ s.bg }}; color: #111827; font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; padding: 70px 120px; display: flex; align-items: center; gap: 110px; overflow: hidden;">
+      <sc-if value="{{ s.isDivider }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 28px; color: #FFFFFF;">
+          <div style="font-size: 30px; font-weight: 700; letter-spacing: 6px; color: #7CB9F4;">{{ s.sec }}</div>
+          <div style="font-size: 104px; font-weight: 700; line-height: 1.1;">{{ s.title }}</div>
+          <div style="font-size: 36px; line-height: 1.6; color: #C7D2E0; max-width: 1300px;">{{ s.desc }}</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ s.isStep }}" hint-placeholder-val="{{ true }}">
+        <div style="flex: none; width: 434px; height: 940px; border-radius: 46px; border: 9px solid #111827; overflow: hidden; background: #FFFFFF; box-shadow: 0 24px 70px rgba(17,24,39,.18);"><img src="{{ s.img }}" style="width: 100%; height: 100%; object-fit: cover; object-position: top; display: block;" /></div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 34px;">
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 16px;"><div style="padding: 6px 16px; border-radius: 999px; background: #EFF4FF; color: #2563EB; font-size: 24px; font-weight: 700;">{{ s.sec }}</div><div style="font-size: 24px; font-weight: 600; color: #9CA3AF;">操作 {{ s.no }} / 32</div></div>
+            <div style="font-size: 60px; font-weight: 700; line-height: 1.2;">{{ s.title }}</div>
+            <div style="font-size: 26px; color: #6B7280;">{{ s.path }}</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px;">
+            <sc-for list="{{ s.steps }}" as="t" hint-placeholder-count="3">
+              <div style="display: flex; align-items: flex-start; gap: 22px;">
+                <div style="flex: none; width: 48px; height: 48px; border-radius: 50%; background: #EF4444; color: #FFFFFF; font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(239,68,68,.3);">{{ t.n }}</div>
+                <div style="font-size: 30px; line-height: 1.5; padding-top: 3px; color: #111827;">{{ t.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ s.tip }}" hint-placeholder-val="{{ false }}">
+            <div style="background: #FFFFFF; border-radius: 18px; padding: 24px 30px; font-size: 26px; line-height: 1.6; color: #374151; box-shadow: 0 2px 20px rgba(0,0,0,.06);">{{ s.tip }}</div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </section>
+  </sc-for>
+
+  <section data-label="结束" data-screen-label="40" data-speaker-notes="到这里开业第一天跑完。每天重复：开门检查、作业台备料、出餐、收档盘点，并为明天解冻。" style="background: #111827; color: #FFFFFF; font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; padding: 100px 120px; display: flex; flex-direction: column; justify-content: center; gap: 48px;">
+    <div style="font-size: 30px; font-weight: 700; letter-spacing: 6px; color: #7CB9F4;">之后每天</div>
+    <div style="font-size: 80px; font-weight: 700;">重复这 5 件事</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px;">
+      <div style="background: #1F2A3D; border-radius: 22px; padding: 34px 30px; display: flex; flex-direction: column; gap: 14px;"><div style="font-size: 52px; font-weight: 700; color: #7CB9F4;">1</div><div style="font-size: 32px; font-weight: 700;">开门检查</div><div style="font-size: 24px; line-height: 1.5; color: #C7D2E0;">温度实测，其余一键通过</div></div>
+      <div style="background: #1F2A3D; border-radius: 22px; padding: 34px 30px; display: flex; flex-direction: column; gap: 14px;"><div style="font-size: 52px; font-weight: 700; color: #7CB9F4;">2</div><div style="font-size: 32px; font-weight: 700;">到货入库</div><div style="font-size: 24px; line-height: 1.5; color: #C7D2E0;">扫码选规格，选区域</div></div>
+      <div style="background: #1F2A3D; border-radius: 22px; padding: 34px 30px; display: flex; flex-direction: column; gap: 14px;"><div style="font-size: 52px; font-weight: 700; color: #7CB9F4;">3</div><div style="font-size: 32px; font-weight: 700;">作业台备料</div><div style="font-size: 24px; line-height: 1.5; color: #C7D2E0;">按建议作业做到出品态</div></div>
+      <div style="background: #1F2A3D; border-radius: 22px; padding: 34px 30px; display: flex; flex-direction: column; gap: 14px;"><div style="font-size: 52px; font-weight: 700; color: #7CB9F4;">4</div><div style="font-size: 32px; font-weight: 700;">出餐</div><div style="font-size: 24px; line-height: 1.5; color: #C7D2E0;">按备注微调后确认</div></div>
+      <div style="background: #1F2A3D; border-radius: 22px; padding: 34px 30px; display: flex; flex-direction: column; gap: 14px;"><div style="font-size: 52px; font-weight: 700; color: #7CB9F4;">5</div><div style="font-size: 32px; font-weight: 700;">收档</div><div style="font-size: 24px; line-height: 1.5; color: #C7D2E0;">盘点，并为明天解冻</div></div>
+    </div>
+    <div style="font-size: 26px; color: #8FA3BF;">附件：pizza-latte-report.xlsx（出品与配方链路 · 首日流水 · 日终库存）</div>
+  </section>
+
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const G = 'assets/guide/';
+const D = (sec, title, desc) => ({ isDivider: true, sec, title, desc, bg: '#111827', label: sec, notes: desc });
+const S = (no, sec, img, title, path, steps, tip, notes) => ({ isStep: true, no, sec, img: G + img, title, path, steps: steps.map((text, i) => ({ n: i + 1, text })), tip: tip || '', bg: '#F0F2F7', label: no + ' ' + title, notes: notes || title });
+const SLIDES = [
+  D('第一部分', '准备', '系统以店长身份使用。新系统里什么都没有，按顺序从区域开始建。'),
+  S(1, '准备', 'p01.png', '进入「更多」', '首页', ['点底部「更多」，进入基础资料'], '新系统打开是空的：没有区域、分类和食材，首页数字都是 0。右上角显示当前店长。'),
+  S(2, '准备', '02.png', '从「存储区域」开始', '更多', ['点「存储区域」'], '建档顺序：区域 → 分类 → 食材与链路 → 半成品 → 菜品 → 物资。后面每一步都要用到前一步的数据。'),
+  D('第二部分', '基础资料', '区域、检查项、分类、食材链路、进货规格、半成品、菜品、物资。只需配置一次。'),
+  S(3, '基础资料', '03.png', '新增一级区域', '更多 → 存储区域', ['点「+ 新增一级区域」（打开后变成「取消」）', '输入名称，如「仓库」', '点「创建」'], '本店建 4 个一级区域：仓库、后厨、披萨区、吧台。'),
+  S(4, '基础资料', '04.png', '新增下级区域', '更多 → 存储区域 → 展开一级区域', ['点「+ 新增下级区域」，输入「冷库」', '点「保存」'], '仓库：干货架、冷库 · 后厨：冷冻柜、冷藏柜 · 披萨区：冷藏抽屉、备料台 · 吧台：冷藏柜、豆仓、杯架'),
+  S(5, '基础资料', '05b.png', '拍区域照片，进入检查项', '更多 → 存储区域', ['点开一级区域', '点「拍照」上传区域照片，最多 6 张，新员工按照片找位置', '点下级区域右侧「检查项」'], ''),
+  S(6, '基础资料', 's06.png', '新增开门检查项', '存储区域 → 仓库·冷库 → 检查项', ['填检查项名称，如「冷藏温度」', '方式选「数值」', '勾选「必填」', '点「保存检查项」'], '本店：冷库 / 吧台冷藏柜 0–5 ℃，冷冻柜 −22 至 −15 ℃，烤炉点火正常、磨豆机校准（是否）。'),
+  S(7, '基础资料', 's07.png', '新增二级分类', '更多 → 食材分类', ['点开一级分类「乳制品」（一级分类先用页面顶部「+ 新增一级分类」建好）', '输入二级分类名「鲜奶」', '点「保存」'], '乳制品：鲜奶、奶酪 · 肉禽水产：牛肉类 · 米面粮油：面粉、食用油 · 生鲜：叶菜 · 咖啡茶饮：咖啡豆 · 半成品：面团饼底'),
+  S(8, '基础资料', 's08.png', '设置分类属性', '食材分类 → 鲜奶 → 分类属性', ['批次号编码：MLK，生成批次号时用作前缀', '计量方式：按重量 / 按件数', '未开封保质期：14 天', '开封 / 作业后保质：3 天'], '上方三个按钮设默认储存方式；「临期提前提醒」设几天前开始提醒。'),
+  S(9, '基础资料', 's09.png', '新建食材档案', '更多 → 进货规格与链路 →「+ 新建食材档案」', ['选二级分类「鲜奶」', '食材名称：鲜牛奶', '出品态名称：液体鲜奶——配方实际用的样子', '基本单位：ml', '点「创建食材」'], '先建出品态，再往回推到采购态。'),
+  S(10, '基础资料', 's10.png', '往上游加一个形态', '进货规格与链路 →「+ 在上游加一个形态」', ['形态名称：独立桶，单位：桶', '转成液体鲜奶的作业：开盖', '换算：1 桶 = 2000 ml', '标准出成率：98%', '点「加入链路」'], '再加一次：整箱 →「拆箱」→ 1 箱 = 6 桶，出成率 100%。解冻这类要等的作业，在「耗时」填小时数。'),
+  S(11, '基础资料', 's11.png', '核对形态链路', '进货规格与链路 → 鲜牛奶', ['采购态：整箱', '作业：拆箱', '中间态：独立桶', '作业：开盖', '出品态：液体鲜奶——配方和出餐只扣这一层'], ''),
+  S(12, '基础资料', 's12.png', '配置进货规格', '进货规格与链路 →「+ 新增进货规格」', ['规格名称：单桶（另一个规格是「整箱」）', '商品条码：入库时扫码会自动选中这个规格', '入口形态选「独立桶」——单桶进货跳过拆箱', '点「完成」'], '同一种食材有几种买法，就建几个规格；每个规格各自决定从链路的哪一层入库。'),
+  S(13, '基础资料', 's13.png', '其他食材的链路', '进货规格与链路 → 切换食材', ['上方切换食材', '马苏里拉多一步「冷藏解冻」', '耗时 24 小时，要提前一天做'], '牛肉：整箱 → 真空原块 → 散装肉片 95% · 面粉：整袋 → 散装面粉 · 橄榄油：整桶 → 挤压瓶 99% · 咖啡豆：整箱 → 密封袋 → 豆仓 · 芝麻菜：只有一个形态'),
+  S(14, '基础资料', 's14.png', '新增半成品配方', '更多 → 半成品制作 →「+ 新增半成品配方」', ['分类：面团饼底', '名称：发酵披萨饼底', '每批产出：6 个', '点「创建半成品」'], ''),
+  S(15, '基础资料', 's15.png', '设置半成品原料', '半成品制作 → 发酵披萨饼底', ['散装面粉：1000 g / 批', '挤压瓶橄榄油：20 ml / 批', '「+ 添加原料」继续加', '以后每天在这里「确认制作」生产'], '原料只能选出品态，比如散装面粉，不能直接用整袋。'),
+  S(16, '基础资料', 's16.png', '新增菜品', '更多 → 菜品配方 →「+ 新增菜品」', ['菜品名称：与订单系统一致，如「帕斯雀牛肉披萨」', '默认规格：9 寸', '点「创建菜品」'], '订单按菜品名称和规格匹配，名称不一致就收不到订单。'),
+  S(17, '基础资料', 's17.png', '设置菜品用料', '菜品配方 → 帕斯雀牛肉披萨', ['规格「9 寸 · 5 料」', '每行一种用料', '用 − / + 调整每份用量', '「+ 添加食材」', '「+ 新增规格」，如大份'], '披萨：饼底 1 个、肉片 65 g、芝士丝 120 g、橄榄油 10 ml、芝麻菜 15 g · 拿铁 400 ml：咖啡豆 18 g、液体鲜奶 250 ml'),
+  S(18, '基础资料', 's18.png', '新增餐饮物资', '更多 → 餐饮物资 →「+ 新增物资」', ['名称：400 ml 热饮纸杯', '包装：每条 50 个', '存放区域：吧台·杯架', '点「建档」'], '物资不进配方，不随出餐扣减，按领用记录。本店建：披萨垫纸、纸杯、杯盖。'),
+  D('第三部分', '开业前一天', '到货入库，拆箱，提前解冻芝士。'),
+  S(19, '开业前一天', 's19.png', '入库：选食材', '底部「入库」', ['一级分类：乳制品', '二级分类：鲜奶', '食材名称：鲜牛奶', '拍照建档', '批次号：系统生成，可改'], ''),
+  S(20, '开业前一天', 's20.png', '入库：选进货规格', '入库 → 第 7 步', ['选规格「整箱」，下方提示还要经过几步作业', '规格不对时点这里去维护', '数量：2 箱，自动换算为 24000 ml'], '生产日期、保质期、到期日期可以拍包装 OCR 识别；存放区域必选。'),
+  S(21, '开业前一天', 's21.png', '加入清单并确认入库', '入库 → 今日入库单', ['第一条：整箱 2 箱 → 仓库·冷库', '第二条：单桶 2 桶 → 吧台·冷藏柜', '点「确认入库」'], '其他到货同样录入：牛肉 1 箱、马苏里拉 1 箱、面粉 1 袋、橄榄油 1 桶、咖啡豆 1 箱、芝麻菜 500 g。'),
+  S(22, '开业前一天', 's22.png', '打开作业台', '底部「作业」', ['点底部「作业」', '「建议作业」：出品态低于预警线时自动列出', '点「开始作业」'], ''),
+  S(23, '开业前一天', 's23.png', '执行作业：修剪切片', '作业台 → 帕斯雀牛肉', ['投入数量：1 袋', '实际称重：1880 g', '实际出成率 94%，低于标准会提示', '选产出的存放区域，然后确认'], '牛肉先在整箱上做「拆箱」，1 箱 → 5 袋真空原块，再做切片。'),
+  S(24, '开业前一天', 's24.png', '耗时作业：冷藏解冻', '作业台 → 马苏里拉 → 冷藏解冻', ['换算 1 块 → 1 块，耗时 24 小时', '确认后进入「进行中」，到时间才能刨丝', '解冻放在后厨·冷藏柜'], '开业前一天必须先解冻 1 块，否则第二天中午没有芝士丝。'),
+  D('第四部分', '开业当天', '备料、做饼底、开门检查、出餐。'),
+  S(25, '开业当天', 's25.png', '作业台：进行中与可作业批次', '底部「作业」', ['进行中的耗时作业', '到时间点完成（原型中可提前完成）', '可作业批次：每个批次都能直接做下一步'], '早上依次做：刨丝、切片、面粉拆袋、橄榄油分装、咖啡豆入豆仓、牛奶开盖。'),
+  S(26, '开业当天', 's26b.png', '半成品制作：饼底', '更多 → 半成品制作', ['批数：×2 批', '产出：12 个', '每种原料的需要量自动算出', '点「确认制作并核销原料」'], ''),
+  S(27, '开业当天', 's27.png', '开门检查', '底部「开门检查」→ 开始今日检查', ['点底部「开门检查」', '点「一键全部通过」：只填未填的项', '温度等数值项填实测值，然后提交检查'], ''),
+  S(28, '开业当天', 's28b.png', '出餐扣减', '底部「出餐」→ 点开订单', ['看订单备注', '按备注调整：芝麻菜 30 → 15 g', '点「确认出餐并扣减」'], '系统只扣出品态，按先到期先出扣到具体批次。'),
+  S(29, '开业当天', 's29.png', '查看扣减流水', '出餐 → 扣减流水', ['扣减流水', '每笔带订单号、备注和扣减明细'], ''),
+  D('第五部分', '收档与报表', '盘点、看库存分层、导出报表。'),
+  S(30, '收档与报表', 's30.png', '盘点核对', '更多 → 盘点核对', ['填鲜牛奶实盘：1200', '填帕斯雀牛肉实盘：1740', '差异汇总：3 项', '点「提交盘点并登记差异」'], '只盘出品态余量；差异记入损耗。'),
+  S(31, '收档与报表', 's31.png', '按形态查看库存', '底部「库存」→ 点开食材', ['「待作业」：上游还剩多少', '下一步作业按钮', '出品态 · 可出餐'], '液体鲜奶只剩 1200 ml，低于预警 2000 ml，明早开门先开盖 1 桶。'),
+  S(32, '收档与报表', 's32.png', '导出报表', '更多 → 数据看板', ['「导出报表」', '每道菜的每种用料一行，带采购和各阶段作业、出成率', '点「导出 Excel」'], '格式同 26-27 餐饮管理系统表。'),
+];
+class Component extends DCLogic {
+  renderVals() { return { slides: SLIDES }; }
+}
+</script>
+</body>
+</html>
