@@ -1,10 +1,12 @@
 # 食材管理 v4 重建计划（服务端）
 
+> 2026-10-06 实施修订（用户最新要求）：SQL **只能增加表、字段、数据**，不能删除旧数据、表、字段，也不能 UPDATE 旧数据。下文表名是逻辑名称，实际新表统一使用 `fnb_v4_*`（`fnb_unit` 保留共用）。新系统从独立空表开始，不读取旧食材数据；旧表完整保留。原计划的「删旧」和「删除旧模型」改为切断 v4 与旧结构的依赖，旧源码在分期迁移后清理。上线前先审阅 SQL；本期不执行线上 SQL、不部署。
+
 ## 背景
 
 用户在 Claude Design 更新了「食材管理 v4」原型（项目 442106f7：`食材管理 v4.dc.html`、`食材管理 从零上手操作说明.dc.html`、`食材形态流转 方案.dc.html`）。2026-10-06 用户决定**推翻重来**：
 
-- 现有食材数据全部不要。
+- 新系统不沿用现有食材数据；旧数据、表和字段保留。
 - 能复用的只有三样：**店员登录认证体系**、**部分表结构**、**部分 API 接口**。
 - 前端（小程序 + 企业微信 H5）基本推倒重做。本计划只覆盖服务端：数据库、接口，以及如何同时兼容两个客户端。
 
@@ -42,7 +44,7 @@
 | 接口与代码 | `ApiResult` 返回码 0/1/2/3/4；requestId 幂等；Serializable 过账骨架和单号生成（`FnbStockPostingService`）；FEFO 分配与到期计算（`FnbInventoryRules`）；照片上传（`UploadPhoto`）；OCR（`OcrScanName`）；JS-SDK 签名（`FnbWeComController`）；标签打印数据；long id 序列化成字符串 |
 
 **废弃**
-- 所有现有 fnb 业务数据。
+- 新系统不读取现有 fnb 业务数据；数据库中保留原状。
 - 旧的食材过期提醒：`fnb_material_batch` / `fnb_material_alert_log`，`FnbMaterialController` 的批次接口，`wwwroot/fnb/mat_expire` H5，小程序 `mat_expire` 页面，以及小程序现有的 `pages/fnbinv` 分包。新系统已包含临期提醒。
 
 ---
@@ -51,12 +53,12 @@
 
 脚本：`snowmeet_ai_doc/sql/2026-10-xx_fnb_v4_rebuild.sql`，可重复执行，分两段。
 
-**第 1 段：删旧**
-- 删除对象：
+**第 1 段：保留旧结构与数据（以下对象不删除、不修改）**
+- 保留对象：
   - 两个视图：`vw_fnb_material_stock`、`vw_fnb_material_loss`；
   - fnb 库存类表：`fnb_material_batch_stock`、`fnb_stock_document`/`_line`、`fnb_stock_movement`、`fnb_stocktake_line`、`fnb_recipe`/`_line`、`fnb_dish_spec`、`fnb_order`/`_line`/`_import`、`fnb_channel_*`、`fnb_shelf_life_rule`、`fnb_material_item`、`fnb_material_category`；
   - 旧提醒表：`fnb_material_batch`、`fnb_material_alert_log`。
-- 删除顺序按外键依赖倒序。
+- 不执行 DROP、DELETE、UPDATE；新表统一使用 `fnb_v4_*`，与旧结构并存。
 - **不动**：`fnb_unit`（保留种子数据）、`product` 表（共享表，旧菜品行留着不删）、`[order]` 上的 `order_source` / `source_order_no`。
 
 **第 2 段：新建**
@@ -97,7 +99,7 @@
 - 10/02 那批确认后，加 `fnb_storage_area`，并给 `fnb_batch`、`fnb_item_form`、`fnb_purchase_spec` 加可空的 `area_id`。都是新增列，与本结构不冲突。
 
 **EF**
-- 删除旧模型和 DbSet（`Models/Fnb/*`、`Data/FnbSchemaConfiguration.cs`），按新表重写。
+- 重写当前 EF 映射，使 v4 只访问新增表；旧类型和访问器暂作旧源码编译兼容，旧批次类型从 EF 模型中排除，旧业务接口停用。第三期结束后清理旧源码，数据库旧表和数据继续保留。
 - `FnbSchemaMappingTests` 改为校验新表。
 
 ---
@@ -166,7 +168,7 @@
 3. 发布 API；
 4. 发布新的两个客户端。
 
-**执行重建脚本后，旧页面和旧 H5 会立即失效**，所以必须先隐藏入口。
+**SQL 只新增结构，不使旧页面失效；发布 v4 API 后旧业务接口将停用**，仍必须先隐藏旧入口，等新客户端准备好再切换。第一期只供审阅，不应直接替换生产 API。
 
 ## 关键文件
 
