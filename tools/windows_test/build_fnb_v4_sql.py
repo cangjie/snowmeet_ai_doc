@@ -5,11 +5,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TARGET = HERE.parents[1] / "sql" / "2026-10-06_fnb_v4_rebuild.sql"
+OPERATIONS_TARGET = HERE.parents[1] / "sql" / "2026-10-06_fnb_v4_operations.sql"
+EXTRA = {"fnb_v4_" + name for name in ("area", "area_image", "batch_detail", "request", "supply", "supply_movement", "tool", "tool_log", "check_item", "check_sheet", "check_line", "check_handling", "alert_delivery")}
 
 
 def build(ef):
     tables = [(m.group(1), m.group(0)) for m in re.finditer(r"CREATE TABLE \[(\w+)\] \(.*?^\);", ef, re.S | re.M)
-              if m.group(1) == "fnb_unit" or m.group(1).startswith("fnb_v4_")]
+              if (m.group(1) == "fnb_unit" or m.group(1).startswith("fnb_v4_")) and m.group(1) not in EXTRA]
     if len(tables) != 19:
         raise ValueError(f"预期 19 个 v4/单位表，实际 {len(tables)}；请核对 EF 结构")
     parts = ["""-- 食材管理 v4，第 1 期，2026-10-06。只新增，不迁移、不覆盖旧食材数据。
@@ -42,6 +44,8 @@ IF EXISTS (SELECT 1 FROM dbo.fnb_unit WHERE code IN ('g','ml','piece') AND
 """)
     for match in re.finditer(r"CREATE (?:UNIQUE )?INDEX \[(\w+)\] ON \[(fnb_v4_\w+|fnb_unit)\].*?;", ef, re.S):
         index, table = match.group(1), match.group(2)
+        if table in EXTRA:
+            continue
         statement = match.group(0).replace(f"ON [{table}]", f"ON [dbo].[{table}]")
         parts.append(f"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.{table}') AND name = N'{index}')\n{statement}\n")
     views = {
@@ -79,14 +83,49 @@ WHERE d.status='posted'"""
     return output
 
 
+def build_operations(ef):
+    tables = [(m.group(1), m.group(0)) for m in re.finditer(r"CREATE TABLE \[(\w+)\] \(.*?^\);", ef, re.S | re.M) if m.group(1) in EXTRA]
+    if {name for name, _ in tables} != EXTRA:
+        raise ValueError("完整后端扩展表与 EF 不一致")
+    parts = ["""-- 食材管理 v4 完整后端扩展，2026-10-06。仅增加新表及索引。
+-- 先执行第一期重建 SQL；本脚本不改变已有表、字段、视图或数据。可重复执行。
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+BEGIN TRANSACTION;
+IF OBJECT_ID(N'dbo.fnb_v4_batch',N'U') IS NULL
+ THROW 51000,N'请先执行第一期 v4 建表脚本。',1;
+"""]
+    for name, ddl in tables:
+        ddl = ddl.replace(f"CREATE TABLE [{name}]", f"CREATE TABLE [dbo].[{name}]")
+        ddl = re.sub(r"REFERENCES \[(\w+)\]", r"REFERENCES [dbo].[\1]", ddl)
+        columns = re.findall(r"^    \[(\w+)\] ", ddl, re.M)
+        missing = " OR ".join(f"COL_LENGTH(N'dbo.{name}',N'{c}') IS NULL" for c in columns)
+        parts.append(f"IF OBJECT_ID(N'dbo.{name}',N'U') IS NULL\nBEGIN\n{ddl}\nEND\nELSE IF {missing}\n THROW 51001,N'已有扩展表 {name} 结构不完整，停止且不覆盖。',1;\n")
+    for m in re.finditer(r"CREATE (?:UNIQUE )?INDEX \[(\w+)\] ON \[(\w+)\].*?;", ef, re.S):
+        index, table = m.group(1), m.group(2)
+        if table in EXTRA:
+            statement = m.group(0).replace(f"ON [{table}]", f"ON [dbo].[{table}]")
+            parts.append(f"IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.{table}') AND name=N'{index}')\n{statement}\n")
+    parts.append("COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;\n THROW;\nEND CATCH;\n")
+    output = "\n".join(parts)
+    if re.search(r"\b(DROP|DELETE|UPDATE|TRUNCATE|MERGE|ALTER)\b", output, re.I):
+        raise ValueError("扩展 SQL 含非新增操作")
+    return output
+
+
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument("--check", action="store_true")
     opts = args.parse_args()
     output = build((HERE / "ef_create.sql").read_text(encoding="utf-8-sig"))
+    extension = build_operations((HERE / "ef_create.sql").read_text(encoding="utf-8-sig"))
     if opts.check:
         if TARGET.read_text(encoding="utf-8") != output:
             raise SystemExit("SQL 与 EF 模型不同，请重新生成并审阅")
+        if OPERATIONS_TARGET.read_text(encoding="utf-8") != extension:
+            raise SystemExit("扩展 SQL 与 EF 不同")
     else:
         TARGET.write_text(output, encoding="utf-8")
-    print("v4 SQL: 18 new tables, 2 views; existing food data unchanged; " + ("checked" if opts.check else "written"))
+        OPERATIONS_TARGET.write_text(extension, encoding="utf-8")
+    print("v4 SQL: 18 core tables + 13 extension tables, 2 views; existing food data unchanged; " + ("checked" if opts.check else "written"))

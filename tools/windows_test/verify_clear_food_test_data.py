@@ -172,6 +172,22 @@ def verify(connection, ef):
     insert(cur, "fnb_v4_stock_operation", {"document_id": doc, "item_id": item, "from_form_id": upper, "to_form_id": form, "source_batch_id": batch, "output_batch_id": batch2, "op_name": "open", "input_qty": 1, "std_ratio": 1, "std_yield": 1, "expected_qty": 1, "actual_qty": 1, "loss_base_qty": 0, "duration_hours": 0, "status": "done", "staff_id": staff})
     insert(cur, "fnb_v4_stocktake_line", {"document_id": doc, "shop_id": shop, "item_id": item, "system_qty": 1, "snapshot_fingerprint": bytes(32)})
 
+    # Full backend extension: all thirteen new tables and their protected staff references.
+    area = insert(cur, "fnb_v4_area", {"shop_id": shop, "name": "warehouse", "area_type": "warehouse", "sort": 0})
+    leaf = insert(cur, "fnb_v4_area", {"shop_id": shop, "parent_id": area, "name": "shelf", "area_type": "warehouse", "sort": 0})
+    cur.execute("INSERT INTO fnb_v4_area_image(area_id,upload_id,staff_id,created_at) VALUES (?,?,?,SYSUTCDATETIME())", area, food_upload, staff)
+    cur.execute("INSERT INTO fnb_v4_batch_detail(batch_id,area_id) VALUES (?,?)", batch, leaf)
+    cur.execute("INSERT INTO fnb_v4_request(shop_id,action,request_id,payload_hash,response_json,staff_id,created_at) VALUES (?,'test',NEWID(),REPLICATE('0',64),'{}',?,SYSUTCDATETIME())", shop, staff)
+    supply = insert(cur, "fnb_v4_supply", {"shop_id": shop, "name": "cup", "supply_type": "disposable", "pack_label": "pack", "pack_size": 50, "area_id": leaf, "quantity": 100, "last_receipt_qty": 100})
+    insert(cur, "fnb_v4_supply_movement", {"supply_id": supply, "movement_type": "in", "input_qty": 2, "quantity": 100, "balance_qty": 100, "cancelled": 0, "staff_id": staff})
+    tool = insert(cur, "fnb_v4_tool", {"shop_id": shop, "name": "grinder", "asset_no": "K1", "quantity": 1, "area_id": leaf, "status": "normal", "daily_check": 1, "owner_staff_id": staff})
+    insert(cur, "fnb_v4_tool_log", {"tool_id": tool, "from_status": "normal", "to_status": "normal", "to_area_id": leaf, "staff_id": staff})
+    ci = insert(cur, "fnb_v4_check_item", {"area_id": leaf, "name": "temperature", "kind": "environment", "method": "number", "required": 1, "photo_suggested": 1})
+    sheet = insert(cur, "fnb_v4_check_sheet", {"shop_id": shop, "status": "submitted", "fingerprint": "0" * 64, "started_by": staff})
+    cl = insert(cur, "fnb_v4_check_line", {"sheet_id": sheet, "item_id": ci, "snapshot_json": "{}", "active": 1, "result": "abnormal", "reason": "test", "upload_id": food_upload, "bulk": 0, "staff_id": staff})
+    insert(cur, "fnb_v4_check_handling", {"line_id": cl, "remark": "fixed", "staff_id": staff})
+    cur.execute("INSERT INTO fnb_v4_alert_delivery(batch_id,business_date,status,attempted_at,receivers) VALUES (?,CONVERT(date,SYSUTCDATETIME()),'success',SYSUTCDATETIME(),'test')", batch)
+
     existing = {r[0] for r in cur.execute("SELECT name FROM sys.tables WHERE schema_id=SCHEMA_ID('dbo')")}
     # Add missing legacy business tables with real FK edges to exercise ordering as well.
     for name in sorted(clear.FOOD_TABLES - existing):
@@ -190,7 +206,7 @@ def verify(connection, ef):
         assert snapshot(cur, all_tables) == before
         assert all(preview["counts"][name] > 0 for name in clear.FOOD_TABLES)
         assert preview["file_keys"] == ["upload/20261006/food.jpg", "upload/20261006/food_thumb.jpg"]
-        print("清理脚本：全部 37 张食材表 + 餐饮商品/订单/上传预览，只读且个人数据未变")
+        print(f"清理脚本：全部 {len(clear.FOOD_TABLES)} 张食材表 + 餐饮商品/订单/上传预览，只读且个人数据未变")
         expect_failure(connection, "wrong-database", root / "wrong.json", "Unexpected database")
         cur.execute("CREATE TABLE dbo.staff_private_file(id int PRIMARY KEY, upload_id int REFERENCES dbo.mini_upload(id))")
         cur.execute("INSERT INTO dbo.staff_private_file VALUES (1,?)", food_upload)

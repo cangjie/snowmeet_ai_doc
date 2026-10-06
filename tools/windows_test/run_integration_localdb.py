@@ -32,7 +32,7 @@ def main():
     if deps.exists():
         sys.path.insert(0, str(deps))
     import pyodbc
-    from build_fnb_v4_sql import build
+    from build_fnb_v4_sql import build, build_operations
 
     ddl_path = HERE / "ef_create.sql"
     if not ddl_path.exists():
@@ -41,9 +41,12 @@ def main():
         subprocess.run([DOTNET, str(HERE / "efschema/bin/Debug/net9.0/efschema.dll"), str(ddl_path)], check=True)
     ef = ddl_path.read_text(encoding="utf-8-sig")
     sql = (SQL_DIR / "2026-10-06_fnb_v4_rebuild.sql").read_text(encoding="utf-8")
+    extension = (SQL_DIR / "2026-10-06_fnb_v4_operations.sql").read_text(encoding="utf-8")
+    if extension != build_operations(ef):
+        raise RuntimeError("扩展 SQL 与 EF 模型不一致")
     if sql != build(ef):
         raise RuntimeError("SQL 与 EF 模型不一致，请先重新生成并审阅 SQL")
-    if re.search(r"\b(DROP|DELETE|UPDATE|TRUNCATE|MERGE|ALTER)\b", sql, re.I):
+    if re.search(r"\b(DROP|DELETE|UPDATE|TRUNCATE|MERGE|ALTER)\b", sql + extension, re.I):
         raise RuntimeError("v4 SQL 含非新增操作，禁止执行")
     started = subprocess.run([LOCALDB, "start", "MSSQLLocalDB"], capture_output=True, text=True)
     if started.returncode:
@@ -87,9 +90,11 @@ def main():
             cur.execute(f"CREATE TABLE [{name}] (id int PRIMARY KEY, proof varchar(32) NOT NULL)")
             cur.execute(f"INSERT INTO [{name}] VALUES (1,'legacy-preserved')")
         run_script(cur, sql)
+        run_script(cur, extension)
         # 第一遍生成的 v4 数据也必须在第二遍执行后保留。
         cur.execute("INSERT INTO fnb_v4_category(level,name,is_prepared,sort,valid,created_at) VALUES (1,N'重跑保留',0,0,1,SYSUTCDATETIME())")
         run_script(cur, sql)
+        run_script(cur, extension)
         for name in legacy:
             assert [tuple(row) for row in cur.execute(f"SELECT id,proof FROM [{name}]")] == [(1, "legacy-preserved")], name
         unit = cur.execute("SELECT name,dimension,factor_to_base,valid,sort FROM fnb_unit WHERE code='legacy_unit'").fetchone()
@@ -104,7 +109,7 @@ def main():
                 mismatches.append((name, sorted(expected - actual), sorted(actual - expected)))
         if mismatches:
             raise RuntimeError("EF/SQL 字段不一致：" + str(mismatches))
-        print("EF 模型与新增 19 张表字段全部一致；脚本不含非新增操作")
+        print("EF 模型与全部 v4/单位表字段一致；两份脚本均不含非新增操作")
         if "--verify-drop-legacy-fnb" in sys.argv:
             from verify_drop_legacy_fnb import verify
             verify(connection, (SQL_DIR / "2026-10-06_fnb_drop_legacy_objects.sql").read_text(encoding="utf-8"))
@@ -117,11 +122,11 @@ def main():
         env["SNOWMEET_FNB_TEST_SQLSERVER"] = rf"Server=(localdb)\MSSQLLocalDB;Database={database};Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=30"
         # 测试输出实时显示；只运行测试程序集，不运行生产 Startup/读取 config.sqlServer。
         with subprocess.Popen([DOTNET, "test", "SnowmeetApi.Tests/SnowmeetApi.Tests.csproj", "--no-build", "--nologo",
-                               "--filter", "FullyQualifiedName~FnbSqlServerIntegrationTests", "--logger", "console;verbosity=normal"],
+                               "--filter", "FullyQualifiedName~FnbSqlServerIntegrationTests|FullyQualifiedName~FnbV4WorkflowIntegrationTests", "--logger", "console;verbosity=normal"],
                               cwd=API_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               text=True, encoding="utf-8", errors="replace") as process:
             for line in process.stdout:
-                if re.search(r"Passed |Failed |Skipped |Total tests|Passed!|Failed!|error|Error Message|Assert|Exception|Stack Trace| at ", line):
+                if re.search(r"Passed |Failed |Skipped |Total tests|Passed!|Failed!|error|Error Message|Assert|Exception|Stack Trace| at |code=|Expected:|Actual:", line):
                     print(line.rstrip())
             code = process.wait()
     finally:

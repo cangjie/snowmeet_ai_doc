@@ -24,7 +24,11 @@ fnb_stock_movement fnb_stocktake_line
 fnb_v4_category fnb_v4_item fnb_v4_item_form fnb_v4_purchase_spec fnb_v4_shelf_life_rule
 fnb_v4_batch fnb_v4_batch_image fnb_v4_stock_operation fnb_v4_dish_spec fnb_v4_recipe
 fnb_v4_recipe_line fnb_v4_order fnb_v4_order_line fnb_v4_order_import fnb_v4_stock_document
-fnb_v4_stock_document_line fnb_v4_stock_movement fnb_v4_stocktake_line""".split())
+fnb_v4_stock_document_line fnb_v4_stock_movement fnb_v4_stocktake_line
+fnb_v4_area fnb_v4_area_image fnb_v4_batch_detail fnb_v4_request
+fnb_v4_supply fnb_v4_supply_movement fnb_v4_tool fnb_v4_tool_log
+fnb_v4_check_item fnb_v4_check_sheet fnb_v4_check_line fnb_v4_check_handling
+fnb_v4_alert_delivery""".split())
 SHARED_TARGETS = frozenset("""category category_property category_property_option product
 product_image product_property product_stock fd_order order order_payment payment_refund
 order_payment_share payment_share order_share discount retail retail_image
@@ -164,7 +168,8 @@ class Scope:
             if "order_online_detail" in self.names:
                 self.add("order_online", f"a.id IN (SELECT d.order_online_id FROM dbo.order_online_detail d JOIN {self.names['product'].temp} p ON p.id=d.product_id)")
         self.add("mini_upload", "a.purpose LIKE ? OR a.purpose LIKE ? OR a.purpose LIKE ?", ("食材%", "餐饮%", "fnb%"))
-        for name, col in (("fnb_material_item", "image_id"), ("fnb_v4_item", "image_id"), ("fnb_order_import", "upload_id"), ("fnb_v4_batch_image", "upload_id")):
+        for name, col in (("fnb_material_item", "image_id"), ("fnb_v4_item", "image_id"), ("fnb_order_import", "upload_id"), ("fnb_v4_batch_image", "upload_id"),
+                          ("fnb_v4_area_image", "upload_id"), ("fnb_v4_check_line", "upload_id")):
             if name in self.names and col in self.names[name].columns:
                 self.add("mini_upload", f"a.id IN (SELECT {quote(col)} FROM {self.names[name].sql})")
         if "fnb_material_batch" in self.names and "image_ids" in self.names["fnb_material_batch"].columns:
