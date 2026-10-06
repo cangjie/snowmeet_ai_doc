@@ -51,7 +51,7 @@
 
 ## 第一部分：数据库（一份重建脚本）
 
-脚本：`snowmeet_ai_doc/sql/2026-10-xx_fnb_v4_rebuild.sql`，可重复执行，分两段。
+脚本：`snowmeet_ai_doc/sql/2026-10-06_fnb_v4_rebuild.sql`，可重复执行，分两段。
 
 **第 1 段：保留旧结构与数据（以下对象不删除、不修改）**
 - 保留对象：
@@ -140,7 +140,7 @@
 ## 第三部分：同时兼容小程序和企业微信 H5
 
 1. **身份统一**：两端都通过 `FnbAccess.ResolveActorAsync` 解析会话。企业微信用 `FnbAuth/WeComLogin` 拿会话，小程序沿用现有的 `MemberLogin` 会话。之后两端都用 `GetMe` 拿店员、门店和角色。单据的 `source_client` 记 mini 或 wecom。
-2. **先定接口契约，两端照着做**：开发第一期时写出 `snowmeet_ai_doc/docs/fnb/2026-10-xx-fnb-v4-api-contract.md`，包括每个接口的入参出参、返回码，以及哪些字段由服务端计算。
+2. **先定接口契约，两端照着做**：开发第一期时写出 `snowmeet_ai_doc/docs/fnb/2026-10-06-fnb-v4-api-contract.md`，包括每个接口的入参出参、返回码，以及哪些字段由服务端计算。
 3. **规则只在服务端**：有效到期、换算、预计产出、出成率、批次号、建议作业、分层合计、可出餐份数、报表行，全部由接口直接返回成品数据。v4 原型里写在前端的计算全部搬到服务端，两端只负责展示和收集输入。
 4. **统一调用约定**：
    - sessionKey 放 query；GET 的 shopId 放 query，POST 的 shopId 放 body。
@@ -172,7 +172,7 @@
 
 ## 关键文件
 
-- 新建：`snowmeet_ai_doc/sql/2026-10-xx_fnb_v4_rebuild.sql`、`snowmeet_ai_doc/docs/fnb/2026-10-xx-fnb-v4-api-contract.md`。
+- 新建：`snowmeet_ai_doc/sql/2026-10-06_fnb_v4_rebuild.sql`、`snowmeet_ai_doc/docs/fnb/2026-10-06-fnb-v4-api-contract.md`。
 - 重写：
   - `SnowmeetApi/Models/Fnb/*`
   - `SnowmeetApi/Data/FnbSchemaConfiguration.cs`、`Data/ApplicationDBContext.cs`（fnb 相关的 DbSet）
