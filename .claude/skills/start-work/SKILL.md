@@ -31,7 +31,7 @@ Beginning a work session on a complex project requires full context. This skill 
    - `SnowmeetApi`
    - `snowmeet_wechat_mini`
    - `SnowmeetOfficialAccount`
-   - `reqai`（优先检查当前 workspace 下的 `snowmeet_reqai/`；本机最新路径为 `D:\source\snowmeet\ai\snowmeet_reqai`，Mac 路径为 `/Users/cangjie/Projects/snowmeet/reqai/`，GitHub 为 `cangjie/snowmeet_reqai`）。旧的 `D:\source\snowmeet\snowmeet_reqai` 检出可能落后；有多份检出时分别报告，不用旧副本代替当前 workspace 的项目。
+   - `reqai`（优先检查当前 workspace 下的 `snowmeet_reqai/`；本机最新路径为 `D:\source\snowmeet\ai\snowmeet_reqai`，Mac 路径为 `/Users/cangjie/Projects/snowmeet/reqai/`（Mac mini 上是 `/Users/cangjie/source/snowmeet/reqai/`，两处都找一下），GitHub 为 `cangjie/snowmeet_reqai`）。旧的 `D:\source\snowmeet\snowmeet_reqai` 检出可能落后；有多份检出时分别报告，不用旧副本代替当前 workspace 的项目。
    - 本机出站 22 端口间歇被拦，`git fetch` 报 `github.com port 22: Connection timed out` 时，先改走 443 重试：`git -C <仓库> -c core.sshCommand="ssh -o Hostname=ssh.github.com -o Port=443 -o HostKeyAlias=github.com -o ConnectTimeout=20 -o BatchMode=yes" fetch`（`HostKeyAlias` 必须加，否则报 Host key verification failed；2026-10-03 实测五个仓库都通）。443 也失败才如实报告「远端状态未刷新」，ahead/behind 以本地已有的远端引用为准
    对每个可访问仓库检查分支、工作区是否干净、HEAD 短 hash、最近提交和相对远端的 ahead/behind；`reqai` 路径不存在或未挂载时必须明确报告，不能略过。
 

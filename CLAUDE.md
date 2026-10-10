@@ -1,5 +1,18 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-10：山姆 App 商品清单已抓完（工具和数据只在 Mac mini 本机，不在任何仓库）
+
+- **起因**：用户要一份山姆会员店的商品清单。山姆没有公开的商品接口，用户决定通过自己手机上的 App 按分类抓取。做法是 iPhone 镜像窗口截图 + 本机 OCR，逐个子分类翻到底；只做界面操作（点分类、滚动、点「展开更多无货商品」和网络异常页的「重试」），不点商品、不加购。
+- **结果**：16 个大类、160 个子分类、**5,813 个商品**（其中无货 483）。「线上专享」「礼品卡」两个大类按用户要求排除。字段有大类、子分类、商品名、规格、价格、极速达、无货、标签、卖点、截图文件名。
+- **位置**：`/Users/cangjie/source/snowmeet/snowmeet_ai/sams_scrape/`（workspace 根目录下，**不是 Git 仓库**；本文档仓是公开的，所以没放进来）。Excel 是 `data/山姆商品_暂存.xlsx`，每页截图在 `data/shots/`（约 880 MB）。**换一台电脑就没有这些文件。**
+- **用法**：`/usr/local/bin/python3 sams_scrape/scrape.py run --top all`，带断点续跑；`rescan` 重扫、`--only-sub` 只补一个子分类、`data/exclude.txt` 排除大类。**必须在命令沙箱外运行**（原因见「已知遗留」）。
+- **数据局限**：
+  - 是 2026-10-10 当天、用户会员号当前门店下的快照。
+  - App 列表里超过两行的商品名被截成「…」，这部分名称不完整；列表页没有条码。
+  - 仍有少量 OCR 错字，Excel 里有截图文件名可回查。
+- **用途用户没有说明**。如果要拿来给食材 v4 建进货规格，还缺条码，需要另想办法（扫包装条码或进详情页）。
+- 详见 [会话记录](sessions/2026-10-10_sams-product-list-scrape.md)。
+
 ## 最新状态（2026-10-06）：食材管理 v4 已生产发布（测试阶段），新版带图教程已完成
 
 - **范围扩展与发布**：用户明确要求全部 v4 后端，已补第 2/3 期，以及原排除的区域、检查、物资、工具；认证、OCR、上传、蓝牙继续复用。用户审阅 [扩展 SQL](sql/2026-10-06_fnb_v4_operations.sql) 并要求立刻部署后，已于北京时间 18:29 在生产新增 13 张表、18 个索引，未写旧数据或改旧表，再经原 `republish.sh` 发布 `ai@e97190e2`。服务 active/running、NRestarts=0，86 个 v4 动作已注册，原 518 条路由及 470 个受保护文件保留。原第一期 SQL 未修改，库存区域用伴随表保存。见 [生产部署记录](sessions/2026-10-06_fnb-v4-operations-production-deploy.md) 和 [完整接口契约](docs/fnb/2026-10-06-fnb-v4-operations-api.md)。H5 运营占位已在后续本次发布中替换为真实接口接入，见下条。
@@ -566,6 +579,8 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- **⚠️ 有时限（2026-10-10 start-work 时核对）**：mini / wxoa / wl 三张证书 **2026-10-14 到期**，文档里没有续期记录，由用户自己续；mini 服务器磁盘 10-06 记录为 99%（约剩 512 MB），下次发布前要先清理或扩容。
+- **2026-10-10 山姆商品清单**：已抓完，用途待用户说明；Mac mini 本机磁盘只剩约 6 GB（截图占 880 MB，用户确认不需要回查后可删 `sams_scrape/data/shots/`）。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
 - **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
@@ -673,6 +688,22 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **iPhone 镜像自动化的做法和坑（2026-10-10，Mac mini 实测，工具在 `sams_scrape/`）**：
+  - 截图：`screencapture -x -o -l <窗口号>`；窗口号、位置、尺寸每步重新取，镜像重连后都会变。菜单 View → Zoom In 可放大两档到 454×994，OCR 更准。
+  - 滚动和点击用 Swift CGEvent。必须先 `CGWarpMouseCursorPosition` 把光标挪过去再发事件，只发 mouseMoved 光标不动、事件全丢。`activate` 后要等 1.5 秒。
+  - 点击会被吞：点完要截图核对目标状态（如左侧栏高亮有没有过去），不对就重点。
+  - 名字相近的项（秋季童装／秋季男装／秋季女装互相七成半像）不能用「第一个像的」来定位或判断是否切换，要取最像的那一项。
+  - 列表到底会回弹，像素指纹每次都不同；判断「翻没翻动」要比对解析出的内容和位置。
+  - App 的列表区会出现「网络异常，请尝试刷新」页，表头还在，容易被当成空列表；要识别这行字并点「重试」。
+- **macOS Vision OCR 的坑（2026-10-10，Mac mini 重启后暴露）**：
+  - 默认的第 3 版识别模型每次加载要 20 多秒，依赖系统的模型缓存（`~/Library/Caches/<进程名>/com.apple.e5rt.e5bundlecache`）。缓存坏了会报 `e5rtError ... create_precompiled_compute_operation ... 13`。
+  - **在 Claude 桌面端的命令沙箱里跑会写坏这个缓存**；这台 Mac 磁盘常年九成多满，缓存也会反复失效。
+  - 解决：`req.revision = VNRecognizeTextRequestRevision2`（加载约 2 秒，中文结果与第 3 版基本一致，33 页对比 97 个商品里 96 个相同）；识别进程常驻；出错就删缓存、重启进程；所有会调用识别的命令都在沙箱外运行。`setComputeDevice(cpu)` 和 `usesCPUOnly` 都没能避开神经引擎。
+- **Mac mini（`/Users/cangjie/source/snowmeet/...`）的本机情况（2026-10-10）**：
+  - 磁盘 228 GB 已用九成多，当天只剩约 6 GB。
+  - 到 GitHub 的传输很慢（约 20 KB/s）：start-work 的 `git pull` 落后 432 个对象时拉了 6 分钟。等不及可以先 `curl -r 0-90000 https://raw.githubusercontent.com/cangjie/snowmeet_ai_doc/main/CLAUDE.md` 读开头的状态段，但要说明本地文件还没同步完。
+  - reqai 在这台机器上的路径是 `/Users/cangjie/source/snowmeet/reqai`，不是 `/Users/cangjie/Projects/snowmeet/reqai`。
+  - 会话目录是 workspace 根 `snowmeet_ai/` 时，Skill 工具起初找不到 start-work / end-work（报 Unknown skill），直接读 `snowmeet_ai_doc/.claude/skills/<名字>/SKILL.md` 照做即可。
 - **食材 v4 新建食材后列表可能未刷新（2026-10-06，本机隔离演示发现，尚未修复）**：`wwwroot/fnb/v4/app.js` 新建成功后修改 `location.hash` 并调用 `renderPage(true)`；疑似与 `hashchange` 触发的缓存渲染并发，旧的空列表覆盖刷新结果。重新进入“形态链路”可显示刚建的食材。下一次先从空列表复现并检查渲染代次/刷新逻辑，再补浏览器回归；本次仅制作教程，未改业务代码或核实生产复现。
 - **怎么读 Claude Design 设计稿（2026-10-06）**：
   - claude.ai/design 的分享链接要登录才能看。用内置浏览器，由用户本人登录。
@@ -4381,3 +4412,23 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 45 页逐页渲染检查；最终 PPTX 包结构、布局、字体、3 张原生可编辑表格及重新导入通过。没有原生 PowerPoint 或真机 OAuth/OCR/蓝牙验收，不能将演示视为生产验收。
 - 🚧 新建食材后列表可能未刷新：本机发现，疑似 hashchange 与强制刷新并发，重新进入页面可恢复；未修复，已记入遗留和下一步。
 - 详细归档：[sessions/2026-10-06_fnb-v4-training-guide.md](sessions/2026-10-06_fnb-v4-training-guide.md)。
+
+### 2026-10-10：start-work 核对 + 山姆 App 商品清单抓取（iPhone 镜像 + 本机 OCR）
+
+- ✅ start-work：文档仓从 `6ec7ea5` 快进到 `37b15ab`（本机落后 432 个对象，拉了约 6 分钟）。SnowmeetApi、小程序、reqai 本机分别落后远端 17、19、18 个提交，只做了 fetch，没有合并。
+- ✅ 用户要求不再弹权限确认：在 workspace 根的 `.claude/settings.local.json` 整类放行了 Bash、读写、网络和 Skill（机器本地，不跨机）。
+- ✅ 山姆商品清单：先评估方案（没有公开接口，不逆向 App 的私有接口），用户提出用 iPhone 镜像抓；实测可行后写成带断点续跑的脚本，当天抓完 16 个大类、160 个子分类、5,813 个商品（无货 483）。「线上专享」「礼品卡」按用户要求排除。
+- ✅ 过程中修掉的问题：
+  - 左侧栏不会自动滚，屏幕外的子分类被记到上一个子分类名下 → 高亮看不见时自动滚左侧栏去找。
+  - 列表到底后回弹，脚本以为还在翻 → 改按内容判断；又加了「连续 30 页没新商品就算到底」。
+  - 子分类顶部的活动横幅把表头顶下去，被判成「不是分类页」→ 放宽表头位置。
+  - Mac 重启后 OCR 每页 20 多秒甚至失败 → 换第 2 版识别模型、识别进程常驻、沙箱外运行（见「已知遗留」）。
+  - 用户一动鼠标脚本就整个退出 → 改成暂停，鼠标键盘都停 20 秒后自动继续。
+  - 手机上的「网络异常」页被当成空列表（影响 5 处）→ 识别并自动点「重试」；受影响的冰淇淋/甜品（补到 20 个）、自制三明治（补到 80 个）、秋季女装已补扫，另两处当时就重扫过。
+  - 名字相近的子分类被当成同一个（秋季童装/男装/女装）→ 改为取最像的一项；已按截图把归属改回。
+  - 只有一个商品的子分类（婴儿服饰）原地空转，用户发现后指出 → 上面两条判断修正后解决。
+- 🚧 没做：商品详情页（完整名称、条码）；两个被排除的大类；数据的用途用户还没说。
+- 📌 教训 1：自动化别人 App 的界面时，「页面看起来正常但内容是错误页」比崩溃更危险。网络异常页一直没被发现，是收尾核对「哪个子分类一个商品都没有」时才查出来的。抓完要按分类数一遍，零个和异常少的都要回看截图。
+- 📌 教训 2：模糊匹配名字要取「最像的」，不能取「第一个够像的」。
+- 📌 教训 3：改暂停/恢复规则前要想清楚用户会不会边用这台电脑边等。第一版要求「镜像窗口在最前」才恢复，用户在用别的窗口时就一直不恢复，看起来像卡死。
+- 详细归档：[sessions/2026-10-10_sams-product-list-scrape.md](sessions/2026-10-10_sams-product-list-scrape.md)。
