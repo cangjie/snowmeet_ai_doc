@@ -6,13 +6,14 @@
 
 ## 实际范围
 
-目标表在运行时按前缀从数据库目录读取，下面是 2026-10-12 生产库 `snowmeet_new` 的实际情况（31 张 `fnb_v4_` 表，全部在 dbo）。
+目标表在运行时按前缀从数据库目录读取，下面是 2026-10-12 生产库 `snowmeet_new` 的实际情况（31 张 `fnb_v4_` 表，全部在 dbo，现在都有 `valid` 列）。
 
 | 处理方式 | 表 |
 |---|---|
-| `valid` 置 0，并刷新 `updated_at`（8 张） | `fnb_v4_area`、`fnb_v4_category`、`fnb_v4_check_item`、`fnb_v4_dish_spec`、`fnb_v4_item`、`fnb_v4_item_form`、`fnb_v4_purchase_spec`、`fnb_v4_shelf_life_rule` |
-| 只把 `valid` 置 0，表里没有更新时间列（2 张） | `fnb_v4_supply`、`fnb_v4_tool` |
-| 没有 `valid` 列，原样保留、只报告行数（21 张） | `fnb_v4_alert_delivery`、`fnb_v4_area_image`、`fnb_v4_batch`、`fnb_v4_batch_detail`、`fnb_v4_batch_image`、`fnb_v4_check_handling`、`fnb_v4_check_line`、`fnb_v4_check_sheet`、`fnb_v4_order`、`fnb_v4_order_import`、`fnb_v4_order_line`、`fnb_v4_recipe`、`fnb_v4_recipe_line`、`fnb_v4_request`、`fnb_v4_stock_document`、`fnb_v4_stock_document_line`、`fnb_v4_stock_movement`、`fnb_v4_stock_operation`、`fnb_v4_stocktake_line`、`fnb_v4_supply_movement`、`fnb_v4_tool_log` |
+| `valid` 置 0，并刷新 `updated_at`（10 张） | `fnb_v4_area`、`fnb_v4_category`、`fnb_v4_check_item`、`fnb_v4_check_line`、`fnb_v4_dish_spec`、`fnb_v4_item`、`fnb_v4_item_form`、`fnb_v4_order`、`fnb_v4_purchase_spec`、`fnb_v4_shelf_life_rule` |
+| 只把 `valid` 置 0，表里没有更新时间列（21 张） | `fnb_v4_alert_delivery`、`fnb_v4_area_image`、`fnb_v4_batch`、`fnb_v4_batch_detail`、`fnb_v4_batch_image`、`fnb_v4_check_handling`、`fnb_v4_check_sheet`、`fnb_v4_order_import`、`fnb_v4_order_line`、`fnb_v4_recipe`、`fnb_v4_recipe_line`、`fnb_v4_request`、`fnb_v4_stock_document`、`fnb_v4_stock_document_line`、`fnb_v4_stock_movement`、`fnb_v4_stock_operation`、`fnb_v4_stocktake_line`、`fnb_v4_supply`、`fnb_v4_supply_movement`、`fnb_v4_tool`、`fnb_v4_tool_log` |
+
+其中 21 张表的 `valid` 列是 2026-10-12 按用户决定补上的（[增量 SQL](../../../../sql/2026-10-12_fnb_v4_add_valid.sql)，只加列、默认 1，生产已执行）：`fnb_v4_alert_delivery`、`fnb_v4_area_image`、`fnb_v4_batch`、`fnb_v4_batch_detail`、`fnb_v4_batch_image`、`fnb_v4_check_handling`、`fnb_v4_check_line`、`fnb_v4_check_sheet`、`fnb_v4_order`、`fnb_v4_order_import`、`fnb_v4_order_line`、`fnb_v4_recipe`、`fnb_v4_recipe_line`、`fnb_v4_request`、`fnb_v4_stock_document`、`fnb_v4_stock_document_line`、`fnb_v4_stock_movement`、`fnb_v4_stock_operation`、`fnb_v4_stocktake_line`、`fnb_v4_supply_movement`、`fnb_v4_tool_log`。原来就有 `valid` 的是另外 10 张主数据表。以后新增的 v4 表如果没有 `valid` 列，脚本原样保留、只报告行数。
 
 - v4 表没有 `update_date` 列，对应的是 `updated_at`。写入值是数据库服务器的 UTC 时间（`SYSUTCDATETIME()`，精确到毫秒），同一次运行所有表用同一个值；接口自己停用记录时也是 `valid=false` 加 `updated_at=UtcNow`。
 - 已经是 `valid=0` 的行不动。
@@ -21,9 +22,12 @@
 
 逻辑删除后的表现：
 
-- 主数据的唯一索引都带 `WHERE valid = 1`，所以同名的分类、食材、区域、物资以及同一条码可以重新创建。`fnb_v4_tool` 的资产编号唯一索引没有这个条件，**同一门店下已停用工具的资产编号不能复用**。
-- 接口列表按 `valid` 过滤，停用的行不再出现；带「含已停用」选项的列表仍会显示。
-- 没有 `valid` 列的 21 张表保留原数据，所以批次、库存流水、订单、配方、检查单、请求记录不会被这个工具清掉。要清这些表得先由用户决定做法（改用各表自己的状态列、加列或另行处理），不能自行改成物理删除。
+- 原有 10 张主数据表：唯一索引都带 `WHERE valid = 1`，同名的分类、食材、区域、物资以及同一条码可以重新创建；接口列表按 `valid` 过滤，停用的行不再出现，带「含已停用」选项的列表仍会显示。例外是 `fnb_v4_tool` 的资产编号唯一索引没有这个条件，**同一门店下已停用工具的资产编号不能复用**。
+- **10-12 补列的 21 张表，接口还不认 `valid`。** 截至 2026-10-12 已发布的接口（SnowmeetApi `ai@9c5d46c9`）里这些表的实体没有 `valid` 属性，查询不过滤：
+  - `valid=0` 的批次、库存流水、单据、订单、配方、检查单在界面和报表里照常出现；两个视图 `vw_fnb_v4_stock`、`vw_fnb_v4_loss` 也照常统计。
+  - 这些表的唯一索引不区分是否有效：同门店同日期的检查单、同门店的批号、同来源的外部订单号等，逻辑删除后不能重建同样的键。
+  - 新写入的行靠列默认值得到 `valid=1`，接口运行不受影响。
+- 要让这 21 张表的逻辑删除在系统里真正生效，还需要一次接口改动并发布：实体加 `valid`、查询只看有效行、相关唯一索引和两个视图只看有效行，并在 Windows LocalDB 上跑完整验证。这项工作 2026-10-12 尚未开始，做之前先和用户确认。
 
 ## 一条命令执行
 
@@ -71,6 +75,6 @@ py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --retire
 py tools/windows_test/run_integration_localdb.py --verify-clear-test-data
 ```
 
-只创建随机 `snowmeet_fnb_test_*` LocalDB 临时库，采用真实 v4 DDL，31 张表全部有夹具，另有员工、门店、会员、商品、订单、上传和单位等非 v4 数据。检查内容：预览只读；错库、触发器、非 dbo 的 v4 表拒绝；中途失败整体回滚；执行后有 `valid` 列的表全部置 0、更新时间等于清单时间戳、原本无效的行不变；没有 `valid` 列的 v4 表和全部非 v4 表逐行不变；没有任何行被删除、ID 序号不变；重复执行为 0 行。
+只创建随机 `snowmeet_fnb_test_*` LocalDB 临时库，采用真实 v4 DDL 并执行补 `valid` 列的增量 SQL（连续两遍，验证可重复执行），31 张表全部有夹具，另有员工、门店、会员、商品、订单、上传和单位等非 v4 数据。检查内容：预览只读；错库、触发器、非 dbo 的 v4 表、`valid` 类型异常拒绝；中途失败整体回滚；执行后 31 张表全部置 0、有更新时间列的表等于清单时间戳、原本无效的行不变；全部非 v4 表逐行不变；没有任何行被删除、ID 序号不变；重复执行为 0 行。
 
 2026-10-12 改写后这套验证尚未在 Windows LocalDB 上运行过（改写在 Mac 上完成）。下次在 Windows 机上使用本 skill 前先跑一遍。

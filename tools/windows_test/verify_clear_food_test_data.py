@@ -104,6 +104,12 @@ def verify(connection, ef):
     cur = connection.cursor()
     database = cur.execute("SELECT DB_NAME()").fetchval()
     assert database.startswith("snowmeet_fnb_test_")
+    # Production got valid on every v4 table on 2026-10-12; apply the same additive script (twice: it must be repeatable).
+    add_valid = (HERE.parent.parent / "sql" / "2026-10-12_fnb_v4_add_valid.sql").read_text(encoding="utf-8")
+    for _ in range(2):
+        cur.execute(add_valid)
+        while cur.nextset():
+            pass
 
     # Real personal and other-business rows: none of them may change.
     staff = insert(cur, "staff", {"name": "real-staff", "gender": "male"})
@@ -164,7 +170,7 @@ def verify(connection, ef):
     v4 = [name for name in all_tables if name.startswith(clear.PREFIX)]
     with_valid = [name for name in v4 if "valid" in columns(cur, name)]
     without_valid = [name for name in v4 if name not in with_valid]
-    assert len(v4) == 31 and len(with_valid) == 10, (len(v4), with_valid)
+    assert len(v4) == 31 and with_valid == v4 and not without_valid, (len(v4), without_valid)
     before = snapshot(cur, all_tables)
     assert all(before[name] for name in v4), [name for name in v4 if not before[name]]
     with tempfile.TemporaryDirectory(prefix="food-clear-test-") as folder:
@@ -176,8 +182,9 @@ def verify(connection, ef):
         assert all(preview["tables"][name]["to_invalidate"] > 0 for name in with_valid)
         assert preview["tables"]["fnb_v4_category"] == {"rows": 3, "to_invalidate": 2, "stamp_columns": ["updated_at"]}
         assert preview["tables"]["fnb_v4_tool"]["stamp_columns"] == [] and preview["tables"]["fnb_v4_supply"]["stamp_columns"] == []
-        assert all(preview["skipped_no_valid"][name] > 0 for name in without_valid)
-        print(f"逻辑删除脚本：预览只读，{len(with_valid)} 张有 valid 的表列入处理，{len(without_valid)} 张没有 valid 的表只报告行数")
+        assert sorted(name for name in with_valid if preview["tables"][name]["stamp_columns"]) == sorted(name for name in v4 if "updated_at" in columns(cur, name))
+        assert preview["skipped_no_valid"] == {}
+        print(f"逻辑删除脚本：预览只读，{len(with_valid)} 张 v4 表全部列入处理")
 
         expect_failure(connection, "wrong-database", root / "wrong.json", "Unexpected database")
         cur.execute("CREATE TRIGGER dbo.reset_guard ON dbo.fnb_v4_item AFTER UPDATE AS THROW 51099, 'should not run', 1")
@@ -191,10 +198,15 @@ def verify(connection, ef):
         cur.execute("CREATE TABLE dbo.fnb_v4_odd(id int PRIMARY KEY, valid varchar(5) NOT NULL)")
         expect_failure(connection, database, root / "type.json", "Unexpected valid column type")
         cur.execute("DROP TABLE dbo.fnb_v4_odd")
+        # A future v4 table without valid is reported and left alone, not refused.
+        cur.execute("CREATE TABLE dbo.fnb_v4_plain(id int PRIMARY KEY)")
+        cur.execute("INSERT INTO dbo.fnb_v4_plain VALUES (1)")
+        assert clear.run(connection, database, root / "plain.json")["skipped_no_valid"] == {"fnb_v4_plain": 1}
+        cur.execute("DROP TABLE dbo.fnb_v4_plain")
         assert snapshot(cur, all_tables) == before
-        print("逻辑删除脚本：错库、触发器、非 dbo 的 v4 表、valid 类型异常均拒绝，全部数据保留")
+        print("逻辑删除脚本：错库、触发器、非 dbo 的 v4 表、valid 类型异常均拒绝，没有 valid 的 v4 表只报告，全部数据保留")
 
-        # fnb_v4_tool is updated last; a constraint there fails after nine tables were already changed.
+        # Tables are updated in name order; a constraint on fnb_v4_tool fails after all the earlier ones were changed.
         cur.execute("ALTER TABLE dbo.fnb_v4_tool ADD CONSTRAINT reset_block CHECK (valid=1)")
         try:
             clear.run(connection, database, root / "rollback.json", True)
@@ -207,7 +219,7 @@ def verify(connection, ef):
         cur.execute("ALTER TABLE dbo.fnb_v4_tool DROP CONSTRAINT reset_block")
         assert snapshot(cur, all_tables) == before
         assert json.loads((root / "rollback.json").read_text(encoding="utf-8"))["database_state"] == "prepared"
-        print("逻辑删除脚本：前九张表已更新后注入失败，事务全部回滚")
+        print("逻辑删除脚本：按表名顺序更新到 fnb_v4_tool 时注入失败，此前各表的更新全部回滚")
 
         identities = {r[0]: str(r[1]) for r in cur.execute("SELECT OBJECT_NAME(object_id),CONVERT(nvarchar(50),last_value) FROM sys.identity_columns")}
         result = clear.run(connection, database, root / "clear.json", True)
@@ -231,4 +243,4 @@ def verify(connection, ef):
         assert all(t["to_invalidate"] == 0 for t in repeat["tables"].values())
         assert all(t["count"] == 0 for t in repeat["invalidated"].values())
         assert snapshot(cur, all_tables) == after
-        print("逻辑删除脚本：有 valid 的 v4 表全部置 0 并刷新更新时间，原本无效的行不变；没有 valid 的 v4 表、单位和其它业务逐行未变；无行被删除、ID 未重置，重复执行为 0 行")
+        print("逻辑删除脚本：31 张 v4 表全部置 0，有更新时间列的同时刷新，原本无效的行不变；单位和其它业务逐行未变；无行被删除、ID 未重置，重复执行为 0 行")

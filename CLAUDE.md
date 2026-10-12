@@ -1,20 +1,24 @@
 # Snowmeet AI — 项目上下文
 
-## 2026-10-12：食材测试数据清理 skill 改为只对 `fnb_v4_` 表做逻辑删除，并已在生产执行一次
+## 2026-10-12：食材测试数据清理 skill 改为只对 `fnb_v4_` 表做逻辑删除；31 张 v4 表都已有 `valid` 列；生产库的 v4 测试数据已全部置为无效
 
 - **用户重新定义范围**，取代 10-06 的物理清空（那一版从未在生产执行）：① 只处理 `fnb_v4_` 开头的表；② 只做逻辑删除，`valid` 置 0 并刷新更新时间，不删任何行。下方 10-06 条目里关于 37/50 张表白名单、餐饮商品与订单、`fnb_unit`、上传记录和 S3 文件的清理描述**不再适用**。
-- **实现**：[脚本](.claude/skills/fnb-clear-test-data/scripts/clear_test_data.py)、[SKILL.md](.claude/skills/fnb-clear-test-data/SKILL.md)、[操作参考](.claude/skills/fnb-clear-test-data/references/operations.md)、[Windows 验证脚本](tools/windows_test/verify_clear_food_test_data.py) 已改写。
-  - v4 表没有 `update_date` 列，对应的是 `updated_at`，写 UTC，与接口自己停用记录的做法一致。
-  - 31 张 v4 表里只有 10 张有 `valid`；另外 21 张（批次、库存流水、订单、配方、检查单、照片、请求记录等）没有，原样保留、只报告行数。
-- **生产执行（10-12 22:32）**：`fnb_v4_area` 5 行、`fnb_v4_category` 4 行、`fnb_v4_check_item` 4 行、`fnb_v4_tool` 1 行，共 14 行置为 `valid=0`，`updated_at` 为 `2026-10-12 14:32:12.275`（UTC）。前后快照逐行比对：没有行被删除，其余 28 张表（含 `fnb_unit` 5 行）逐行未变。
-  - 保留未动的 9 行：`fnb_v4_request` 5、`fnb_v4_area_image` 1、`fnb_v4_check_line` 1、`fnb_v4_check_sheet` 1（10-06 的检查单）、`fnb_v4_tool_log` 1。
-  - 执行清单含被改行的主键，可据此恢复；文件在 Mac mini 本机 `snowmeet_ai_doc/.local/fnb-clear-executed-20261012.json`，不入库。
-- **连接方式**：skill 仍只认 `SNOWMEET_FNB_CLEAR_DSN`、脚本不读 `config.sqlServer`。本次是用户当场明确选择用本机 `SnowmeetApi/config.sqlServer` 作为连接串来源，仅限这一次。Mac mini 直连不了生产库，走美国服务器转发 `44.207.251.65:1433`，每次往返约 0.47 秒。
-- **遗留**：
+- **实现**：[脚本](.claude/skills/fnb-clear-test-data/scripts/clear_test_data.py)、[SKILL.md](.claude/skills/fnb-clear-test-data/SKILL.md)、[操作参考](.claude/skills/fnb-clear-test-data/references/operations.md)、[Windows 验证脚本](tools/windows_test/verify_clear_food_test_data.py) 已改写。v4 表没有 `update_date` 列，对应的是 `updated_at`，写 UTC，与接口自己停用记录的做法一致。
+- **补 `valid` 列**：31 张 v4 表原来只有 10 张主数据表有 `valid`。用户决定给其余 21 张（批次、库存流水、订单、配方、检查单、照片、请求记录等）加列。[增量 SQL](sql/2026-10-12_fnb_v4_add_valid.sql) 只加列、默认 1、可重复执行，已于 10-12 22:42 在生产 `snowmeet_new` 执行；执行后服务 active、`NRestarts=0`、Swagger 200，日志无 SQL 报错。
+- **生产执行两次 skill，v4 的 23 行测试数据现在全部 `valid=0`**，没有行被删除，`fnb_unit` 5 行未动，前后快照逐行比对过：
+  - 22:32 第一次：`fnb_v4_area` 5、`fnb_v4_category` 4、`fnb_v4_check_item` 4、`fnb_v4_tool` 1，共 14 行；`updated_at` = `2026-10-12 14:32:12.275`（UTC）。
+  - 22:43 补列后第二次：`fnb_v4_request` 5、`fnb_v4_area_image` 1、`fnb_v4_check_line` 1、`fnb_v4_check_sheet` 1（10-06 的检查单）、`fnb_v4_tool_log` 1，共 9 行；`fnb_v4_check_line.updated_at` = `2026-10-12 14:43:07.819`（UTC）。
+  - 两份执行清单含被改行的主键，可据此恢复；在 Mac mini 本机 `snowmeet_ai_doc/.local/fnb-clear-executed-20261012.json` 和 `…-20261012-b.json`，不入库。
+- **⚠️ 接口还没有跟上新加的 21 列（未开始，做之前先和用户确认）**：已发布的 SnowmeetApi `ai@9c5d46c9` 里这 21 张表的实体没有 `valid` 属性，查询不过滤。
+  - 现状没有影响：这些表里只有上面 9 行旧数据，新写入的行靠默认值得到 `valid=1`。
+  - 以后清理带批次、单据、订单的测试数据时，`valid=0` 的行在界面、报表和两个视图（`vw_fnb_v4_stock`、`vw_fnb_v4_loss`）里仍会出现；这些表的唯一索引也不区分是否有效（同门店同日期检查单、批号、外部订单号等不能重建）。
+  - 要做的事：实体加 `valid`、查询只看有效行、相关唯一索引和两个视图只看有效行，在 Windows LocalDB 上跑完整验证后再发布。发布前还要先处理 mini 服务器磁盘（10-12 为 95%，剩 1.6 GB）。
+- **连接方式**：skill 仍只认 `SNOWMEET_FNB_CLEAR_DSN`、脚本不读 `config.sqlServer`。本次是用户当场明确选择用本机 `SnowmeetApi/config.sqlServer` 作为连接串来源，仅限这一次。Mac mini 直连不了生产库，走美国服务器转发 `44.207.251.65:1433`，每次往返约 0.47 秒；mini 服务器的 SSH 走 `44.207.251.65:2222`。
+- **其他遗留**：
   - Windows LocalDB 验证（`--verify-clear-test-data`）改写后还没跑过，下次在 Windows 机上用这个 skill 前先跑。
   - `fnb_v4_tool` 的资产编号唯一索引不带 `valid` 条件：已停用的测试工具「开瓶器」`K-0707763763` 的编号在门店 10 不能复用。其余主数据的唯一索引都只约束有效行，同名可以重建。
-  - 没有 `valid` 的 21 张表以后要不要清、怎么清，待用户定；不能自行改成物理删除。
   - 旧表 `order_online`（2017 至 2025-04，49,370 行）没有主键也没有任何索引，本次只是发现，未处理。
+  - Mac mini 上的 SnowmeetApi 检出已快进到 `9c5d46c9`（原来停在 09-26 的 `9db5d2a9`），工作区干净。
 
 ## 2026-10-10：山姆 App 商品清单已抓完（工具和数据只在 Mac mini 本机，不在任何仓库）
 
