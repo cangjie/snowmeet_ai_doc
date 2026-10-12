@@ -610,8 +610,9 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- **⚠️ 有时限（2026-10-10 start-work 时核对）**：mini / wxoa / wl 三张证书 **2026-10-14 到期**，文档里没有续期记录，由用户自己续；mini 服务器磁盘 10-06 记录为 99%（约剩 512 MB），下次发布前要先清理或扩容。
-- **2026-10-10 山姆商品清单**：已抓完，用途待用户说明；Mac mini 本机磁盘只剩约 6 GB（截图占 880 MB，用户确认不需要回查后可删 `sams_scrape/data/shots/`）。
+- **⚠️ 有时限：mini / wxoa / wl 三张证书 2026-10-14 下午到期，10-12 21:26 经美国服务器实测都还没续**（wxoa 14:59、wl 15:59、mini 19:59，北京时间），由用户自己续；续证时把三个私钥文件权限从 777 改成 600。mini 过期后小程序和食材 H5 的接口都会失败。10-13 01:22 收尾时仍未续。
+- **2026-10-10 山姆商品清单**：已抓完，用途待用户说明；`sams_scrape/data/shots/` 占 880 MB，用户确认不需要回查后可删。**10-11～10-12 另有一轮京东「山姆会员商店官方旗舰店」抓取没有跑 end-work，本文件没有记录**：10-12 开工时只读看到 `sams_scrape/` 下新增 `jd_crawl.js`、`jd_price.js`、`jd_receiver.py`、`jd.py`、`compare.py`，`data/jd_items.jsonl` 有 746 个商品（12 大类、58 子类），441 个取到山姆会员价、305 个还没有价格，图片 746 张，Excel 10-12 20:39 重新导出过；`jd_receiver.py` 仍在监听 `127.0.0.1:8765`。京东限速的经验只在 Mac mini 本机的 Claude memory 里（`jd_shop_rate_limit.md`）。下次接这件事先问用户要不要补归档。
+- **2026-10-12 食材 v4 接下来**：生产库 v4 的 23 行测试数据已全部逻辑删除，分类、区域、检查项、工具要重新配置（`fnb_unit` 5 个单位还在，不用补种子）。① 用户真机验收：企业微信登录、OCR、蓝牙出纸、出餐扣减；② Windows 机上跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；③ 下面 10-06 条里的「新建食材后列表未刷新」仍未修；④ 正式启用前永久 retire 清理 skill。mini 服务器磁盘 10-12 清理后剩 1.7 GB（95%），下次发布前仍要留意。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
 - **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
@@ -719,6 +720,19 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **食材 v4 的 `valid` 约定（2026-10-12 起）**：
+  - 31 张 `fnb_v4_` 表都有 `valid bit NOT NULL DEFAULT 1`；更新时间列叫 `updated_at`（UTC），不是旧表的 `update_date`。以后新建 v4 表也要带 `valid`。
+  - 后补 `valid` 的 20 个实体在 [`FnbSchemaConfiguration.cs`](../SnowmeetApi/Data/FnbSchemaConfiguration.cs) 里加了全局查询过滤，新写的查询自动只看有效行；确实要看无效行时用 `IgnoreQueryFilters()`。`FnbRequest`（幂等记录）和原有 10 张主数据表不过滤，主数据仍由各查询自己写 `x.valid`。
+  - 实体的 `valid` 属性带 `= true` 初始值，配置里是 `HasDefaultValue(true).HasSentinel(true)`：新建对象不赋值就是有效；原有 10 个主数据实体没有初始值，新建时要显式写 `valid = true`。
+  - 会被重新使用的自然键（批号、检查单日期、外部订单号、订单导入去重键、工具资产编号）的唯一索引带 `WHERE valid = 1`。以后加这类唯一索引也要带上，否则逻辑删除后建不出同样的键。
+  - 批号是「日期-分类批次码-序号」，序号按有效批次算，所以逻辑删除后会从 01 重新编，和已无效的旧批次同号。
+- **从 Mac mini 操作生产库和 mini 服务器（2026-10-12 实测）**：
+  - 直连 `161.189.64.210` 的 22/443/1433 全部不通，只能走美国服务器转发：数据库 `44.207.251.65,1433`，SSH `ssh -p 2222 ubuntu@44.207.251.65`。SQL Server 就装在 mini 服务器上（主机名 `ip-172-31-31-163`）。
+  - 经转发每次查询往返约 0.47 秒。几千次查询的脚本要跑几十分钟；**带写入的长事务会把线上页面锁住**（见顶部 10-12 条目），要先和用户约时间。
+  - mini 服务器上没有 `pip`、`pyodbc`、ODBC 驱动，Python 脚本连库只能从 Mac mini 跑。服务器有 .NET SDK 9.0.110。
+  - 接口的 22 项 SQL Server 集成测试在代码里写死只允许连本机 LocalDB 的 `snowmeet_fnb_test_` 临时库，不能改去连别的 SQL Server；在 Mac 上只能跑其余 470 项。
+  - 不依赖登录会话验证服务层的办法：写一个引用 `SnowmeetApi.csproj` 的控制台程序，用店长级员工构造 `FnbAccess.Actor` 直接调 `FnbV4Service`，放在一个事务里最后回滚。控制器自己会开事务，不能套在外层事务里。
+- **旧表 `order_online` 没有主键也没有任何索引（2026-10-12 发现，未处理）**：2017-04 至 2025-04-18 的旧在线订单，49,370 行，`id` 非空且不重复。任何要求主键的工具遇到它都会拒绝。
 - **iPhone 镜像自动化的做法和坑（2026-10-10，Mac mini 实测，工具在 `sams_scrape/`）**：
   - 截图：`screencapture -x -o -l <窗口号>`；窗口号、位置、尺寸每步重新取，镜像重连后都会变。菜单 View → Zoom In 可放大两档到 454×994，OCR 更准。
   - 滚动和点击用 Swift CGEvent。必须先 `CGWarpMouseCursorPosition` 把光标挪过去再发事件，只发 mouseMoved 光标不动、事件全丢。`activate` 后要等 1.5 秒。
@@ -735,6 +749,9 @@ dotnet run
   - 到 GitHub 的传输很慢（约 20 KB/s）：start-work 的 `git pull` 落后 432 个对象时拉了 6 分钟。等不及可以先 `curl -r 0-90000 https://raw.githubusercontent.com/cangjie/snowmeet_ai_doc/main/CLAUDE.md` 读开头的状态段，但要说明本地文件还没同步完。
   - reqai 在这台机器上的路径是 `/Users/cangjie/source/snowmeet/reqai`，不是 `/Users/cangjie/Projects/snowmeet/reqai`。
   - 会话目录是 workspace 根 `snowmeet_ai/` 时，Skill 工具起初找不到 start-work / end-work（报 Unknown skill），直接读 `snowmeet_ai_doc/.claude/skills/<名字>/SKILL.md` 照做即可。
+  - 2026-10-12：磁盘一度只剩 372 MB，`dotnet restore` 报 No space left；`dotnet nuget locals http-cache --clear` 腾出约 1.3 GB，收尾时剩 1.9 GB。
+  - 2026-10-12：本机有 .NET SDK 9.0.100，可以构建 SnowmeetApi 并跑 `dotnet test`（470 过、22 跳过）；`tools/windows_test/efschema` 也能在 Mac 上跑，用来核对 EF 模型和 SQL 脚本。
+  - 2026-10-12：会话的临时目录（scratchpad）在会话隔夜恢复后被清空，里面的演练程序和快照都没了。以后还要用的脚本要放进仓库或 `sams_scrape/` 这类固定目录。
 - **食材 v4 新建食材后列表可能未刷新（2026-10-06，本机隔离演示发现，尚未修复）**：`wwwroot/fnb/v4/app.js` 新建成功后修改 `location.hash` 并调用 `renderPage(true)`；疑似与 `hashchange` 触发的缓存渲染并发，旧的空列表覆盖刷新结果。重新进入“形态链路”可显示刚建的食材。下一次先从空列表复现并检查渲染代次/刷新逻辑，再补浏览器回归；本次仅制作教程，未改业务代码或核实生产复现。
 - **怎么读 Claude Design 设计稿（2026-10-06）**：
   - claude.ai/design 的分享链接要登录才能看。用内置浏览器，由用户本人登录。
@@ -4463,3 +4480,16 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 2：模糊匹配名字要取「最像的」，不能取「第一个够像的」。
 - 📌 教训 3：改暂停/恢复规则前要想清楚用户会不会边用这台电脑边等。第一版要求「镜像窗口在最前」才恢复，用户在用别的窗口时就一直不恢复，看起来像卡死。
 - 详细归档：[sessions/2026-10-10_sams-product-list-scrape.md](sessions/2026-10-10_sams-product-list-scrape.md)。
+
+### 2026-10-12：食材 v4 测试数据清理改为逻辑删除 + 全部 v4 表补 valid + 接口发布与线上演练（Mac mini）
+
+- start-work：文档仓已最新；本机 SnowmeetApi、小程序、reqai 分别落后 17/19/18 个提交（当晚把 SnowmeetApi 快进并在其上开发，另两个没动）；三张证书实测未续；发现 10-11～10-12 的京东抓取没有归档；`/reqai-digest` 有 2 个会话（#5 #7）未分析。
+- 用户要执行 `fnb-clear-test-data`。原版是物理清空全部新旧食材、餐饮商品与订单、上传记录和 S3 文件；预览时被旧表 `order_online` 没有主键挡住，一行没删。只读核对后把范围报给用户（约 1,110 行，其中 v4 只有 23 行，另有 2025 年的 300 张餐饮订单）。
+- 用户重新定义：只处理 `fnb_v4_` 开头的表；删除是逻辑删除，`valid` 置 0 并刷新更新时间。脚本、SKILL.md、操作参考、Windows 验证脚本改写，去掉全部 S3/文件删除。
+- 用户决定给没有 `valid` 的 21 张表加列（`sql/2026-10-12_fnb_v4_add_valid.sql`），生产执行后 skill 跑了两次，v4 的 23 行全部 `valid=0`，无行被删。
+- 用户要求把接口补齐并直接在线上验证：SnowmeetApi `ai@fe4eb6c2`（21 个实体加 `valid`、20 张表全局查询过滤、5 个唯一索引和 2 个视图只看有效行，`sql/2026-10-12_fnb_v4_valid_filters.sql`），23:04 经 `republish.sh` 发布。
+- 线上演练（事务内走全流程、最后回滚）第一次挡住了用户正在打开的 H5 页面，停掉后和用户约好时间重跑，27 项全部通过。
+- 📌 教训 1：删除类工具先把范围核对清楚再动手。用户说的是「V4 这块」，工具的实际范围比这大得多，预览被拦反而避免了误删去年的餐饮订单。
+- 📌 教训 2：对生产库开着写事务做验证，要先确认没人在用页面；说了「期间会有锁」不等于对方知道不能打开页面。
+- 📌 教训 3：v4 表的列名约定和旧表不同（`updated_at` / `update_date`），按用户的说法动手前先查实际结构，并把不一致告诉用户。
+- 详细归档：[sessions/2026-10-12_fnb-v4-logical-delete-valid.md](sessions/2026-10-12_fnb-v4-logical-delete-valid.md)。
