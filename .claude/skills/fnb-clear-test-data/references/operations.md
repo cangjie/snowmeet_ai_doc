@@ -1,73 +1,69 @@
-# 食材测试数据清理操作参考
+# 食材 v4 测试数据逻辑删除操作参考
 
-用户最新定义：目前全部食材相关数据都是测试数据，包括旧版食材、餐饮商品及销售订单、`fnb_unit`、食材上传记录与文件；员工个人资料是真实数据。此授权用于编写清理工具，**本轮没有执行生产清理**。
+用户 2026-10-12 的定义：只处理 `fnb_v4_` 开头的表；删除是逻辑删除，把 `valid` 置 0 并刷新更新时间。它取代 2026-10-06 的旧范围（全部新旧食材、餐饮商品与订单、`fnb_unit`、上传记录与文件物理清空）。旧范围从未在生产执行过。
 
-工具：[clear_test_data.py](../scripts/clear_test_data.py)。默认只预览；加 `--execute` 后，一条命令完成数据库事务清理及对应 S3 / 本机文件清理。运行过程中不询问第二次确认，也不自动读取 `config.sqlServer`。此工具仅用于正式上线前，所有清理入口受同目录生命周期状态约束。
+工具：[clear_test_data.py](../scripts/clear_test_data.py)。默认只预览；加 `--execute` 后在一个数据库事务里完成全部更新。运行过程中不询问第二次确认，也不自动读取 `config.sqlServer`。此工具仅用于正式上线前，所有入口受同目录生命周期状态约束。
 
-## 实际清理范围
+## 实际范围
 
-2026-10-06 完整 v4 后端扩展后，精确白名单新增区域/照片、批次扩展、请求记录、物资/流水、工具/日志、检查项/单/行/处理、提醒发送共 13 张表（总白名单 50 表）；区域和检查行的 upload_id 也纳入文件选择。不存在的表跳过，未知食材表仍拒绝。此次只是同步工具，不构成生产清理执行，也不改变禁止隐式读取连接配置或正式上线后作废的约束。
+目标表在运行时按前缀从数据库目录读取，下面是 2026-10-12 生产库 `snowmeet_new` 的实际情况（31 张 `fnb_v4_` 表，全部在 dbo）。
 
-| 数据 | 选择规则 |
+| 处理方式 | 表 |
 |---|---|
-| 新旧食材业务、单位 | 脚本内 `FOOD_TABLES` 列出的 37 张表，存在的表全部清空，涵盖全部门店及已停用记录 |
-| 餐饮商品与商品分类 | `product.type='餐饮'`、所属 `category.biz_type='餐饮'`，及新旧菜品规格指向的 product / legacy_product_id |
-| 餐饮销售订单 | `order.type='餐饮'`、新旧厨房单 sales_order_id、食物商品对应的 fd_order；在线餐饮订单通过 type 及餐饮明细定位 |
-| 商品、订单附属记录 | 依据白名单及真实外键 / 已审阅的列关联，清除对应商品图片、属性、商品库存流水、菜品明细、支付/退款/分账、优惠等测试记录；不调用支付或退款接口 |
-| 食材上传 | 食材/餐饮/fnb 用途，以及食材图片、旧批次 image_ids、商品图片关联的 mini_upload；包括主文件与缩略图 |
-| 实际文件 | 仅删除上述记录确定的 `upload/...` / `private/upload/...` 精确对象键；删除指定 S3 对象的全部版本及删除标记；指定本机 API 项目目录时也删除相应历史文件副本 |
+| `valid` 置 0，并刷新 `updated_at`（8 张） | `fnb_v4_area`、`fnb_v4_category`、`fnb_v4_check_item`、`fnb_v4_dish_spec`、`fnb_v4_item`、`fnb_v4_item_form`、`fnb_v4_purchase_spec`、`fnb_v4_shelf_life_rule` |
+| 只把 `valid` 置 0，表里没有更新时间列（2 张） | `fnb_v4_supply`、`fnb_v4_tool` |
+| 没有 `valid` 列，原样保留、只报告行数（21 张） | `fnb_v4_alert_delivery`、`fnb_v4_area_image`、`fnb_v4_batch`、`fnb_v4_batch_detail`、`fnb_v4_batch_image`、`fnb_v4_check_handling`、`fnb_v4_check_line`、`fnb_v4_check_sheet`、`fnb_v4_order`、`fnb_v4_order_import`、`fnb_v4_order_line`、`fnb_v4_recipe`、`fnb_v4_recipe_line`、`fnb_v4_request`、`fnb_v4_stock_document`、`fnb_v4_stock_document_line`、`fnb_v4_stock_movement`、`fnb_v4_stock_operation`、`fnb_v4_stocktake_line`、`fnb_v4_supply_movement`、`fnb_v4_tool_log` |
 
-2026-10-06 用户后续要求 DROP 废弃对象，18 张旧表及 2 个旧视图已从生产库删除。上述 37 表白名单保持兼容，但实际只处理存在的表；当前生产剩余 18 张 v4 表与 fnb_unit 共 19 张。不得为了清理而重建旧表。此次 DROP 没有运行本 skill，也没有清理共享餐饮商品/订单/上传或实际文件。
+- v4 表没有 `update_date` 列，对应的是 `updated_at`。写入值是数据库服务器的 UTC 时间（`SYSUTCDATETIME()`，精确到毫秒），同一次运行所有表用同一个值；接口自己停用记录时也是 `valid=false` 加 `updated_at=UtcNow`。
+- 已经是 `valid=0` 的行不动。
+- 不删任何行。行数、表结构、索引、约束、ID 序号都不变。
+- `fnb_unit`、旧食材表、餐饮商品/分类/订单/支付、`mini_upload`、S3 与服务器文件、员工、会员、门店都不碰。
 
-保留真实员工、员工绑定、社交账号、会员、登录会话、门店及员工收款账户配置。其它业务的商品、订单、上传记录和文件也保留。脚本不会全表删除 `product`、`order`、`mini_upload`，不会按员工 id 删除个人数据或整个上传目录。
+逻辑删除后的表现：
 
-表结构、索引、约束和视图保留，ID 序号不重置。**fnb_unit 按要求全部清空，不保留旧单位，也不自动插入种子。**重新开始配置食材前，可执行原 [增量建表脚本](../../../../sql/2026-10-06_fnb_v4_rebuild.sql) 补回 g/kg/ml/l/piece 五种标准单位；它只新增缺失种子，不恢复测试食材。
+- 主数据的唯一索引都带 `WHERE valid = 1`，所以同名的分类、食材、区域、物资以及同一条码可以重新创建。`fnb_v4_tool` 的资产编号唯一索引没有这个条件，**同一门店下已停用工具的资产编号不能复用**。
+- 接口列表按 `valid` 过滤，停用的行不再出现；带「含已停用」选项的列表仍会显示。
+- 没有 `valid` 列的 21 张表保留原数据，所以批次、库存流水、订单、配方、检查单、请求记录不会被这个工具清掉。要清这些表得先由用户决定做法（改用各表自己的状态列、加列或另行处理），不能自行改成物理删除。
 
 ## 一条命令执行
 
-需要 Python 3.10+、pyodbc、机器上的 SQL Server ODBC 驱动；实际删除 S3 时需要 boto3 与 AWS 中国区凭据。S3 身份须具备目标桶的 `s3:ListBucketVersions`、`s3:DeleteObject`、`s3:DeleteObjectVersion`。现有服务 IAM 角色原本只有读写上传权限，不能假定它已有删除历史版本的权限；本轮没有修改 IAM。
+需要 Python 3.10+、pyodbc、机器上的 SQL Server ODBC 驱动。不需要 boto3 或 AWS 凭据。
 
 先在运行环境中配置 `SNOWMEET_FNB_CLEAR_DSN`（完整 ODBC 连接串，数据库 snowmeet_new）。脚本只读取显式指定的环境变量，不读仓库配置文件；连接串不要提交到 Git。默认库名必须与真实连接库名一致。
 
-在 snowmeet_ai_doc 目录执行预览：
+在 snowmeet_ai_doc 目录执行预览（Mac 用 `python3`）：
 
 ```powershell
 py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --manifest .local/fnb-clear-preview.json
 ```
 
-清理命令：
+执行命令：
 
 ```powershell
 py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --execute --manifest .local/fnb-clear-executed.json
 ```
 
-若在 mini 服务器运行，并需要删除历史本机副本，追加 `--local-app-root /home/ubuntu/webs/SnowmeetApi`，对应公开文件 wwwroot/upload 和私有文件项目根目录 upload。运行清理时应暂停食材操作；脚本会在 Serializable 事务中锁定已审阅的业务表，防止并发写入漏清。不会自动停止整个 API 服务。
+脚本在 Serializable 事务中独占锁定会被修改的表，防止运行期间有新行写入；一次运行只有几十次查询，锁定时间很短。不会停止 API 服务，其他业务表不加锁。
 
-每次使用一个新的清单文件，旧清单不会被覆盖。清单包含具体删除计数、删除顺序、文件键和完成状态，没有数据库凭据。预览文件不能用于实际文件删除。
+每次使用一个新的清单文件，旧清单不会被覆盖。清单包含每张表的总行数、置为无效的行数和这些行的主键、保留未动的表及行数、本次写入的时间戳，没有数据库凭据。
 
-## 失败与重新执行
+## 失败、重复执行与恢复
 
-- 数据库阶段：全部目标记录在同一事务中删除，错误会回滚。发现未审阅的食材表、未知外部引用、触发器、混合业务订单或食材文件同时被员工/其它业务使用时，停止，不扩大删除范围。
-- 文件阶段：只在数据库已经提交并写入清单后开始。数据库和 S3 不能共用事务；若 S3 权限/网络或本机文件失败，数据库清理已经完成，文件清单保留待处理对象。只重试文件即可：
-
-```powershell
-py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --resume-files --manifest .local/fnb-clear-executed.json
-```
-
-- 清单状态为 `prepared` 表示提交结果尚未可靠记录（如提交边界发生断电/连接故障），不能直接用于文件删除，须先核对数据库结果。不要手工猜测为已成功。
-- 已提交删除不能通过重新运行恢复。对象历史版本也会删除；需要保留恢复能力时，应先自行做数据库/文件备份。
-- 清空数据库后重新运行会得到零条食材业务记录，仍保留其它业务。旧二维码不会因 ID 重置而指向新批次。已缓存的 CDN 图片可能短时仍可显示；本脚本不修改 CDN 配置或清缓存。
+- 全部更新在同一事务中完成，任何错误都会回滚。出现非 dbo 的 `fnb_v4_` 表、`valid` 列类型异常、目标表上有启用的触发器，或运行中行数与预先统计不一致时，脚本停止，不扩大范围。
+- 清单状态 `preview` 表示只预览；`prepared` 表示提交结果尚未可靠记录（如提交边界断电或断网），须先核对数据库再判断，不要手工猜测为已成功；`committed` 表示已提交。
+- 重复执行安全：已无效的行不再变化，结果是 0 行。
+- 需要恢复时，按执行清单里 `invalidated` 记录的主键把 `valid` 改回 1。工具不提供恢复命令，恢复属于另一项需要用户明确授权的生产写入。
 
 ## 正式上线作废
 
-先完成待重试文件清单，再执行以下命令并提交 `lifecycle.json` 到文档仓库 main。状态只有 testing → retired，没有重新启用参数；退役后预览、数据库清理和文件重试均会在连接/删除前拒绝。
+执行以下命令并提交 `lifecycle.json` 到文档仓库 main。状态只有 testing → retired，没有重新启用参数；退役后预览和执行都会在连接数据库前拒绝。
 
 ```powershell
 py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --status
 py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --retire
 ```
 
-本机 Codex 安装入口链接到仓库内此 skill，不复制独立状态。其他机器使用前同步 main；正式上线后不能恢复 testing 或运行旧版本。
+其他机器使用前同步 main；正式上线后不能恢复 testing 或运行旧版本。
 
 ## 验证
 
@@ -75,4 +71,6 @@ py .claude/skills/fnb-clear-test-data/scripts/clear_test_data.py --retire
 py tools/windows_test/run_integration_localdb.py --verify-clear-test-data
 ```
 
-只创建随机 `snowmeet_fnb_test_*` LocalDB 临时库；采用真实 v4 DDL，18 张表全部有夹具。旧版 19 张表（含 fnb_unit）使用简化夹具，并加入外键验证删除顺序；未读取生产结构。另有餐饮与非餐饮商品/线下及在线订单/支付/分账/图片、真实员工及认证/收款账户配置。检查预览、错库/外部引用/共用文件/混合订单/支付命名空间/触发器/未知表拒绝、中途实际删除后回滚、完整清空、非餐饮及个人数据逐行不变、重复执行和 ID 不重置。S3 仅模拟，检查精确键、全部历史版本、失败重试及非法路径；从未对真实 S3 执行删除。
+只创建随机 `snowmeet_fnb_test_*` LocalDB 临时库，采用真实 v4 DDL，31 张表全部有夹具，另有员工、门店、会员、商品、订单、上传和单位等非 v4 数据。检查内容：预览只读；错库、触发器、非 dbo 的 v4 表拒绝；中途失败整体回滚；执行后有 `valid` 列的表全部置 0、更新时间等于清单时间戳、原本无效的行不变；没有 `valid` 列的 v4 表和全部非 v4 表逐行不变；没有任何行被删除、ID 序号不变；重复执行为 0 行。
+
+2026-10-12 改写后这套验证尚未在 Windows LocalDB 上运行过（改写在 Mac 上完成）。下次在 Windows 机上使用本 skill 前先跑一遍。
