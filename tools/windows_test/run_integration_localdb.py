@@ -15,6 +15,15 @@ API_DIR = HERE.parents[2] / "SnowmeetApi"
 SQL_DIR = HERE.parents[1] / "sql"
 DOTNET = r"C:\Program Files\dotnet\dotnet.exe"
 LOCALDB = r"C:\Program Files\Microsoft SQL Server\150\Tools\Binn\SqlLocalDB.exe"
+# 2026-10-12 后补 valid 的 21 张表（去掉 fnb_v4_ 前缀），以及随之加上 valid 条件的 5 个唯一索引。
+LATE_VALID = ["alert_delivery", "area_image", "batch", "batch_detail", "batch_image", "check_handling", "check_line", "check_sheet",
+              "order", "order_import", "order_line", "recipe", "recipe_line", "request", "stock_document", "stock_document_line",
+              "stock_movement", "stock_operation", "stocktake_line", "supply_movement", "tool_log"]
+LATE_FILTERS = [("([shop_id], [batch_no]) WHERE [valid] = 1;", "([shop_id], [batch_no]);"),
+                ("([shop_id], [business_date]) WHERE [valid] = 1;", "([shop_id], [business_date]);"),
+                ("([shop_id], [source_type], [external_order_no]) WHERE [valid] = 1 AND [external_order_no] IS NOT NULL;", "([shop_id], [source_type], [external_order_no]) WHERE [external_order_no] IS NOT NULL;"),
+                ("([shop_id], [source_method], [dedupe_key]) WHERE [valid] = 1;", "([shop_id], [source_method], [dedupe_key]);"),
+                ("([shop_id], [asset_no]) WHERE [valid] = 1;", "([shop_id], [asset_no]);")]
 SHARED = ["shop_list", "staff", "mini_upload", "category", "product", "order", "member",
           "member_social_account", "social_account_for_job", "staff_social_account", "mini_session"]
 
@@ -42,9 +51,15 @@ def main():
     ef = ddl_path.read_text(encoding="utf-8-sig")
     sql = (SQL_DIR / "2026-10-06_fnb_v4_rebuild.sql").read_text(encoding="utf-8")
     extension = (SQL_DIR / "2026-10-06_fnb_v4_operations.sql").read_text(encoding="utf-8")
-    if extension != build_operations(ef):
+    # 2026-10-12：全部 v4 表补 valid，唯一索引和视图只看有效行。这两份在原有两份之后执行，原有两份保持不变。
+    later = [(SQL_DIR / name).read_text(encoding="utf-8") for name in ("2026-10-12_fnb_v4_add_valid.sql", "2026-10-12_fnb_v4_valid_filters.sql")]
+    # 原有两份脚本是 10-06 交付时的结构；之后补的列和索引条件在 later 里，比较前先从 EF 输出里去掉。
+    baseline = re.sub(r"^    \[valid\] bit NOT NULL DEFAULT CAST\(1 AS bit\),\n(?=(?:    \[row_version\][^\n]*\n)?    CONSTRAINT \[PK_fnb_v4_(?:%s)\])" % "|".join(LATE_VALID), "", ef, flags=re.M)
+    for late_filter, original in LATE_FILTERS:
+        baseline = baseline.replace(late_filter, original)
+    if extension != build_operations(baseline):
         raise RuntimeError("扩展 SQL 与 EF 模型不一致")
-    if sql != build(ef):
+    if sql != build(baseline):
         raise RuntimeError("SQL 与 EF 模型不一致，请先重新生成并审阅 SQL")
     if re.search(r"\b(DROP|DELETE|UPDATE|TRUNCATE|MERGE|ALTER)\b", sql + extension, re.I):
         raise RuntimeError("v4 SQL 含非新增操作，禁止执行")
@@ -95,6 +110,9 @@ def main():
         cur.execute("INSERT INTO fnb_v4_category(level,name,is_prepared,sort,valid,created_at) VALUES (1,N'重跑保留',0,0,1,SYSUTCDATETIME())")
         run_script(cur, sql)
         run_script(cur, extension)
+        for _ in range(2):
+            for script in later:
+                run_script(cur, script)
         for name in legacy:
             assert [tuple(row) for row in cur.execute(f"SELECT id,proof FROM [{name}]")] == [(1, "legacy-preserved")], name
         unit = cur.execute("SELECT name,dimension,factor_to_base,valid,sort FROM fnb_unit WHERE code='legacy_unit'").fetchone()
