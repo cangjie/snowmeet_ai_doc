@@ -120,7 +120,12 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-03 晚）：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验页已随 `534aad0c` 上线（签名接口线上核实正常），待真机打印；小程序养护打印弹窗改为「未连接按钮灰 + 打完不断开 + 掉线监听」（`b1d6bb02` 已 push，待上传）；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+## 当前状态（截至 2026-10-13 上午）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除
+
+- **本次确认**：SnowmeetApi `ai@76246c61` 已发布；10 张主数据的 enabled 增量 SQL 已执行，valid=0 的 23 行测试数据保持删除，包含停用的列表也不返回它们。停用仍可启用，删除 ID 无法通过保存恢复。服务及线上接口验收通过，详见 [本次会话归档](sessions/2026-10-13_fnb-delete-disable-separation.md)。真机验收、22 项 Windows LocalDB 集成测试及新建食材列表刷新问题仍待处理；其他业务状态见各日期记录。
+
+**此前状态摘要（2026-10-03 晚，未在本次重新验收）**：上传文件已改存 AWS 宁夏 S3、经 `img.snowmeet.top` 对外（SnowmeetApi `534aad0` 已发布、库里 7,803 条旧地址已改写），新版小程序 `f0afbf7d` 待用户上传；新增 /reqai-digest 分析 reqai 归档并写入下方区块，reqai `8a7f7b7` 已部署、不再检索摘要；美国服务器 2222/1433 转发已启用并通过公网握手验证；reqai 每日归档已上线；企业微信 H5 蓝牙打印实验页已随 `534aad0c` 上线（签名接口线上核实正常），待真机打印；小程序养护打印弹窗改为「未连接按钮灰 + 打完不断开 + 掉线监听」（`b1d6bb02` 已 push，待上传）；旧版演示 API 已部署，小程序分包仍未编译/验收；`staff_bind_code` 已在生产库
+
 - **10-03 下午：上传文件迁移 AWS S3（Windows 机，详见 [会话记录](sessions/2026-10-03_s3-upload-migration.md)）**：
   - 用户要求：所有上传接口改存 S3，服务器上的文件全部迁进桶，并改库。用户拍板：**CloudFront + 新域名 `img.snowmeet.top`**；**库里继续存相对路径 `/upload/...`、显示域名集中配置**；**wanlonghuaxue 服务器已注销，上面的图片不要了**。
   - ✅ AWS 中国宁夏（账号 6737-5164-6617）：私有桶 `snowmeet-uploads-673751646617-cn-northwest-1-an`（版本控制开、SSE-S3、阻止公开访问）；mini 实例 `i-0c2e59977055013fa` 挂 IAM 角色 `snowmeet-api-ec2`（策略 `snowmeet-uploads-rw` 只有 List/Get/Put，内联 `upload-cloudfront-cert` 只能传 `/cloudfront/` 证书）；CloudFront `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`）经 OAI 读桶，桶策略**只放行 `upload/*`**；证书 `img.snowmeet.top-20270101`（TrustAsia，**2027-01-01 到期**）；阿里云 DNS `img` CNAME 到分配。
@@ -488,6 +493,7 @@ dotnet run
 
 ### 显示规则
 
+- **食材 v4 停用与删除（2026-10-13）**：`valid=false` 的记录在界面消失，不提供恢复入口；`enabled=false` 且 `valid=true` 的主数据显示“停用”，可重新启用。启停按钮与删除按钮分开；“包含停用”也不能显示删除记录。兼容旧请求的 `valid` 字段只映射启停，不可恢复已删除 ID。
 - **套餐内装备卡片（rentItem）折叠态标题**：必须显示该槽位所属品类的名称；如允许多品类（`canChooseCategory`），把所有可选品类名用 `/` 拼接（如 `双板/单板`）。**禁止**回落为 `待录入`。
 - 持久化：品类名拼接结果写入 `class_name`（后端 `RentItem` 持久化字段），扛得住 `Rent/SaveRentRecept` 往返；`categoryName` / `chooseCategories` 是前端临时字段，后端不回传。
 - **录入状态 chip（卡片右上角）**：基于 `evalEntry(item)` 派生 `_entered + _statusLabel`。
@@ -573,6 +579,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 - 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
 - reqai 成本与输出规则：[价格配置](../../reqai/backend/app/config.py)、[费用回归测试](../../reqai/backend/tests/test_pricing.py)、[对话提示词](../../reqai/backend/app/prompts/)、[检索上下文装配](../../reqai/backend/app/retrieval.py)；[同步/部署及验收记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
@@ -641,7 +648,7 @@ dotnet run
 **下一步要做的**
 - **⚠️ 有时限：mini / wxoa / wl 三张证书 2026-10-14 下午到期，10-12 21:26 经美国服务器实测都还没续**（wxoa 14:59、wl 15:59、mini 19:59，北京时间），由用户自己续；续证时把三个私钥文件权限从 777 改成 600。mini 过期后小程序和食材 H5 的接口都会失败。10-13 01:22 收尾时仍未续。
 - **2026-10-10 山姆商品清单**：已抓完，用途待用户说明；`sams_scrape/data/shots/` 占 880 MB，用户确认不需要回查后可删。10-11～10-13 的京东「山姆会员商店官方旗舰店」抓取已于 10-13 补归档，见文件顶部「2026-10-13」一节和 [会话记录](sessions/2026-10-11_jd-sams-store-prices.md)；补价还差 216 个，用户要换到笔记本续跑。
-- **2026-10-12 食材 v4 接下来**：生产库 v4 的 23 行测试数据已全部逻辑删除，分类、区域、检查项、工具要重新配置（`fnb_unit` 5 个单位还在，不用补种子）。① 用户真机验收：企业微信登录、OCR、蓝牙出纸、出餐扣减；② Windows 机上跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；③ 下面 10-06 条里的「新建食材后列表未刷新」仍未修；④ 正式启用前永久 retire 清理 skill。mini 服务器磁盘 10-12 清理后剩 1.7 GB（95%），下次发布前仍要留意。
+- **2026-10-13 食材 v4 接下来**：`76246c61` 已部署，停用/删除分离及线上过滤验收通过；23 行旧测试数据保持逻辑删除。关闭企业微信旧页面后重进，重新配置分类、区域、检查项、工具（`fnb_unit` 5 个单位保留，不用补种子），再做企业微信登录、OCR、蓝牙出纸及出餐扣减真机验收。Windows 机补跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；「新建食材后列表未刷新」仍待修复。正式业务启用前永久 retire 清理 skill；本次仍为测试阶段。10-13 发布缓存清理后 mini 服务器可用约 1.9 GiB，回滚备份保留。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
 - **小程序南山清理尚未提交**：开发者工具编译、共用雪票/租赁入口回归后由用户处理业务仓提交；本次 end-work 仅提交文档仓。
@@ -749,17 +756,19 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
-- **食材 v4 的 `valid` 约定（2026-10-12 起）**：
+- **食材 v4 的删除与停用约定（2026-10-13 更新）**：
   - 31 张 `fnb_v4_` 表都有 `valid bit NOT NULL DEFAULT 1`；更新时间列叫 `updated_at`（UTC），不是旧表的 `update_date`。以后新建 v4 表也要带 `valid`。
-  - 后补 `valid` 的 20 个实体在 [`FnbSchemaConfiguration.cs`](../SnowmeetApi/Data/FnbSchemaConfiguration.cs) 里加了全局查询过滤，新写的查询自动只看有效行；确实要看无效行时用 `IgnoreQueryFilters()`。`FnbRequest`（幂等记录）和原有 10 张主数据表不过滤，主数据仍由各查询自己写 `x.valid`。
-  - 实体的 `valid` 属性带 `= true` 初始值，配置里是 `HasDefaultValue(true).HasSentinel(true)`：新建对象不赋值就是有效；原有 10 个主数据实体没有初始值，新建时要显式写 `valid = true`。
+  - 30 个实体在 [`FnbSchemaConfiguration.cs`](../SnowmeetApi/Data/FnbSchemaConfiguration.cs) 里按 `valid` 全局过滤，包括原有 10 张主数据；确需查询删除行才用 `IgnoreQueryFilters()`。`FnbRequest`（幂等记录）不过滤以保留请求键，已删除请求必须拒绝重试，不能返回旧响应。
+  - 10 张主数据另有 `enabled bit NOT NULL DEFAULT 1`，`enabled=false` 表示可逆停用；`valid=false` 表示界面不可逆的逻辑删除。保存只改 enabled，兼容旧 valid 请求也只改 enabled，删除 ID 先被查询过滤挡住。清理 skill 只改 valid，不把清理改成停用，也不清理 fnb_unit 或文件。
+  - v4 实体的 `valid` 以及主数据的 `enabled` 都带 `= true` 初始值，配置为 `HasDefaultValue(true).HasSentinel(true)`，新建对象默认有效且启用；显式赋 false 必须写入数据库，不能被默认值覆盖。原有主数据无初始值的旧描述不再适用。
   - 会被重新使用的自然键（批号、检查单日期、外部订单号、订单导入去重键、工具资产编号）的唯一索引带 `WHERE valid = 1`。以后加这类唯一索引也要带上，否则逻辑删除后建不出同样的键。
   - 批号是「日期-分类批次码-序号」，序号按有效批次算，所以逻辑删除后会从 01 重新编，和已无效的旧批次同号。
+- **原 republish.sh 的退出码不能单独证明发布成功（2026-10-13）**：脚本不会在 git pull 失败后停止。本次 H5 测试目录归 root 导致部分 checkout 失败，但脚本继续构建并退出 0。发布仍使用原脚本；验收须同时核对目标 HEAD、构建日志、运行服务、接口及静态资源。目录权限异常先核对部分改动，再只修正相关目录所有者，不覆盖无关运行文件。见 [部署记录](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 - **从 Mac mini 操作生产库和 mini 服务器（2026-10-12 实测）**：
   - 直连 `161.189.64.210` 的 22/443/1433 全部不通，只能走美国服务器转发：数据库 `44.207.251.65,1433`，SSH `ssh -p 2222 ubuntu@44.207.251.65`。SQL Server 就装在 mini 服务器上（主机名 `ip-172-31-31-163`）。
   - 经转发每次查询往返约 0.47 秒。几千次查询的脚本要跑几十分钟；**带写入的长事务会把线上页面锁住**（见顶部 10-12 条目），要先和用户约时间。
   - mini 服务器上没有 `pip`、`pyodbc`、ODBC 驱动，Python 脚本连库只能从 Mac mini 跑。服务器有 .NET SDK 9.0.110。
-  - 接口的 22 项 SQL Server 集成测试在代码里写死只允许连本机 LocalDB 的 `snowmeet_fnb_test_` 临时库，不能改去连别的 SQL Server；在 Mac 上只能跑其余 470 项。
+  - 接口的 22 项 SQL Server 集成测试在代码里写死只允许连本机 LocalDB 的 `snowmeet_fnb_test_` 临时库，不能改去连别的 SQL Server；Mac 上 2026-10-13 本次其余 475 项通过。
   - 不依赖登录会话验证服务层的办法：写一个引用 `SnowmeetApi.csproj` 的控制台程序，用店长级员工构造 `FnbAccess.Actor` 直接调 `FnbV4Service`，放在一个事务里最后回滚。控制器自己会开事务，不能套在外层事务里。
 - **旧表 `order_online` 没有主键也没有任何索引（2026-10-12 发现，未处理）**：2017-04 至 2025-04-18 的旧在线订单，49,370 行，`id` 非空且不重复。任何要求主键的工具遇到它都会拒绝。
 - **iPhone 镜像自动化的做法和坑（2026-10-10，Mac mini 实测，工具在 `sams_scrape/`）**：
@@ -4535,3 +4544,15 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 3：页面里早就留着 126 次开页的记录（`localStorage.__jd_hist`），我是连着被挡三次之后才想起去翻。有现成记录先看记录，再做试验。
 - 📌 教训 4：只存在浏览器里的进度是迁移时最容易漏的东西。长时间跑的抓取要一开始就有导出状态的办法，不要等到要换电脑才写。
 - 详细归档：[sessions/2026-10-11_jd-sams-store-prices.md](sessions/2026-10-11_jd-sams-store-prices.md)。
+
+### 2026-10-13：清理 skill 核对与执行、食材 v4 停用/删除分离及生产部署
+
+- ✅ 清理范围确认：只对 31 张 fnb_v4_ 表逻辑删除；按用户指定 config.sqlServer 仅本次连接，08:22 实际更新 0 行，因 23 行测试数据此前已全为 valid=0。fnb_unit 5 行保留。
+- 用户发现区域仍显示“停用”，明确“停用未来可以启用；删除后界面不可逆，只能手动修改数据库恢复”。定位为主数据复用 valid 与 includeDisabled 绕过删除过滤，并按该决策修正。
+- ✅ SnowmeetApi `ai@76246c61` 已提交、推送和生产发布：30 张表统一删除过滤，10 张主数据新增 enabled；旧请求兼容启停，不能恢复删除 ID；幂等删除键保留并拒绝重试。分类启停与删除分开，区域逻辑删除，规格删除文案明确。
+- ✅ 09:33 执行 [enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql) 并重复验证；既有字段、23 行 v4 数据及 5 行单位全部保留。09:40:51 原 republish.sh 发布完成，原脚本未改。
+- ✅ 本机服务端 475 通过、22 项 Windows LocalDB 跳过；12 项 H5 及完整离线浏览器流程通过。线上 587 条路由保留，9 个资源哈希匹配、445 个其他静态文件未变；删除列表为空，删除区域 ID 保存拒绝，服务 active/running、NRestarts=0。
+- 📌 首次发布被 H5 测试目录 root 所有权挡住，脚本仍退出 0；核对部分拉取文件、只修正相关目录权限并恢复后重发成功。验收必须核对 HEAD 和日志，不能只看退出码。
+- 🚧 真机登录/OCR/蓝牙/出餐验收、Windows 22 项测试、新建食材列表刷新问题仍待处理；当前仍为测试阶段，正式业务启用前 retire 清理 skill。
+- end-work：文档仓先 pull --ff-only 成功，补齐显示规则、关键文件、遗留与下一步；业务仓本次收尾前均干净，仅自动提交推送文档仓。
+- 详细归档：[sessions/2026-10-13_fnb-delete-disable-separation.md](sessions/2026-10-13_fnb-delete-disable-separation.md)；[生产部署记录](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
