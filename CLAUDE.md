@@ -7,7 +7,7 @@
 - **做法**：在已登录京东的 Claude 内置浏览器里按店内分类逐页读商品列表（`jd_crawl.js`，已跑完）；价格由 `jd_price.js` 单独慢取：隐藏 iframe 打开分类页，每批给 ≤10 个缺价商品调页面自己的取价函数。页面不能直接请求 127.0.0.1，数据靠整页跳转带到本机 `jd_receiver.py`（8765 端口）追加进 `data/jd_items.jsonl`。
 - **换电脑续跑**：抓取进度（分类表、每页商品顺序、哪些页取过、商品行、脚本本身）存在浏览器 mall.jd.com 的 localStorage 里，`jd_items.jsonl` 只是商品行的副本，**光拷脚本和 jsonl 续不了**。10-13 新写 `jd_state.py`（8767 端口）把这些键原样导出成 `data/jd_browser_state.json`、再装回另一台电脑的浏览器；导出核对过哈希，装回在 Mac mini 上实际走通过。完整步骤在 `sams_scrape/README_JD.md`。
   - 迁移包 `~/Desktop/sams_scrape_jd.tgz`（1.5 MB，不含图片和 App 截图）已在 Mac mini 桌面上，**用户还没确认拷到笔记本**。
-  - 笔记本上要有 Claude 桌面版、Python 3，并由用户本人在内置浏览器里登录京东。
+  - 笔记本上要有 Python 3 和一个能在京东页面里执行 JS 的浏览器（之前用 Claude 桌面版的内置浏览器；10-13 用户问过改由 Codex 接手，用它能操控的 Chromium 浏览器或普通 Chrome 的控制台也行），并由用户本人在这个浏览器里登录京东。换了浏览器必须先把状态装回。
   - **状态只有一份，两台电脑不要同时跑。** 笔记本续跑之后，Mac mini 浏览器里的状态就是旧的；要在 Mac mini 上接着跑，先把笔记本的 `data/jd_browser_state.json` 和 `data/jd_items.jsonl` 拷回来装回。最终 Excel 建议回 Mac mini 导出（图片在这边）。
 - **限速（实测，换电脑不一定更快：被收紧的多半是京东账号）**：
   - 列表接口和价格接口被挡时都返回 403，页面没有验证码，也不是掉登录。10-11 第一轮抓得太快（8.6 秒一页）之后一直处在收紧状态。
