@@ -52,9 +52,10 @@ def main():
     sql = (SQL_DIR / "2026-10-06_fnb_v4_rebuild.sql").read_text(encoding="utf-8")
     extension = (SQL_DIR / "2026-10-06_fnb_v4_operations.sql").read_text(encoding="utf-8")
     # 2026-10-12：全部 v4 表补 valid，唯一索引和视图只看有效行。这两份在原有两份之后执行，原有两份保持不变。
-    later = [(SQL_DIR / name).read_text(encoding="utf-8") for name in ("2026-10-12_fnb_v4_add_valid.sql", "2026-10-12_fnb_v4_valid_filters.sql")]
+    later = [(SQL_DIR / name).read_text(encoding="utf-8") for name in ("2026-10-12_fnb_v4_add_valid.sql", "2026-10-12_fnb_v4_valid_filters.sql", "2026-10-13_fnb_v4_enabled.sql")]
     # 原有两份脚本是 10-06 交付时的结构；之后补的列和索引条件在 later 里，比较前先从 EF 输出里去掉。
-    baseline = re.sub(r"^    \[valid\] bit NOT NULL DEFAULT CAST\(1 AS bit\),\n(?=(?:    \[row_version\][^\n]*\n)?    CONSTRAINT \[PK_fnb_v4_(?:%s)\])" % "|".join(LATE_VALID), "", ef, flags=re.M)
+    baseline = re.sub(r"^    \[enabled\] bit NOT NULL DEFAULT CAST\(1 AS bit\),\n", "", ef, flags=re.M)
+    baseline = re.sub(r"^    \[valid\] bit NOT NULL DEFAULT CAST\(1 AS bit\),\n(?=(?:    \[row_version\][^\n]*\n)?    CONSTRAINT \[PK_fnb_v4_(?:%s)\])" % "|".join(LATE_VALID), "", baseline, flags=re.M)
     for late_filter, original in LATE_FILTERS:
         baseline = baseline.replace(late_filter, original)
     if extension != build_operations(baseline):

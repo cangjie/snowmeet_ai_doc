@@ -4,6 +4,8 @@
 
 同日下午新增并部署企业微信 H5，已接入第一期接口并复用现有上传/OCR/蓝牙模块。用户指出客户端仍是旧样子后，全部运营模块已补接口接入并发布 ai@4a5b3fa1。页面覆盖与切换约定见 [H5 文档](2026-10-06-fnb-v4-h5.md)。`/fnb/b` 保留静态入口跳转，新后端另提供批次查询及标签数据。
 
+2026-10-13 修订（ai@76246c61 已部署，enabled SQL 已执行）：主数据 valid=false 表示删除，所有正常列表（含停用）都过滤；enabled=false 表示可逆停用。保存请求使用 enabled；旧 valid 请求字段仅兼容映射为 enabled，不允许恢复删除行。配套 [enabled SQL](../../sql/2026-10-13_fnb_v4_enabled.sql) 必须先执行，再部署新版 API/H5。
+
 ## 数据与上线约定
 
 - 用户修订为只新增 SQL：`sql/2026-10-06_fnb_v4_rebuild.sql` 新增 18 张 `fnb_v4_*` 表、2 个视图，共用 `fnb_unit`，只补缺失单位种子；不删除、不更新、不覆盖任何旧食材表或数据。
@@ -42,20 +44,20 @@
 | GET | ListUnits / S | `shopId`, 可选 `measureType`（weight/volume/count） | 启用单位列表，按 sort/code 排序 |
 | GET | ListCategories / S | `shopId`, `includeDisabled=false` | 分类实体列表，按 level/sort/id 排序 |
 | POST | SaveCategory / M | 分类输入 | 保存后的分类实体 |
-| POST | DeleteCategory / M | `shopId`, `id` | `{ "ids": [停用的分类id] }` |
+| POST | DeleteCategory / M | `shopId`, `id` | `{ "ids": [删除的分类id] }` |
 | GET | ListShelfRules / S | `shopId`, 可选 `categoryId` 或 `itemId`（不能同时传），`includeDisabled=false` | 保质期规则实体列表 |
 | POST | SaveShelfRule / M | 规则输入 | 保存后的规则实体 |
 
-分类输入：`shopId`, `id`（0 新建）, `parentId`, `level`（1/2）, `name`，可选 `batchCode`, `measureType`, `defaultStorage`, `warnDays`, `openDays`, `isPrepared=false`, `sort=0`, `valid=true`。
+分类输入：`shopId`, `id`（0 新建）, `parentId`, `level`（1/2）, `name`，可选 `batchCode`, `measureType`, `defaultStorage`, `warnDays`, `openDays`, `isPrepared=false`, `sort=0`, `enabled=true`。
 
 - 一级只维护名称/排序，`parentId` 和分类属性均为空，`isPrepared=false`。
 - 二级必须挂在有效一级分类下，必须提供 `batchCode`、`measureType`、`defaultStorage`。weight 对应 g，volume 对应 ml，count 对应 piece；数据库单位维度分别为 1/2/3。
 - 二级 `isPrepared` 决定食材类型 raw/prepared。分类下已有任何食材时，不允许改变计量类型或原料/半成品类型；不批量改写既有食材。
 - 有效同级名称唯一，有效二级批次编码唯一。已有分类层级不可变。
-- DeleteCategory 软停用；删除一级时一起停用子分类。存在任何食材（含停用食材）则整次操作拒绝。停用分类名可以重新使用，不改旧行名称。
+- DeleteCategory 逻辑删除（valid=false）；删除一级时一起删除未删除的子分类。存在未删除食材（含停用食材）则整次操作拒绝。删除后名称可以重新使用，旧 ID 不可通过保存恢复；停用用 SaveCategory(enabled=false)，可重新启用且保留名称。
 - `warnDays` / `openDays` 可为空，非空为 0–36500。0 是有效覆盖值。
 
-规则输入：`shopId`, `id`（0 新建）, `categoryId` 或 `itemId`（二选一）, `storageType`, `season`（all/warm/cold）, `days`（1–36500）, `valid=true`。分类级只允许有效二级分类。已有规则不能改归属，可改天数/季节/储存方式/启停。有效同归属、同储存方式、同季节唯一。
+规则输入：`shopId`, `id`（0 新建）, `categoryId` 或 `itemId`（二选一）, `storageType`, `season`（all/warm/cold）, `days`（1–36500）, `enabled=true`。分类级只允许有效二级分类。已有规则不能改归属，可改天数/季节/储存方式/启停。有效同归属、同储存方式、同季节唯一。
 
 规则回退由服务端执行：先食材，再分类；同一层先季节专用规则，再 all；warm 为生产月份 6–9 月，cold 为其余月份。
 
@@ -77,7 +79,7 @@ ListItems 的每行：`item`（实体）、`categoryName`、`effectiveWarnDays`�
 
 GetRoute 的 `defaults`：`warnDays`、`openDays`、`storageType`、`measureType`。`forms` 只含有效形态，按 seq 升序；`specs` 包括停用项，按 sort/id 排序；`shelfRules` 包括有效的食材级和所属分类级规则。
 
-新食材输入：`shopId`, `categoryId`, `name`, `finalFormName`, `baseUnitCode`；可选 `finalFormCode="F"`, `storageType`（空则取分类默认）, `warnDays`, `openDays`, `imageId`。基本单位必须是与分类相符的 g/ml/piece，且已启用。同分类的启用食材名称唯一。新食材和出品态显式 `valid=true`。
+新食材输入：`shopId`, `categoryId`, `name`, `finalFormName`, `baseUnitCode`；可选 `finalFormCode="F"`, `storageType`（空则取分类默认）, `warnDays`, `openDays`, `imageId`。基本单位必须是与分类相符的 g/ml/piece，且已启用。同分类的未删除食材名称唯一。新食材和出品态默认 valid=true、enabled=true。
 
 SaveItemDefaults 是原计划补充的必要接口，用来实现「分类给默认值，食材可以单独改」：null 恢复分类回退；临期默认最终回退为 1 天；开封天数最终为空表示不改变到期。保存不改历史批次。
 
@@ -90,12 +92,12 @@ SaveItemDefaults 是原计划补充的必要接口，用来实现「分类给默
 - `perBase` 是 1 个形态单位的基本量。出品态固定 `perBase=1`、`unitName=baseUnitCode`。形态单位只用于显示。
 - `in_op_ratio` 由服务端用「上游 perBase / 下游 perBase」生成，保留 6 位小数。标准出成率独立为 (0,1]；耗时不小于 0。数量/比例输入最多 6 位小数，允许小数投入。
 - 同食材有效形态编码唯一。已有规格、批次或流水引用时，不能改变该形态换算、单位或编码。
-- RemoveForm 只允许未被任何规格（含停用项）、批次、单据或作业引用的最上游形态，并保留出品态。软停用后重新排号。
+- RemoveForm 只允许未被任何规格（含停用项）、批次、单据或作业引用的最上游形态，并保留出品态。逻辑删除后重新排号，旧 ID 不能通过 UpdateForm 恢复。
 
-进货规格输入：`shopId`, `itemId`, `id`（0 新建）, `entryFormId`, `name`；可选 `brand`, `packDesc`, `barcode`, `sort=0`, `valid=true`。
+进货规格输入：`shopId`, `itemId`, `id`（0 新建）, `entryFormId`, `name`；可选 `brand`, `packDesc`, `barcode`, `sort=0`, `enabled=true`。
 
 - 入口形态必须属于同一启用食材。条码可空；去首尾空白；有效非空条码按数据库不区分大小写的规则全局唯一。
-- 一旦被任何批次或入库行引用，只允许提交原字段值并设置 `valid=false`，不能改名称/包装/条码/入口/排序，也不能重新启用。
+- 一旦被任何批次或入库行引用，只允许提交原字段值并切换 enabled，不能改名称/包装/条码/入口/排序；停用后允许重新启用，valid 始终不变。
 - FindSpecByBarcode 只找启用规格，返回入口形态，供两端扫码后直接选入库层级。
 
 ## 分类与形态样例
@@ -104,7 +106,7 @@ SaveItemDefaults 是原计划补充的必要接口，用来实现「分类给默
 {
   "shopId": 1, "id": 0, "parentId": 10, "level": 2, "name": "牛肉",
   "batchCode": "BEEF", "measureType": "weight", "defaultStorage": "frozen",
-  "warnDays": 2, "openDays": 3, "isPrepared": false, "sort": 0, "valid": true
+  "warnDays": 2, "openDays": 3, "isPrepared": false, "sort": 0, "enabled": true
 }
 ```
 

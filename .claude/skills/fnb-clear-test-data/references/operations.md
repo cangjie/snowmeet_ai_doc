@@ -2,6 +2,8 @@
 
 用户 2026-10-12 的定义：只处理 `fnb_v4_` 开头的表；删除是逻辑删除，把 `valid` 置 0 并刷新更新时间。它取代 2026-10-06 的旧范围（全部新旧食材、餐饮商品与订单、`fnb_unit`、上传记录与文件物理清空）。旧范围从未在生产执行过。
 
+2026-10-13 补充：停用是 `enabled=0`，仍未删除（`valid=1`），可在界面重新启用；删除是 `valid=0`，界面中消失，不能通过保存或启用恢复。本工具不改 `enabled`。10 张主数据表新增独立 `enabled` 列，见 [增量 SQL](../../../../sql/2026-10-13_fnb_v4_enabled.sql)。既有 `valid=0` 保持删除，不转换成停用。
+
 工具：[clear_test_data.py](../scripts/clear_test_data.py)。默认只预览；加 `--execute` 后在一个数据库事务里完成全部更新。运行过程中不询问第二次确认，也不自动读取 `config.sqlServer`。此工具仅用于正式上线前，所有入口受同目录生命周期状态约束。
 
 ## 实际范围
@@ -15,21 +17,21 @@
 
 其中 21 张表的 `valid` 列是 2026-10-12 按用户决定补上的（[增量 SQL](../../../../sql/2026-10-12_fnb_v4_add_valid.sql)，只加列、默认 1，生产已执行）：`fnb_v4_alert_delivery`、`fnb_v4_area_image`、`fnb_v4_batch`、`fnb_v4_batch_detail`、`fnb_v4_batch_image`、`fnb_v4_check_handling`、`fnb_v4_check_line`、`fnb_v4_check_sheet`、`fnb_v4_order`、`fnb_v4_order_import`、`fnb_v4_order_line`、`fnb_v4_recipe`、`fnb_v4_recipe_line`、`fnb_v4_request`、`fnb_v4_stock_document`、`fnb_v4_stock_document_line`、`fnb_v4_stock_movement`、`fnb_v4_stock_operation`、`fnb_v4_stocktake_line`、`fnb_v4_supply_movement`、`fnb_v4_tool_log`。原来就有 `valid` 的是另外 10 张主数据表。以后新增的 v4 表如果没有 `valid` 列，脚本原样保留、只报告行数。
 
-- v4 表没有 `update_date` 列，对应的是 `updated_at`。写入值是数据库服务器的 UTC 时间（`SYSUTCDATETIME()`，精确到毫秒），同一次运行所有表用同一个值；接口自己停用记录时也是 `valid=false` 加 `updated_at=UtcNow`。
+- v4 表没有 `update_date` 列，对应的是 `updated_at`。写入值是数据库服务器的 UTC 时间（`SYSUTCDATETIME()`，精确到毫秒），同一次运行所有表用同一个值。
 - 已经是 `valid=0` 的行不动。
 - 不删任何行。行数、表结构、索引、约束、ID 序号都不变。
 - `fnb_unit`、旧食材表、餐饮商品/分类/订单/支付、`mini_upload`、S3 与服务器文件、员工、会员、门店都不碰。
 
 逻辑删除后的表现：
 
-- 原有 10 张主数据表：唯一索引都带 `WHERE valid = 1`，同名的分类、食材、区域、物资以及同一条码可以重新创建；接口列表按 `valid` 过滤，停用的行不再出现，带「含已停用」选项的列表仍会显示。
+- 修正后的 10 张主数据表：全局查询过滤只读取 `valid=1`；“包含停用”只额外包含 `enabled=0` 的未删除记录，绝不包含 `valid=0`。按旧 ID 保存也找不到删除记录。唯一索引仍带 `WHERE valid = 1`，停用记录保留名称/条码，删除后同名的分类、食材、区域、物资以及同一条码可以重新创建。
 - 10-12 补列的 21 张表，接口从 SnowmeetApi `ai@fe4eb6c2`（2026-10-12 23:04 发布）起处理：
   - 其中 20 张加了全局查询过滤，任何查询都只看 `valid=1` 的行，所以逻辑删除后的批次、库存流水、单据、订单、配方、检查单在界面和报表里不再出现。新写入的行不用显式赋值，默认就是有效。
-  - `fnb_v4_request` 是幂等记录，照样会被置 0，但接口不过滤它：同一个 requestId 任何时候都不能再执行一次。
+  - `fnb_v4_request` 是幂等记录，照样会被置 0，但接口不过滤它：同一个 requestId 任何时候都不能再执行一次。停用/删除分离的修正还会拒绝重试已删除请求，避免旧响应重新显示已删除数据。
   - 两个视图 `vw_fnb_v4_stock`、`vw_fnb_v4_loss` 只统计有效行。
 - 5 个唯一索引改成只约束有效行（[增量 SQL](../../../../sql/2026-10-12_fnb_v4_valid_filters.sql)，生产已执行），这些键在逻辑删除后可以重新使用：同门店的批号、同门店同日期的检查单、同来源的外部订单号、订单导入去重键、同门店的工具资产编号。其余唯一索引都以上级记录的 id 开头，上级重建后 id 不同，没有改。
 - 有效行之间这些键仍然唯一。按清单恢复旧行时，如果之后已经用同样的键建了新的有效行，数据库会拒绝，需要先处理冲突。
-- 服务器上的接口版本早于 `fe4eb6c2` 时，这 21 张表里 `valid=0` 的行接口照样读得到，不要在那种状态下执行。
+- **已发布的 `fe4eb6c2` 仍混用主数据的停用与删除，尚不足以满足 10-13 的定义。** 新版 API 与 `enabled` SQL 都完成部署后才再执行本 skill；仅存在本地源码不代表线上具备这些行为。2026-10-13 09:40 已发布 `ai@76246c61`，SQL 已执行两遍并验证原业务字段不变；线上含停用列表不显示删除行，按已删除区域 ID 使用 enabled=true 或旧 valid=true 保存均返回 code 1。停用→启用流程在隔离 SQLite 和离线浏览器验证通过。详见 [部署记录](../../../../sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 
 ## 一条命令执行
 
@@ -79,6 +81,6 @@ py tools/windows_test/run_integration_localdb.py --verify-clear-test-data
 
 只创建随机 `snowmeet_fnb_test_*` LocalDB 临时库，采用真实 v4 DDL 并执行补 `valid` 列的增量 SQL（连续两遍，验证可重复执行），31 张表全部有夹具，另有员工、门店、会员、商品、订单、上传和单位等非 v4 数据。检查内容：预览只读；错库、触发器、非 dbo 的 v4 表、`valid` 类型异常拒绝；中途失败整体回滚；执行后 31 张表全部置 0、有更新时间列的表等于清单时间戳、原本无效的行不变；全部非 v4 表逐行不变；没有任何行被删除、ID 序号不变；重复执行为 0 行。
 
-运行器会在原有两份建表脚本之后执行 10-12 的两份增量 SQL（补列、索引和视图），再比较 EF 模型和库结构。`tools/windows_test/ef_create.sql` 是运行器缓存的 EF 输出，接口模型改过之后要先删掉它让运行器重新生成，否则会报字段不一致。
+运行器会在原有两份建表脚本之后执行 10-12 的两份增量 SQL（补列、索引和视图）及 10-13 的 `enabled` SQL，再比较 EF 模型和库结构。`tools/windows_test/ef_create.sql` 是运行器缓存的 EF 输出，接口模型改过之后要先删掉它让运行器重新生成，否则会报字段不一致。
 
 2026-10-12 改写后，这套验证和接口的 22 项 SQL Server 集成测试都还没有在 Windows LocalDB 上运行过（改动在 Mac 上完成；集成测试只允许连本机 LocalDB）。当天用户决定直接在线上验证，做法和结果见 [CLAUDE.md](../../../../CLAUDE.md) 顶部 2026-10-12 条目。下次在 Windows 机上动这部分之前先把两套都跑一遍。

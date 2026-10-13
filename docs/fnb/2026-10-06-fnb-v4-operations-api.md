@@ -2,12 +2,14 @@
 
 2026-10-06 用户将范围扩展为全部 v4 后端，包含原计划排除的存储区域、开门检查、餐饮物资与工具。本文补充 [认证与主数据契约](2026-10-06-fnb-v4-api-contract.md)。本机已通过构建、467 项非 SQL 回归与 22 项 LocalDB 集成测试（含 32 步）；共新增 69 个动作，连同第一期 17 个共 86 个 v4 动作。用户审阅扩展 SQL 并授权部署后，完整后端已于北京时间 18:29 发布到生产，详见 [部署记录](../../sessions/2026-10-06_fnb-v4-operations-production-deploy.md)；H5 已在后续发布 ai@4a5b3fa1 接入运营接口，见 [客户端文档](2026-10-06-fnb-v4-h5.md)。
 
+2026-10-13 修订（ai@76246c61 已部署，enabled SQL 已执行）：10 张主数据表新增 enabled，停用只改 enabled，删除只改 valid；所有普通查询过滤 valid=false，includeDisabled 仅包含 enabled=false 的未删除记录。保存请求的旧 valid 字段兼容映射为 enabled，不能恢复删除。先执行 [enabled SQL](../../sql/2026-10-13_fnb_v4_enabled.sql)，再部署 API/H5。
+
 ## 通用约定
 
 - 路径 `/api/{controller}/{action}`；会话 `sessionKey` 在 query。GET 的 `shopId` 在 query，POST 在 JSON body。
 - S 为本店在职员工，M 为店长。鉴权复用现有小程序和企业微信会话；跨店返回 code 3。主数据共享，库存、区域、配方、订单、检查和流水分店。
 - 返回 `{code,message,data}`，code 0/1/2/3/4 分别为成功、业务错误、会话失效、权限错误、并发冲突。
-- 库存写、撤销、工具状态及检查流程请求全部携带非空 UUID `requestId`。同店同动作同 ID 同请求精确返回首次结果；同 ID 换内容 code 4。网络失败沿用原 ID，不自动生成新 ID 重试。查询和主数据配置不需要 ID。
+- 库存写、撤销、工具状态及检查流程请求全部携带非空 UUID `requestId`。未删除请求同店同动作同 ID 同请求精确返回首次结果；已删除请求保留 ID 并拒绝重试（code 4），不返回旧响应；同 ID 换内容 code 4。网络失败沿用原 ID，不自动生成新 ID 重试。查询和主数据配置不需要 ID。
 - 写操作统一 Serializable；查出后修改显式标记 Modified。库存金额按 6 位小数分摊；批次最后一次扣减取全部剩余金额，库存永不负数。SQL 1205、唯一竞争及 rowversion 冲突映射 code 4。
 - 请求字段 camelCase，实体字段下划线；long ID 输入支持十进制字符串，输出均字符串；int 数字。数量最多 6 位小数，基本单位 g/ml/piece，温度允许负数。
 - 时间戳 UTC，营业日 UTC+8；当天到期可使用，到期早于今天不可扣；未来 `ready_at` 不可扣。换算、到期、批号、推荐、份数、配方所需量和报表全部服务端计算。
@@ -54,7 +56,7 @@
 | FnbDish/ListDishes | GET/S | 本店菜品及规格、最新配方、用料和完整配方限制的可出餐份数 |
 | FnbDish/CreateDish | POST/M | name,specName=标准,salePrice?；创建本店餐饮 product 与默认规格，valid 显式为 1 |
 | FnbDish/AddSpec | POST/M | productId,name,salePrice?；菜内名称唯一 |
-| FnbDish/DeleteSpec | POST/M | specId；软停用，最后一个规格或待出餐引用拒绝 |
+| FnbDish/DeleteSpec | POST/M | specId；逻辑删除（valid=false），最后一个启用规格或待出餐引用拒绝；界面不可恢复 |
 | FnbDish/SaveSpecLines | POST/M | ownerId=specId,outputQuantity=1,lines；发布配方新版本 |
 | FnbServe/CreateOrder | POST/S | requestId,lines[{specId,quantity}],tableNo?,remark?；手动厨房单，快照引用当时的配方版本 |
 | FnbServe/ListPendingOrders | GET/S | 待出餐订单及行，最多 200 单 |
@@ -79,21 +81,21 @@
 | 控制器/动作 | 方法/权限 | 输入及返回 |
 |---|---|---|
 | FnbArea/ListAreas | GET/S | includeDisabled=false；区域、有效状态、照片、检查项、四类绑定数量 |
-| FnbArea/SaveArea | POST/M | id=0 新建,parentId?,name,areaType=other,valid=true,sort=0；最多两级，同级有效名称唯一 |
-| FnbArea/DeleteArea | POST/M | id；任何历史绑定、照片、检查项、工具日志或下级均拒绝删除，只可停用 |
+| FnbArea/SaveArea | POST/M | id=0 新建,parentId?,name,areaType=other,enabled=true,sort=0；最多两级，同级未删除名称唯一 |
+| FnbArea/DeleteArea | POST/M | id；逻辑删除（valid=false）；任何历史绑定、照片、检查项、工具日志或下级均拒绝删除，只可停用；界面不可恢复 |
 | FnbArea/AddPhoto | POST/S | areaId,uploadId；每区域最多 6 张，记录员工与时间 |
 | FnbArea/RemovePhoto | POST/M | areaId,uploadId；只移除区域关联，不直接删共享文件 |
-| FnbSupply/ListSupplies | GET/S | type?=disposable/reusable；个数库存、包装量、预警阈值 |
-| FnbSupply/SaveSupply | POST/M | id,name,supplyType,packSize,packLabel,areaId?,spec?,valid=true |
+| FnbSupply/ListSupplies | GET/S | type?=disposable/reusable,includeDisabled=false；个数库存、包装量、预警阈值 |
+| FnbSupply/SaveSupply | POST/M | id,name,supplyType,packSize,packLabel,areaId?,spec?,enabled=true |
 | FnbSupply/PostMovement | POST/S | requestId,supplyId,type=in/out/waste,quantity,reason?；in 数量为整数包装数，其他为个数；出库须原因，不能透支 |
 | FnbSupply/UndoReceipt | POST/S | requestId,movementId；10 分钟内且无后续有效流水的入库，保留 cancelled 记录 |
 | FnbSupply/ListLog | GET/S | supplyId；最近 200 条流水 |
 | FnbSupply/SaveLowStockRule | POST/M | supplyId,ratio 或 quantity 二选一 |
-| FnbTool/ListTools | GET/S | status?=normal/missing/damaged/repairing/disposed/abn |
-| FnbTool/SaveTool | POST/M | id,name,quantity,spec?,areaId?,ownerStaffId?,dailyCheck=false,assetNo?,valid=true；每日检查工具自动同步检查项 |
+| FnbTool/ListTools | GET/S | status?=normal/missing/damaged/repairing/disposed/abn,includeDisabled=false |
+| FnbTool/SaveTool | POST/M | id,name,quantity,spec?,areaId?,ownerStaffId?,dailyCheck=false,assetNo?,enabled=true；每日检查工具自动同步检查项 |
 | FnbTool/ChangeStatus | POST/S，报废 M | requestId,toolId,status?,areaId?,remark?；变更写状态/位置日志，找回和报废须说明 |
 | FnbTool/ListLog | GET/S | toolId；最近 200 条日志 |
-| FnbCheck/SaveItem | POST/M | id,areaId,name,method=yes_no/number/photo,kind=environment/safety/tool/supply,required=true,photoSuggested=false,unit?,minimum?,maximum?,toolId?,supplyId?,valid=true |
+| FnbCheck/SaveItem | POST/M | id,areaId,name,method=yes_no/number/photo,kind=environment/safety/tool/supply,required=true,photoSuggested=false,unit?,minimum?,maximum?,toolId?,supplyId?,enabled=true |
 | FnbCheck/GetToday | GET/S | 今日检查状态/快照；无单时给当前有效配置 |
 | FnbCheck/StartToday | POST/S | requestId；每店每天最多一张正式单 |
 | FnbCheck/RefreshSnapshot | POST/S | requestId,sheetId；刷新有效检查项；相同标准保留结果，方式/阈值/单位/对象改变清结果 |
