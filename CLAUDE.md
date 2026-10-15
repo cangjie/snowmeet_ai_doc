@@ -1,5 +1,34 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-15：山姆商品查询 H5 上线 https://mini.snowmeet.top/sams/（网页、数据、图片都在 S3，mini nginx 转发）
+
+- **用途**：店员用手机查山姆 App 的商品和价格，按分类浏览、按名字搜索，不加登录。价格只用山姆 App 的（2026-10-10 快照）；京东只用来给配上的商品提供高清图，京东价格不放。
+- **架构**：不用数据库、不碰 SnowmeetApi。
+  - `sams_scrape/sams_site.py build`：生成静态网站，包括带指纹的 JSON、商品图和页面。
+  - `sams_site.py publish`：经美国服务器 2222 传到 mini，再用实例角色传到 S3 `upload/sams/`。
+  - mini 的 nginx 把 `/sams/` 转给 `img.snowmeet.top`。
+- **数据**：4604 个商品，16 个大类、164 个子分类。
+  - 商品图：739 个用京东图（200/600），3827 个从 App 截图裁出，38 个没有图（显示占位图）。
+  - 数据文件 1 MB，gzip 后 264 KB。
+- **以后更新**：重新抓取后更新 `data/`，再依次跑 `sams_site.py build`、`publish`，网页和 nginx 都不用动。截图识别结果按内容缓存在 `cache/ocr/`。
+- **nginx（生产改动，用户 10-15 看过改动后同意）**
+  - 位置：`/etc/nginx/sites-available/default` 里 `mini.snowmeet.top` 的 443 块，在 `location /ws {` 前加了 `location = /sams` 和 `location ^~ /sams/` 两段。
+  - 写法：`resolver 127.0.0.53`，`proxy_pass` 用变量，在运行时解析域名。
+  - 备份：`default.bak-20261015-sams`。撤回用 `sams_scrape/deploy/nginx_sams.py remove`，再 `nginx -t` 并 reload。
+- **代码**：在 `sams_scrape` 的分支 `sams-h5` 上，已推到 GitHub，**还没合并到 main**。
+  - 设计：`docs/superpowers/specs/2026-10-15-sams-h5-design.md`；计划：`docs/superpowers/plans/2026-10-15-sams-h5.md`。
+  - 测试：Python 39 个、Node 10 个，全部通过。
+- **已知局限**
+  - 京东主图带「JD.COM 京东」水印。
+  - 截图裁的图只有 70～100 像素，详情页放大后会糊。
+  - 缺货商品的图上有「补货中」灰圈。
+  - 价格来自截图识别，个别可能认错，如「洪湖粉藕 1kg ¥739」应是 ¥7.39。
+- **待办**
+  - 用户用手机验收。
+  - 整体代码审查：end-work 时后台审查代理还没出结果。
+  - 把 `sams-h5` 合并到 main。
+- 详见 [会话记录](sessions/2026-10-15_sams-h5-site.md)。
+
 ## 2026-10-14～15：5 个域名证书改为 Let's Encrypt 自动续期，每 75 天一次（笔记本操作）
 
 - **起因**：mini / wxoa / wl 三张 TrustAsia 免费证书 10-14 下午到期，一直没续，**实际过期了一段时间**：wxoa 14:59、wl 15:59、mini 19:59 起 HTTPS 报证书错误，21:39 换上新证书才恢复。这段时间（尤其 mini 19:59～21:39）的支付成功通知可能没送达，靠微信（24 小时）/ 支付宝（25 小时）自动重发补上，**没有逐单核实**。
@@ -155,8 +184,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-15 上午）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除；京东山姆店补价收尾并入库；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
+## 当前状态（截至 2026-10-15 晚）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除；京东山姆店补价收尾并入库；山姆商品查询 H5 已上线 mini.snowmeet.top/sams/；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
 
+- **10-15 晚补充**：山姆商品查询 H5 上线 `https://mini.snowmeet.top/sams/`，数据和图片放在 S3，mini 的 nginx 加了 `/sams` 转发规则，见文件顶部同名一节。
 - **10-15 补充**：京东山姆店补价收尾（738/746），`sams_scrape` 推到 GitHub 公开仓库，见文件顶部 10-15 一节。三张 `.top` 证书 10-14 过期一段时间后，21:39 换成 Let's Encrypt 并改为自动续期（mini.snowmeet.com、img.snowmeet.top 10-15 一并纳入），私钥已改 600，见文件顶部 10-14～15 一节。食材 v4 的状态与下一条相同，本次会话没有动业务代码。
 
 - **本次确认**：SnowmeetApi `ai@76246c61` 已发布；10 张主数据的 enabled 增量 SQL 已执行，valid=0 的 23 行测试数据保持删除，包含停用的列表也不返回它们。停用仍可启用，删除 ID 无法通过保存恢复。服务及线上接口验收通过，详见 [本次会话归档](sessions/2026-10-13_fnb-delete-disable-separation.md)。真机验收、22 项 Windows LocalDB 集成测试及新建食材列表刷新问题仍待处理；其他业务状态见各日期记录。
@@ -616,6 +646,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 山姆商品查询 H5（`sams_scrape` 仓库，分支 `sams-h5`）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
 - 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 - 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
@@ -683,8 +714,13 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- 🚧 **山姆商品查询 H5**（10-15 上线 `https://mini.snowmeet.top/sams/`）
+  1. 用户用手机按清单验收：首页、分类、搜索、详情、分享链接返回、滚动位置、边输入时键盘不收起。
+  2. 看后台整体代码审查的结果，按轻重修。
+  3. 把 `sams_scrape` 的分支 `sams-h5` 合并到 main。
+  4. 可选：抽查价格识别错误的商品，如洪湖粉藕 ¥739。
 - ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
-- ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据的用途用户仍没说明，等用户提需求再处理。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
+- ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据用途已明确：做成店员查价的 H5，10-15 已上线，见下一条。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
 - **2026-10-13 食材 v4 接下来**：`76246c61` 已部署，停用/删除分离及线上过滤验收通过；23 行旧测试数据保持逻辑删除。关闭企业微信旧页面后重进，重新配置分类、区域、检查项、工具（`fnb_unit` 5 个单位保留，不用补种子），再做企业微信登录、OCR、蓝牙出纸及出餐扣减真机验收。Windows 机补跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；「新建食材后列表未刷新」仍待修复。正式业务启用前永久 retire 清理 skill；本次仍为测试阶段。10-13 发布缓存清理后 mini 服务器可用约 1.9 GiB，回滚备份保留。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
@@ -793,6 +829,19 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **同一张山姆截图，在不同 Mac 上识别结果不一样（2026-10-15 发现）**
+  - 识别版本相同（都是第 2 版），但笔记本（Intel，macOS 13）和 Mac mini 识别出的行高、横坐标、分行都有差别。
+    - 例如价格行高 11 / 12，标题横坐标 184.x / 185；
+    - 标题前会多出标签，图片上的字会和标题并成一行；
+    - 全球购的卡在笔记本上识别不出价格。
+  - `scrape.parse_cards` 的阈值是按 Mac mini 调的，在笔记本上会丢 18% 的卡。
+  - H5 裁图已改用 [`site_images.locate_card`](../sams_scrape/site_images.py)：按标题开头加下方价格找卡，不依赖位置阈值。
+  - **以后在笔记本上重新抓取（`scrape.py run`）也会遇到这个问题**，要先拿几页核对，或者放宽阈值。
+- **Intel 笔记本上的识别程序是 `bin/analyze-x86_64`**：用 Swift 5.2 编译，源码已兼容老编译器。`scrape.py` 按 `platform.machine()` 自动选择，Mac mini 仍用 `bin/analyze`。识别必须在命令沙箱外运行。
+- **SnowmeetApi 对 HEAD 请求返回 404（包括 Swagger）**：用 `curl -I` 检查会误报，验收要用 GET（10-15 核实，直连 5000 端口也一样）。
+- **经美国服务器 2222 往 mini 传文件很慢**
+  - 10-15 实测 rsync 约 28 KB/s，55 MB 要传约 25 分钟；mini 往 S3 上传约 1.4 MB/s。
+  - `sams_site.py publish` 每次都把整个 `dist/` 传到 mini 的临时目录，可以改成只传 S3 上还没有的文件。
 - **食材 v4 的删除与停用约定（2026-10-13 更新）**：
   - 31 张 `fnb_v4_` 表都有 `valid bit NOT NULL DEFAULT 1`；更新时间列叫 `updated_at`（UTC），不是旧表的 `update_date`。以后新建 v4 表也要带 `valid`。
   - 30 个实体在 [`FnbSchemaConfiguration.cs`](../SnowmeetApi/Data/FnbSchemaConfiguration.cs) 里按 `valid` 全局过滤，包括原有 10 张主数据；确需查询删除行才用 `IgnoreQueryFilters()`。`FnbRequest`（幂等记录）不过滤以保留请求键，已删除请求必须拒绝重试，不能返回旧响应。
@@ -4633,3 +4682,23 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 2：登录生产服务器只读配置也会被 auto 模式拦下，要先说明要做什么、请用户明确授权，不要换别的办法绕过去。
 - 📌 教训 3：给一次性计划时要说清楚实际做法和原计划的差别（改用 certbot、桶策略从「改 Resource」改成「另加一条」），用户才好判断。
 - 详细归档：[sessions/2026-10-14_ssl-cert-auto-renewal.md](sessions/2026-10-14_ssl-cert-auto-renewal.md)。
+
+### 2026-10-15（下午～晚）：山姆商品查询 H5 设计、实施、上线（笔记本）
+
+- 用户需求：用抓到的山姆商品做手机网页，放在 `mini.snowmeet.top/sams/`，商品数据最好不放 SQL Server。
+- 设计时逐项和用户确认：
+  - 店员查价，不加登录；
+  - 图片用京东图加截图裁图，都放 S3；
+  - 价格只用 App 的；
+  - 页面按分类显示、可以搜索；以后只更新 jsonl 和 S3。
+- ✅ 设计文档、实施计划（8 个任务，每步先写测试）。用户选「在当前会话直接做，最后由审查代理看一遍全部改动」。
+- ✅ 笔记本能运行识别程序了；去重和京东配对抽成函数，重新导出的 Excel 与改前逐行一致；写好网站数据、商品图、网页、生成和发布脚本、nginx 脚本。
+- 🔁 第一次完整生成，有 825 个商品没有图。
+  - 原因：这台机器的识别结果和 Mac mini 不同，`parse_cards` 的规则对不上。
+  - 改用按「标题开头 + 下方价格」找卡，补了测试后只剩 38 个没有图。抽查 80 张，全部对得上商品名。
+- ✅ 本地按手机尺寸逐项检查都通过。发布 5309 个文件到 S3，缓存设置正确。
+- ✅ nginx：用户看过改动后同意修改，`nginx -t` 通过后 reload，线上 `/sams/` 正常。Swagger 用 HEAD 请求返回 404 是 SnowmeetApi 原本就这样，用 GET 正常。
+- 🚧 待办：用户手机验收；后台代码审查结果；`sams-h5` 合并到 main。
+- 📌 教训 1：按一台机器调的识别阈值，换机器会悄悄丢数据。先用临时脚本量化问题、抽查结果，再按测试先行的方式改成按内容匹配。
+- 📌 教训 2：验收时 Swagger 404，先直连对照，确认不是这次改动造成的，不要急着回滚。
+- 详细归档：[sessions/2026-10-15_sams-h5-site.md](sessions/2026-10-15_sams-h5-site.md)。
