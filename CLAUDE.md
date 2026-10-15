@@ -1,5 +1,28 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-14～15：5 个域名证书改为 Let's Encrypt 自动续期，每 75 天一次（笔记本操作）
+
+- **起因**：mini / wxoa / wl 三张 TrustAsia 免费证书 10-14 下午到期，一直没续，**实际过期了一段时间**：wxoa 14:59、wl 15:59、mini 19:59 起 HTTPS 报证书错误，21:39 换上新证书才恢复。这段时间（尤其 mini 19:59～21:39）的支付成功通知可能没送达，靠微信（24 小时）/ 支付宝（25 小时）自动重发补上，**没有逐单核实**。
+- **现在 5 个域名都由 mini 服务器上的 certbot 自动续期**：Ubuntu 官方源的 certbot 1.21，`certbot.timer` 每天检查两次。用户 10-14 授权我操作 mini 服务器，并选择 HTTP-01 验证（不用阿里云 DNS 密钥）。
+
+| 域名 | 证书放在哪 | 验证方式 | 当前到期（北京时间） |
+|---|---|---|---|
+| mini / wxoa / wl.snowmeet.top | `/home/ubuntu/<域名>_cert_chain.pem`、`_key.key`（ubuntu，600），nginx 443 配置没改 | webroot `/var/www/acme` | 2027-01-12 20:40 |
+| mini.snowmeet.com（旧版演示） | `/etc/ssl/certs/mini.snowmeet.com_cert_chain.pem`（root 644）、`/etc/ssl/private/mini.snowmeet.com_key.key`（root 600） | webroot | 2027-01-12 21:03 |
+| img.snowmeet.top | IAM `/cloudfront/img.snowmeet.top-<到期日>-<时分秒>`，CloudFront 分配 `E2O9W3Y5WRBYD2` 引用 | manual：验证文件放进 S3 桶的 `.well-known/acme-challenge/` | 2027-01-13 11:48 |
+
+- **节奏**：每张续期配置都设了 `renew_before_expiry = 15 days`，90 天证书即每 75 天续一次（用户要求）。下一轮：.top 和 .com 约 12-28，img 约 12-29。Let's Encrypt 以后缩短有效期时，间隔会跟着变短。
+- **服务器上的脚本**（都在 `/usr/local/bin/`，由 certbot 调用，续期配置里记着）：
+  - `snowmeet-cert-install.sh`：4 个 nginx 域名的部署钩子，把新证书装到 nginx 原来引用的路径，再 `nginx -t` + reload。日志 `journalctl -t snowmeet-cert`。
+  - `snowmeet-img-acme-auth.sh` / `snowmeet-img-acme-cleanup.sh`：img 的验证文件写进 S3、确认经 CloudFront 能读到；验证完删除。
+  - `snowmeet-img-cert-deploy.py`：img 的部署钩子，上传 IAM → `update-distribution` 切到新证书（失败 30 秒重试，最多 8 次）→ 删除更早的 img 证书，保留刚被替换的那张用于回滚。日志 `journalctl -t snowmeet-img-cert`。
+- **nginx 改动**（443 都没动）：新增 `/etc/nginx/conf.d/snowmeet-top-http80.conf`（mini、wl 原来没有 80 块，现在只放行验证路径，其余照旧 301 到 https）；`sites-available/default` 里 wxoa 的 80 块加了验证路径，原来转发给公众号服务（5001）的部分没动；`conf.d/mini.snowmeet.com.conf` 的 80 块把 server 层的 `return 301` 挪进 `location /` 再加验证路径。
+- **AWS（用户在控制台改的）**：角色 `snowmeet-api-ec2` 加内联策略 `img-cert-auto-renew`（CloudFront 只能读/改这一个分配；IAM 只能上传/读/删 `img.snowmeet.top-*`；S3 只能写/删 `.well-known/acme-challenge/*`）；桶策略原有的 `CloudFrontReadUploadOnly` 没动，另加一条 `CloudFrontReadAcmeChallenge` 让 OAI 读验证目录。角色**没有** `cloudfront:GetDistribution`（查部署状态），脚本用不到。
+- **验收**：5 张证书外网严格校验通过、私钥配对；链最终由 ISRG Root X1 交叉签名；续期演练（测试环境）5 张全成功；实际跑续期检查 5 张都是「还没到续期时间」；img 实际取一张上传图片 200。私钥文件权限已从 777 改成 600。
+- **回滚**：备份在 mini 的 `/home/ubuntu/cert-renew-20261014/`（旧证书、改动前的 nginx 配置；`step2-com/` 是 .com 那一步）。IAM 里原 TrustAsia img 证书 `img.snowmeet.top-20270101`（`ASCAZZXV2IGM2ADAC7IL2`，2027-01-01 到期）还在，可在 CloudFront 控制台切回；下次 img 续期时会被自动删除。
+- **到期提醒**：Let's Encrypt 不再发到期邮件。笔记本（Intel Mac）的 Claude 桌面应用里建了一次性定时任务 `ssl-cert-renewal-check`（2026-12-30 10:00）：登录服务器查 5 张证书并汇报，全部续上就自动排下一轮（新到期日前 14 天）。**这个任务只在这台笔记本上**，应用关着会在下次打开时补跑；无人值守时登录生产服务器或建下一轮可能被权限规则拦下，届时会提示人工检查。
+- 详见 [会话记录](sessions/2026-10-14_ssl-cert-auto-renewal.md)。
+
 ## 2026-10-15：京东山姆店补价收尾（738/746），`sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`
 
 - **补价结果**：746 个商品里 **738 个有山姆会员价，缺 8 个**，用户决定不再补、留空。10-13 23:30～10-15 06:12 在笔记本（`/Users/cangjie/Projects/snowmeet/snowmeet_ai/sams_scrape/`）上续跑，补了 208 个；脚本和节奏没改（27 分钟开一页，403 后静默 62 分钟）。
@@ -132,9 +155,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-15 上午）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除；京东山姆店补价收尾并入库；三张 `.top` 证书已续到 2027-01-12
+## 当前状态（截至 2026-10-15 上午）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除；京东山姆店补价收尾并入库；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
 
-- **10-15 补充**：京东山姆店补价收尾（738/746），`sams_scrape` 推到 GitHub 公开仓库，见文件顶部 10-15 一节。mini / wxoa / wl 三张证书 10-15 经美国服务器核实已续期，新的到期时间都是 2027-01-12 20:40（北京时间）；私钥文件权限有没有从 777 改成 600 没核实。食材 v4 的状态与下一条相同，本次会话没有动业务代码。
+- **10-15 补充**：京东山姆店补价收尾（738/746），`sams_scrape` 推到 GitHub 公开仓库，见文件顶部 10-15 一节。三张 `.top` 证书 10-14 过期一段时间后，21:39 换成 Let's Encrypt 并改为自动续期（mini.snowmeet.com、img.snowmeet.top 10-15 一并纳入），私钥已改 600，见文件顶部 10-14～15 一节。食材 v4 的状态与下一条相同，本次会话没有动业务代码。
 
 - **本次确认**：SnowmeetApi `ai@76246c61` 已发布；10 张主数据的 enabled 增量 SQL 已执行，valid=0 的 23 行测试数据保持删除，包含停用的列表也不返回它们。停用仍可启用，删除 ID 无法通过保存恢复。服务及线上接口验收通过，详见 [本次会话归档](sessions/2026-10-13_fnb-delete-disable-separation.md)。真机验收、22 项 Windows LocalDB 集成测试及新建食材列表刷新问题仍待处理；其他业务状态见各日期记录。
 
@@ -146,7 +169,7 @@
   - ✅ 代码：SnowmeetApi `534aad0c` 新增 [`Services/Storage/FileStorage.cs`](../SnowmeetApi/Services/Storage/FileStorage.cs)，5 处上传（UploadFile 三个、`FnbMaterial/UploadPhoto`、`TicketPoster/Generate`）改写 S3，新文件名随机；磁盘上没有的 `/upload/...` 302 到 img；食材 H5 改同源上传（原来传到已注销的 wanlonghuaxue，一直是坏的）。小程序 `f0afbf7d`：`IMAGE_HOST` 改 img，上传走 API。测试：服务端 420/420（新增 29），小程序 194/194。
   - ✅ 14:33 发布 API（停机约 80 秒）；mini 磁盘 4,326 个文件（1.3 GB，2024-11-07 起）已同步进桶，补同步后逐字节一致；改库 7,803 行（`care.images` 7,779 等 5 列）→ `https://img.snowmeet.top/upload/`，原值备份在 `bak_20261003_*`，脚本 [sql/2026-10-03_upload_urls_to_img_host.sql](sql/2026-10-03_upload_urls_to_img_host.sql)。用户实传一张（`mini_upload` 157724）已核对：只在 S3、img 200、旧地址 302。
   - 📌 库里引用的 14.6 万个文件只有 4,285 个在 mini 上，其余随 wanlonghuaxue 一起没了（滑雪学校 12.9 万张、2025–26 养护开单约 5,000 张等），用户说不要了，记录保留、显示裂图。
-  - 🚧 **下一步**：① ✅ 10-03 用户已上传新版小程序 `f0afbf7d`；待确认 downloadFile 合法域名已加 `https://img.snowmeet.top`，体验版点测上传/显示/海报保存后再提审发布；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ⚠️ **mini/wxoa/wl 三张证书 2026-10-14 到期**（用户自己续）；三个私钥文件权限是 777，建议续证时改 600。
+  - 🚧 **下一步**：① ✅ 10-03 用户已上传新版小程序 `f0afbf7d`；待确认 downloadFile 合法域名已加 `https://img.snowmeet.top`，体验版点测上传/显示/海报保存后再提审发布；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ~~mini/wxoa/wl 三张证书 2026-10-14 到期（用户自己续）；私钥 777 建议改 600~~ —— 10-14 已改为 Let's Encrypt 自动续期、私钥 600，见顶部 10-14～15 一节。
 - **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
   - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
   - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
@@ -373,7 +396,7 @@
 ## 上传文件存储（2026-10-03 起）
 
 - AWS 中国宁夏 S3 私有桶 `snowmeet-uploads-673751646617-cn-northwest-1-an`，对象键 `upload/yyyyMMdd/<文件名>`（`is_web=0` 的在 `private/` 下）。
-- 对外经中国区 CloudFront 分配 `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`），OAI 只能读 `upload/*`；域名 `img.snowmeet.top`（阿里云 DNS CNAME），证书 `img.snowmeet.top-20270101` 在 IAM `/cloudfront/` 下。
+- 对外经中国区 CloudFront 分配 `E2O9W3Y5WRBYD2`（`d1x1fz9csk27wg.cloudfront.cn`），OAI 只能读 `upload/*`；域名 `img.snowmeet.top`（阿里云 DNS CNAME），证书在 IAM `/cloudfront/` 下，10-15 起由 mini 服务器 certbot 自动续期并切换（名字 `img.snowmeet.top-<到期日>-<时分秒>`，见顶部 10-14～15 一节）。
 - mini 服务器经实例角色 `snowmeet-api-ec2` 读写桶，无密钥。约定和坑见「已知遗留」里「上传文件存 S3 的约定」。
 
 ## 技术栈
@@ -660,7 +683,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
-- ✅ **mini / wxoa / wl 三张证书已续期**（10-15 经美国服务器核实，新的到期时间都是 2027-01-12 20:40 北京时间，下次 2027-01 初前续）。三个私钥文件权限是否已从 777 改成 600 没核实，下次登 mini 服务器时顺手看一下。
+- ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
 - ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据的用途用户仍没说明，等用户提需求再处理。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
 - **2026-10-13 食材 v4 接下来**：`76246c61` 已部署，停用/删除分离及线上过滤验收通过；23 行旧测试数据保持逻辑删除。关闭企业微信旧页面后重进，重新配置分类、区域、检查项、工具（`fnb_unit` 5 个单位保留，不用补种子），再做企业微信登录、OCR、蓝牙出纸及出餐扣减真机验收。Windows 机补跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；「新建食材后列表未刷新」仍待修复。正式业务启用前永久 retire 清理 skill；本次仍为测试阶段。10-13 发布缓存清理后 mini 服务器可用约 1.9 GiB，回滚备份保留。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
@@ -843,7 +866,7 @@ dotnet run
   - 服务端凭证来自 EC2 实例角色 `snowmeet-api-ec2`，代码和配置里没有密钥；默认值就是生产配置。本机调试没有 AWS 凭证，上传会报错，可在 appsettings 设 `FileStorage:Provider=Local` 退回写磁盘。
   - `Startup` 里 `UseUploadRedirect`：磁盘上没有的 `/upload/...` 302 到 img，旧版小程序和库里遗留的 mini 地址靠它继续能用。删 `wwwroot/upload` 之后所有老地址都走这条。
   - 新服务器或新环境要访问桶：角色只给了 `ListBucket/GetObject/PutObject`，没有删除权限。
-- **img.snowmeet.top 证书要手动续（2027-01-01 到期）**：中国区 CloudFront 不支持 ACM，证书只能用命令行传到 IAM（控制台不能传），路径必须是 `/cloudfront/`。续期流程：拿到新证书 → mini 服务器上 `aws iam upload-server-certificate --region cn-northwest-1 --path /cloudfront/ ...`（证书正文和中间链要拆开传）→ CloudFront 分配「设置 → 编辑 → 自定义 SSL 证书」换新的。
+- **img.snowmeet.top 证书（10-15 起自动续期）**：中国区 CloudFront 不支持 ACM，证书只能经命令行传到 IAM 的 `/cloudfront/` 路径，再改分配的 `ViewerCertificate.IAMCertificateId`（`Certificate` 字段同步改）。现在由 mini 上的 `snowmeet-img-cert-deploy.py` 自动完成；新上传的 IAM 证书要过一会儿 CloudFront 才认，脚本会重试。验证走 S3 桶 `.well-known/acme-challenge/`：http 访问会被 CloudFront 301 到 https，Let's Encrypt 跟随跳转、不校验旧证书。
 - **Windows 机（`D:\source\snowmeet\ai`）连不上 `mini.snowmeet.top` 的 443**，github 的 22 端口也经常超时。**但能经美国服务器转发登录 mini**：`ssh -p 2222 ubuntu@44.207.251.65`（本机 `~/.ssh/id_ed25519`，2026-10-03 验证）。本机只有老的 `DRIVER={SQL Server}` ODBC 驱动，连生产库不要加 `Encrypt`。
 - **mini 服务器发布 SnowmeetApi 的正确姿势（2026-10-03 踩坑）**：
   - 标准脚本是 `/home/ubuntu/webs/SnowmeetApi/republish.sh`，**以 ubuntu 运行**：git pull → 停服务 → 删 `bin`/`obj` → 删 `SnowmeetApi.*.json` → `dotnet publish -r linux-x64 -c Release -o ./ --self-contained` → 启服务。停机就是整个编译时长（约 80 秒）。
@@ -851,7 +874,12 @@ dotnet run
   - 仓库 `.git` 属于 www-data，ubuntu 没有写权限；root 没有 GitHub 密钥。拉代码用：`sudo GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/id_rsa -o UserKnownHostsFile=/home/ubuntu/.ssh/known_hosts" git -c safe.directory=/home/ubuntu/webs/SnowmeetApi pull --ff-only origin ai`。
   - 磁盘只剩约 1.4 GB（96%），发布前先 `df -h /`。
 - **中国区 AWS 命令行要带 `--region cn-northwest-1`**：连 IAM 这种全局服务也要带，不带会去海外端点，报 `InvalidClientTokenId`。服务器上的 `aws` 是 apt 装的 v1.22，够用。
-- **mini.snowmeet.top / wxoa / wl 三张证书 2026-10-14 到期（10-03 发现）**：都是 TrustAsia 90 天免费证书，放在 `/home/ubuntu/*_cert_chain.pem`，服务器上没有自动续期，用户说自己处理。三个私钥文件权限是 777。
+- **证书自动续期的几个坑（2026-10-14～15）**：
+  - `certbot renew` 在没有终端时会先随机等最多 8 分钟再发请求，手动跑加 `--no-random-sleep-on-renew`；`--dry-run` 用测试环境、**不执行部署钩子**（所以钩子要靠首次签发那次实际验证）。
+  - 某个 server 块在 server 层写了 `return 301`，location 里的验证路径永远轮不到，要把跳转挪进 `location /`。
+  - 某域名没有 80 端口的 server 块时，http 请求落到第一个 `listen 80` 的块（conf.d 先于 sites-enabled、按文件名排序）。新加文件注意名字别抢了默认块。
+  - Let's Encrypt 从 2025 年起不发到期提醒邮件，续期失败没人通知；提醒靠笔记本上的定时任务 `ssl-cert-renewal-check`。
+  - 本机（Intel Mac）登录 mini：`ssh -o HostKeyAlias=161.189.64.210 -o IdentitiesOnly=yes -i ~/.ssh/id_rsa -p 2222 ubuntu@44.207.251.65`（`HostKeyAlias` 让它用 known_hosts 里 mini 的主机密钥校验）。auto 模式会把登录生产服务器读配置判为「生产读取」拦下，需要用户在对话里明确授权。macOS 没有 `timeout` 命令，脚本里别用。
 - **业务规则能在代码里实现，就不要让用户手动跑生产 SQL（2026-09-24 用户纠正）**：分类删除后同名重建报错，我先给了改唯一索引的 SQL，用户明确拒绝——要的是「只在未删除的分类中查重」。终版在代码里查重，并把已删除的同名分类改名让位（`FnbCategoryService.FreeNameAsync`）。结构性迁移（加删列）仍走 `sql/` 脚本由用户执行。
 - **本机 Windows 测试工具在 [`tools/windows_test/`](tools/windows_test/)（2026-09-25）**：
   - 小程序：`"C:\Program Files (x86)\Tencent\微信web开发者工具\node.exe" ../snowmeet_ai_doc/tools/windows_test/run_tests.js tests/*.test.js`（在 `snowmeet_wechat_mini` 下执行；开发者工具自带 node v16 没有 `node:test`，这个脚本代跑）。
@@ -4592,3 +4620,16 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 2：用户正在登录的页面不要去刷新或在里面执行脚本。第一次扫码失败，是因为我排查问题时重载了登录页，用户扫到的是旧码。
 - 📌 教训 3：往公开仓库推抓取数据和截图前，先查清仓库可见性并让用户明确选择；之前这批数据刻意没放进公开的文档仓库。
 - 详细归档：[sessions/2026-10-13_jd-price-resume-laptop.md](sessions/2026-10-13_jd-price-resume-laptop.md)。
+
+### 2026-10-14 ～ 10-15：5 个域名证书改为 Let's Encrypt 自动续期（笔记本）
+
+- start-work（10-14 晚）：文档仓无更新；SnowmeetApi、reqai 各落后 2、3 个提交（已上线版本），只 fetch；小程序仍有 118 个 `legacy/` 生成文件改动。fetch 一开始全部失败，原因是 macOS 没有 `timeout` 命令，去掉后正常。
+- 用户问证书能否自动续。核查时发现**三张 `.top` 证书已过期**（wxoa 14:59、wl 15:59、mini 19:59），当时已是 21:33。用户选「马上做、授权操作 mini 服务器、走 80 端口验证」。
+- ✅ 21:39 mini / wxoa / wl 换成 Let's Encrypt：Ubuntu 源装 certbot（没用原先说的 acme.sh，省去从 GitHub 下载）；新增 mini/wl 的 80 端口块、wxoa 80 块加验证路径；部署钩子把证书写回 nginx 原路径，443 配置不动；私钥 600。外网严格校验、私钥配对、续期演练都通过。
+- ✅ 22:02 mini.snowmeet.com 纳入，并按用户要求把 4 张都设成到期前 15 天续（每 75 天）。
+- ✅ 10-15 12:46 img.snowmeet.top 纳入：用户在控制台给角色加内联策略、桶策略加一条读验证目录；验证文件走 S3、部署钩子上传 IAM 并切 CloudFront。两组边缘节点都返回新证书，实际图片 200。
+- ✅ 笔记本 Claude 桌面应用建了 12-30 10:00 的一次性检查任务 `ssl-cert-renewal-check`，全部续上会自排下一轮。
+- 📌 教训 1：证书到期这种「有确切时间」的事，start-work 当天就该先确认是否已处理；这次等用户问到时已经过期几个小时。
+- 📌 教训 2：登录生产服务器只读配置也会被 auto 模式拦下，要先说明要做什么、请用户明确授权，不要换别的办法绕过去。
+- 📌 教训 3：给一次性计划时要说清楚实际做法和原计划的差别（改用 certbot、桶策略从「改 Resource」改成「另加一条」），用户才好判断。
+- 详细归档：[sessions/2026-10-14_ssl-cert-auto-renewal.md](sessions/2026-10-14_ssl-cert-auto-renewal.md)。
