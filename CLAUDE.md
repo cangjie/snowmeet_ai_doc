@@ -15,7 +15,7 @@
   - 位置：`/etc/nginx/sites-available/default` 里 `mini.snowmeet.top` 的 443 块，在 `location /ws {` 前加了 `location = /sams` 和 `location ^~ /sams/` 两段。
   - 写法：`resolver 127.0.0.53`，`proxy_pass` 用变量，在运行时解析域名。
   - 备份：`default.bak-20261015-sams`。撤回用 `sams_scrape/deploy/nginx_sams.py remove`，再 `nginx -t` 并 reload。
-- **代码**：在 `sams_scrape` 的分支 `sams-h5` 上，已推到 GitHub，**还没合并到 main**。
+- **代码**：已在 `sams_scrape` 的 main 上（10-15 晚由分支 `sams-h5` 快进合并到 `943c29c`，已推 GitHub；本地分支已删，远端 `sams-h5` 分支保留）。
   - 设计：`docs/superpowers/specs/2026-10-15-sams-h5-design.md`；计划：`docs/superpowers/plans/2026-10-15-sams-h5.md`。
   - 测试：Python 47 个、Node 11 个，全部通过。
 - **代码审查与修复（10-15 晚，已重新发布）**：后台审查代理结论「修完再合并」，没有严重问题。修了 5 处，并按测试先行补了测试：
@@ -33,7 +33,7 @@
   - 价格来自截图识别，个别可能认错，如「洪湖粉藕 1kg ¥739」应是 ¥7.39。
 - **待办**
   - 用户用手机验收，包括在 iPhone 上确认左栏最后几个子分类能点到。
-  - 把 `sams-h5` 合并到 main。
+  - ✅ `sams-h5` 已合并到 main（`943c29c`）。
 - 详见 [会话记录](sessions/2026-10-15_sams-h5-site.md)。
 
 ## 2026-10-14～15：5 个域名证书改为 Let's Encrypt 自动续期，每 75 天一次（笔记本操作）
@@ -653,7 +653,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
-- 山姆商品查询 H5（`sams_scrape` 仓库，分支 `sams-h5`）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
+- 山姆商品查询 H5（`sams_scrape` 仓库 main）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
 - 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 - 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
@@ -724,7 +724,7 @@ dotnet run
 - 🚧 **山姆商品查询 H5**（10-15 上线 `https://mini.snowmeet.top/sams/`）
   1. 用户用手机按清单验收：首页、分类、搜索、详情、分享链接返回、滚动位置、边输入时键盘不收起；在 iPhone 上确认左栏最后几个子分类能点到。
   2. ✅ 代码审查要修的 5 处已修好并重新发布（10-15 22:13），另修了 2 组京东图配错；暂不修的 5 个小问题见文件顶部 10-15 山姆 H5 一节。
-  3. 把 `sams_scrape` 的分支 `sams-h5` 合并到 main。
+  3. ✅ `sams-h5` 已快进合并到 main（`943c29c`），合并后测试全过并推送。
   4. 可选：抽查价格识别错误的商品，如洪湖粉藕 ¥739。
 - ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
 - ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据用途已明确：做成店员查价的 H5，10-15 已上线，见下一条。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
@@ -4706,7 +4706,7 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 本地按手机尺寸逐项检查都通过。发布 5309 个文件到 S3，缓存设置正确。
 - ✅ nginx：用户看过改动后同意修改，`nginx -t` 通过后 reload，线上 `/sams/` 正常。Swagger 用 HEAD 请求返回 404 是 SnowmeetApi 原本就这样，用 GET 正常。
 - ✅ 代码审查（后台审查代理）要修的 5 处已修好并重新发布：同系列商品配错图、OCR 错字子分类、搜索对空格敏感、拼音未选字就搜、iPhone 左栏被挡。另查出 2 组京东图配错，一并修了。第一次重新发布时电脑被迫重启，rsync 中断，S3 没有被改动；重跑时 rsync 接着往下传，只上传了变化的 39 张图和页面文件。
-- 🚧 待办：用户手机验收；`sams-h5` 合并到 main。
+- 🚧 待办：用户手机验收。`sams-h5` 已于当晚合并到 main（`943c29c`）。
 - 📌 教训 1：按一台机器调的识别阈值，换机器会悄悄丢数据。先用临时脚本量化问题、抽查结果，再按测试先行的方式改成按内容匹配。
 - 📌 教训 2：验收时 Swagger 404，先直连对照，确认不是这次改动造成的，不要急着回滚。
 - 详细归档：[sessions/2026-10-15_sams-h5-site.md](sessions/2026-10-15_sams-h5-site.md)。
