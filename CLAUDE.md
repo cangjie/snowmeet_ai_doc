@@ -1,5 +1,26 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-15：食材 v4 H5 在 iPhone 上点输入框会放大页面，已修复上线（`ai@712d22d`）；mini 服务器上迁移后剩余的旧图片已删除（笔记本操作）
+
+- **原因**：页面里所有输入框都是 14px。iPhone 上的企业微信（系统网页组件）点到字号小于 16px 的输入框，会自动放大页面，失焦后也不缩回去。viewport 没有限制缩放，所以这个行为没有被拦下。
+- **修改**：
+  - `wwwroot/fnb/v4/app.css`：`input,select,textarea` 统一 16px，`.field` 里的输入框从 14px 改为 16px，选照片的文件框不改。
+  - `index.html` 的样式版本号改成 `20261015-ios-input-zoom`，让企业微信重新下载。
+  - 没有在 viewport 里加 `maximum-scale=1`：在企业微信里会把双指缩放一起禁掉。
+- **测试**：`SnowmeetApi.Tests/H5/fnb-v4.test.cjs` 新增一项，检查所有文字输入控件的字号都不小于 16px。改之前这项失败，改之后 13 项全部通过。
+- **部署**（10-15 17:38）：
+  - 先单独 `git pull --ff-only`，确认版本是 `712d22d`，再跑 `republish.sh`。服务正常运行，`NRestarts=0`，日志无错误。
+  - 线上核对：在 mini 本机经 nginx 读到新版 `index.html`，`app.css` 和仓库里的文件逐字节一致。
+  - ⚠️ 还没在 iPhone 企业微信里实际点过，不能确认页面已不再放大。
+- **mini 服务器清理**（用户要求）：
+  - 删了构建残留 `bin`、`obj`（308M）。
+  - 删了 `wwwroot/upload` 里 10-03 迁到 S3 后留下的 4,326 个文件（1.3G），空目录保留。删除前逐个核对过，S3 `upload/` 下文件都在、大小一致；10-03 之后也没有程序再往这个目录写过文件。
+  - 抽查老地址：现在返回 302 跳到 img，img 返回 200，大小和原文件一致。
+  - 磁盘剩余从 1010M 变成 2.6G（已用 92%）。
+- **还剩一点没清**：桶里的测试文件 `private/_test/s3test.txt` 还在。服务器用的权限只能读写、不能删，要在 AWS 控制台手动删。
+- **用户新增的长期授权**：经跳板登录 mini 部署 SnowmeetApi（`git pull` + `republish.sh`）以后直接做，不再询问。auto 模式的分类器仍可能拦下，见「已知遗留」里的「auto 模式下操作 mini 生产服务器」。
+- 详见 [会话记录](sessions/2026-10-15_fnb-v4-ios-input-zoom-and-upload-cleanup.md)。
+
 ## 2026-10-15：山姆商品查询 H5 上线 https://mini.snowmeet.top/sams/（网页、数据、图片都在 S3，mini nginx 转发）
 
 - **用途**：店员用手机查山姆 App 的商品和价格，按分类浏览、按名字搜索，不加登录。价格只用山姆 App 的（2026-10-10 快照）；京东只用来给配上的商品提供高清图，京东价格不放。
@@ -191,8 +212,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-15 晚）：食材 v4 停用/删除分离已部署，测试数据保持逻辑删除；京东山姆店补价收尾并入库；山姆商品查询 H5 已上线 mini.snowmeet.top/sams/；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
+## 当前状态（截至 2026-10-16）：食材 v4 停用/删除分离已部署，iPhone 输入框放大问题已修复上线（`712d22d`，待真机确认）；mini 的 `wwwroot/upload` 旧图片已删；京东山姆店补价收尾并入库；山姆商品查询 H5 已上线 mini.snowmeet.top/sams/；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
 
+- **10-15 傍晚补充**：食材 v4 H5 输入框字号改成 16px，`712d22d` 已部署；mini 删了 `bin`/`obj` 和 `wwwroot/upload`，磁盘剩 2.6G。见文件顶部同名一节。
 - **10-15 晚补充**：山姆商品查询 H5 上线 `https://mini.snowmeet.top/sams/`，数据和图片放在 S3，mini 的 nginx 加了 `/sams` 转发规则，见文件顶部同名一节。
 - **10-15 补充**：京东山姆店补价收尾（738/746），`sams_scrape` 推到 GitHub 公开仓库，见文件顶部 10-15 一节。三张 `.top` 证书 10-14 过期一段时间后，21:39 换成 Let's Encrypt 并改为自动续期（mini.snowmeet.com、img.snowmeet.top 10-15 一并纳入），私钥已改 600，见文件顶部 10-14～15 一节。食材 v4 的状态与下一条相同，本次会话没有动业务代码。
 
@@ -206,7 +228,7 @@
   - ✅ 代码：SnowmeetApi `534aad0c` 新增 [`Services/Storage/FileStorage.cs`](../SnowmeetApi/Services/Storage/FileStorage.cs)，5 处上传（UploadFile 三个、`FnbMaterial/UploadPhoto`、`TicketPoster/Generate`）改写 S3，新文件名随机；磁盘上没有的 `/upload/...` 302 到 img；食材 H5 改同源上传（原来传到已注销的 wanlonghuaxue，一直是坏的）。小程序 `f0afbf7d`：`IMAGE_HOST` 改 img，上传走 API。测试：服务端 420/420（新增 29），小程序 194/194。
   - ✅ 14:33 发布 API（停机约 80 秒）；mini 磁盘 4,326 个文件（1.3 GB，2024-11-07 起）已同步进桶，补同步后逐字节一致；改库 7,803 行（`care.images` 7,779 等 5 列）→ `https://img.snowmeet.top/upload/`，原值备份在 `bak_20261003_*`，脚本 [sql/2026-10-03_upload_urls_to_img_host.sql](sql/2026-10-03_upload_urls_to_img_host.sql)。用户实传一张（`mini_upload` 157724）已核对：只在 S3、img 200、旧地址 302。
   - 📌 库里引用的 14.6 万个文件只有 4,285 个在 mini 上，其余随 wanlonghuaxue 一起没了（滑雪学校 12.9 万张、2025–26 养护开单约 5,000 张等），用户说不要了，记录保留、显示裂图。
-  - 🚧 **下一步**：① ✅ 10-03 用户已上传新版小程序 `f0afbf7d`；待确认 downloadFile 合法域名已加 `https://img.snowmeet.top`，体验版点测上传/显示/海报保存后再提审发布；② 过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）和桶里 `private/_test/s3test.txt`；③ ~~mini/wxoa/wl 三张证书 2026-10-14 到期（用户自己续）；私钥 777 建议改 600~~ —— 10-14 已改为 Let's Encrypt 自动续期、私钥 600，见顶部 10-14～15 一节。
+  - 🚧 **下一步**：① ✅ 10-03 用户已上传新版小程序 `f0afbf7d`；待确认 downloadFile 合法域名已加 `https://img.snowmeet.top`，体验版点测上传/显示/海报保存后再提审发布；② ~~过几天确认无误后删 mini 的 `wwwroot/upload`（1.3 GB）~~ —— 10-15 已删，删前逐个核对 S3；桶里 `private/_test/s3test.txt` 仍在（实例角色没有删除权限，要在控制台手动删）；③ ~~mini/wxoa/wl 三张证书 2026-10-14 到期（用户自己续）；私钥 777 建议改 600~~ —— 10-14 已改为 Let's Encrypt 自动续期、私钥 600，见顶部 10-14～15 一节。
 - **10-03：美国服务器端口转发（详见 [会话记录](sessions/2026-10-03_us-server-port-forward.md)）**：
   - ✅ `44.207.251.65:2222` → `161.189.64.210:22`；`44.207.251.65:1433` → `161.189.64.210:1433`。用户明确授权公网开放及开机自动启动；systemd socket/service 均 active，两个 socket 均 enabled。
   - ✅ 本机公网 SSH 标识及 SQL Server TDS prelogin 响应验证通过。用户随后 SSH 返回 `Permission denied (publickey)`，属于目标服务器登录密钥认证失败；需使用目标服务器用户名和私钥，不是美国服务器自身的密钥。
@@ -494,7 +516,7 @@ dotnet run
 - `Data/ApplicationDBContext.cs` — EF DbContext
 - `Util.cs` — 全局工具方法
 - `Services/Storage/FileStorage.cs` — 上传文件存储（S3 / Local），所有上传接口都经它写文件
-- `wwwroot/` — 静态管理后台页面（`wwwroot/upload` 是迁 S3 前的旧上传目录，只读保留）
+- `wwwroot/` — 静态管理后台页面（`wwwroot/upload` 是迁 S3 前的旧上传目录，生产服务器上的这批文件已于 2026-10-15 删除，老地址由 `UseUploadRedirect` 302 到 img）
 
 **公众号后台核心路径 (SnowmeetOfficialAccount)：**
 - `Program.cs` / `Startup.cs` — 入口 + 管道配置（`ConfigureServices` 里手动读 `config.sqlServer` 文件拼连接串，同 SnowmeetApi 的约定）
@@ -517,6 +539,8 @@ dotnet run
 ## Git 工作流程授权（2026-10-03）
 
 用户明确要求「以后，所有的git命令，不需要我授权，你自动执行！」执行用户任务所需的 Git 命令时直接执行，不再重复确认；该授权跨会话、跨机有效，仍遵守平台强制权限和任务范围。已固化到 start-work / end-work skills；end-work 继续只自动提交文档仓库，业务仓按用户的任务与部署安排处理。
+
+2026-10-15 用户补充长期授权：「以后此类命令自动放行」——经美国服务器跳板登录 mini，部署 SnowmeetApi（`git pull --ff-only` → 核对 HEAD → `./republish.sh`）以后直接做，不再询问。auto 模式的分类器仍可能拦下，需要用户在设置里加允许规则，见「已知遗留」。
 
 2026-10-06 用户补充长期授权：「以后，运行python，你也可以自动运行，不需要我再授权了。」任务范围内的 Python 命令自动执行，不再重复询问；仍遵守平台强制权限和用户对特定脚本、生产库或部署的限制。本机 workspace 根 `AGENTS.md` 已记录同一偏好。
 
@@ -654,6 +678,7 @@ dotnet run
 
 **关键文件**
 - 山姆商品查询 H5（`sams_scrape` 仓库 main）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
+- 食材 v4 H5 样式与回归测试：[app.css](../SnowmeetApi/wwwroot/fnb/v4/app.css)（输入控件 16px）、[H5 单元测试](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.test.cjs)。
 - 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
 - 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
@@ -728,6 +753,7 @@ dotnet run
   4. 可选：抽查价格识别错误的商品，如洪湖粉藕 ¥739。
 - ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
 - ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据用途已明确：做成店员查价的 H5，10-15 已上线，见下一条。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
+- **2026-10-15 食材 v4 补充**：iPhone 点输入框放大页面的问题已修复并部署（`712d22d`）。待用户在 iPhone 企业微信里关掉页面重进，点输入框确认不再放大。
 - **2026-10-13 食材 v4 接下来**：`76246c61` 已部署，停用/删除分离及线上过滤验收通过；23 行旧测试数据保持逻辑删除。关闭企业微信旧页面后重进，重新配置分类、区域、检查项、工具（`fnb_unit` 5 个单位保留，不用补种子），再做企业微信登录、OCR、蓝牙出纸及出餐扣减真机验收。Windows 机补跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；「新建食材后列表未刷新」仍待修复。正式业务启用前永久 retire 清理 skill；本次仍为测试阶段。10-13 发布缓存清理后 mini 服务器可用约 1.9 GiB，回滚备份保留。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
 - **2026-09-30 当前优先：执行雪季测试方案**。将 [启动指令](docs/testing/2026-09-30-copilot-test-prompt.md) 交给 Copilot，保留当前工作区；先基线与静态/规则测试，再准备本地隔离环境和界面测试，完整结果落 `artifacts/testing/<runId>/`。170 条用例尚未整套执行，不能沿用历史通过数替代；B 环境缺失只阻塞相关用例，D 类人工完成。
@@ -836,6 +862,12 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **H5 页面的输入控件字号必须不小于 16px（2026-10-15）**：iPhone（含企业微信）点到字号小于 16px 的输入框会放大页面，失焦后不缩回。食材 v4 已改，并用 `fnb-v4.test.cjs` 的测试守住；新写 H5 也要遵守。不要靠 viewport `maximum-scale=1` 解决，那样会禁掉双指缩放。其他 H5（`fnb/mat_expire`、`wecom/ble_print_test` 等）还没检查。
+- **auto 模式下操作 mini 生产服务器（2026-10-15）**：
+  - 只读检查、`git pull`、`rm -rf` 都可能被分类器拦下，只说「立刻部署」「继续」也不一定放行。
+  - 用户已长期授权部署（`git pull` + `republish.sh`）。要让命令不被拦，需要用户自己在设置里加 `Bash(ssh -o HostKeyAlias=161.189.64.210 *)`。我改自己的权限配置会被判为自我改权，做不了。
+  - 删除文件会被判为「不可撤销删除」，需要用户在对话里明确说要删。
+  - 本机连美国服务器的 22 端口经常超时，线上核对改在 mini 本机做：`curl --resolve mini.snowmeet.top:443:127.0.0.1 https://mini.snowmeet.top/...`。
 - **同一张山姆截图，在不同 Mac 上识别结果不一样（2026-10-15 发现）**
   - 识别版本相同（都是第 2 版），但笔记本（Intel，macOS 13）和 Mac mini 识别出的行高、横坐标、分行都有差别。
     - 例如价格行高 11 / 12，标题横坐标 184.x / 185；
@@ -927,8 +959,9 @@ dotnet run
 - **mini 服务器发布 SnowmeetApi 的正确姿势（2026-10-03 踩坑）**：
   - 标准脚本是 `/home/ubuntu/webs/SnowmeetApi/republish.sh`，**以 ubuntu 运行**：git pull → 停服务 → 删 `bin`/`obj` → 删 `SnowmeetApi.*.json` → `dotnet publish -r linux-x64 -c Release -o ./ --self-contained` → 启服务。停机就是整个编译时长（约 80 秒）。
   - **不要 `sudo dotnet publish`**：root 没有 NuGet 缓存，会重新下载全部依赖，1.5 GB 余量当场写满磁盘（10-03 实测，已清理）。不删 `SnowmeetApi.*.json` 会报 NETSDK1152（输出目录就是项目目录）。
-  - 仓库 `.git` 属于 www-data，ubuntu 没有写权限；root 没有 GitHub 密钥。拉代码用：`sudo GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/id_rsa -o UserKnownHostsFile=/home/ubuntu/.ssh/known_hosts" git -c safe.directory=/home/ubuntu/webs/SnowmeetApi pull --ff-only origin ai`。
-  - 磁盘只剩约 1.4 GB（96%），发布前先 `df -h /`。
+  - 仓库 `.git` 属于 www-data，ubuntu 没有写权限；root 没有 GitHub 密钥。拉代码用：`sudo GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/id_rsa -o UserKnownHostsFile=/home/ubuntu/.ssh/known_hosts" git -c safe.directory=/home/ubuntu/webs/SnowmeetApi pull --ff-only origin ai`。（2026-10-15 实测：以 ubuntu 直接 `git pull --ff-only` 成功，`republish.sh` 也正常，上面这条备用。）
+  - 2026-10-15 删除 `bin`/`obj` 和 `wwwroot/upload` 后剩 2.6 GB（92%）；每次发布后 `bin`/`obj` 会再占约 300M。发布前先 `df -h /`。
+  - 建议做法：先单独 `git pull --ff-only` 并核对 HEAD，再跑 `republish.sh`。脚本拉取失败也会接着构建。
 - **中国区 AWS 命令行要带 `--region cn-northwest-1`**：连 IAM 这种全局服务也要带，不带会去海外端点，报 `InvalidClientTokenId`。服务器上的 `aws` 是 apt 装的 v1.22，够用。
 - **证书自动续期的几个坑（2026-10-14～15）**：
   - `certbot renew` 在没有终端时会先随机等最多 8 分钟再发请求，手动跑加 `--no-random-sleep-on-renew`；`--dry-run` 用测试环境、**不执行部署钩子**（所以钩子要靠首次签发那次实际验证）。
@@ -4710,3 +4743,16 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 1：按一台机器调的识别阈值，换机器会悄悄丢数据。先用临时脚本量化问题、抽查结果，再按测试先行的方式改成按内容匹配。
 - 📌 教训 2：验收时 Swagger 404，先直连对照，确认不是这次改动造成的，不要急着回滚。
 - 详细归档：[sessions/2026-10-15_sams-h5-site.md](sessions/2026-10-15_sams-h5-site.md)。
+
+### 2026-10-15（傍晚）：start-work + 食材 v4 H5 输入框放大修复上线 + 删 mini 迁移后剩余图片（笔记本）
+
+- start-work：文档仓已最新（`e288674`）；SnowmeetApi、reqai 各落后 2、3 个提交（都是已上线版本），只 fetch；小程序仍是 118 个 `legacy/` 生成文件改动；公众号仓 22 端口超时，改走 443 拉取。reqai 会话 #5 #7 未分析。
+- 用户问：食材 v4 H5 一点输入框页面就放大，失焦后不还原。查到原因是输入框字号 14px，iPhone 对小于 16px 的输入框会自动放大且不缩回。先写测试确认失败，再把输入控件改成 16px，13 项测试通过。SnowmeetApi `712d22d` 已推送。
+- 部署：auto 模式的分类器先拦了两次（只读检查一次、`git pull` 一次）。用户说「放行」后，先单独拉取并核对版本，再跑 `republish.sh`。服务正常；在 mini 本机经 nginx 核对，线上文件与仓库一致。
+- 用户要求「以后此类命令自动放行」：我不能改自己的权限配置（被判为自我改权），把要加的规则给了用户；授权记进了「Git 工作流程授权」一节和本机 memory。
+- 用户要求删掉构建残留和迁移后剩下的图片：删除前逐个核对，4,326 个文件在 S3 都有且大小一致；删除后老地址 302 跳到 img、返回 200。磁盘剩余 1010M → 2.6G。
+- 🚧 待办：iPhone 企业微信真机确认输入框不再放大；用户在设置里加 ssh 允许规则；桶里 `private/_test/s3test.txt` 要在控制台手动删。
+- 📌 教训 1：`republish.sh` 拉取失败也会接着构建。先单独拉取、核对版本再跑脚本，出问题时服务还没停。
+- 📌 教训 2：删生产文件前先核对每个文件有备份（这次用 S3 列表逐个比对大小），并确认删除后老地址会正确跳转。
+- 📌 教训 3：本机连美国服务器的 22 端口超时，就别经美国服务器核对线上了，改在 mini 本机用 `curl --resolve` 走 nginx。
+- 详细归档：[sessions/2026-10-15_fnb-v4-ios-input-zoom-and-upload-cleanup.md](sessions/2026-10-15_fnb-v4-ios-input-zoom-and-upload-cleanup.md)。
