@@ -22,6 +22,11 @@
   - skill 的 LocalDB 验证（`--verify-clear-test-data`）这次没跑。
 - **部署**（10-16 13:53）：用户在对话里明确同意后，先拉到 `7a9cc267` 并核对版本，再跑 `republish.sh`。脚本退出码 0，构建日志没有 ` error `；服务正常运行，`NRestarts=0`。线上 `index.html`、`operations.js` 与仓库文件哈希一致；用无效会话调 `CancelReceiptBatch` 和 `GetBatch` 都返回 code 2，说明新路由已注册；最近 5 分钟服务日志没有错误。磁盘剩 2.1G。`/swagger/v1/swagger.json` 返回 404，没再追查。
 - ⚠️ 还没在手机上实际撤销过一次。企业微信里的旧页面要关掉重进。
+- **按用户要求手工删除批次 `261016-MLK-01`**（10-16 下午，入库已超过 10 分钟，界面不能撤销）：用户在对话里明确同意后，先只读核对，再在一个事务里逻辑删除。
+  - 核对结果：批次 id 11，门店 10，鲜牛奶·独立桶 2000 ml，员工 28 入库。只有一条入库流水（id 19）；入库单 16 上只有这一行。没有派生批次、作业、处置记录或盘点快照。
+  - 删除内容：批次 11、批次明细、入库单行 19、流水 19 设为 valid=0，没有照片；入库单 16 记为 `cancelled`。影响行数和预期一致后才提交。
+  - 和界面撤销的区别：没有写反向流水，批次余量仍是 2000，但这些行都已无效，库存、列表、视图都不统计。
+  - 恢复用的主键记录在本机 `.local/fnb-delete-batch-261016-MLK-01.json`（Windows 机，不入库）。
 
 ## 2026-10-16：食材 v4「新建食材档案」改为先选一级分类、再选二级分类，已上线（`ai@d3ef59d0`，Windows 机）
 
@@ -902,7 +907,7 @@ dotnet run
 
 **已知遗留**
 - **Windows 机跑食材 v4 H5 测试（2026-10-16）**：本机 PATH 里没有 node，用 Codex 运行时自带的 node 24 和它带的 playwright，浏览器用本机 Chrome（测试脚本的默认路径）。在 `SnowmeetApi` 目录下：`NODE_PATH='C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'`，再用 `C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe` 分别跑 `--test SnowmeetApi.Tests/H5/fnb-v4.test.cjs` 和 `SnowmeetApi.Tests/H5/fnb-v4.browser.cjs`。浏览器流程用本机静态服务加拦截的模拟接口，不连生产；截图写到 workspace 的 `.local/fnb-v4-h5-qa/`。
-- **auto 模式部署 mini（2026-10-16，Windows 机）**：`ssh -p 2222 ubuntu@44.207.251.65 '…republish.sh'` 第一次被分类器以「生产部署」拦下，用户在对话里写明同意（登录哪台、拉到哪个版本、执行什么）后，同样的命令就放行了。拉取和发布分两条命令执行，先确认 HEAD 再发布。
+- **auto 模式部署 mini（2026-10-16，Windows 机）**：`ssh -p 2222 ubuntu@44.207.251.65 '…republish.sh'` 第一次被分类器以「生产部署」拦下，用户在对话里写明同意（登录哪台、拉到哪个版本、执行什么）后，同样的命令就放行了。拉取和发布分两条命令执行，先确认 HEAD 再发布。从这台机器用 pyodbc 只读查询生产库也被拦过；用户在对话里写明要查哪些数据、要改什么之后才放行。
 - **H5 页面的输入控件字号必须不小于 16px（2026-10-15）**：iPhone（含企业微信）点到字号小于 16px 的输入框会放大页面，失焦后不缩回。食材 v4 已改，并用 `fnb-v4.test.cjs` 的测试守住；新写 H5 也要遵守。不要靠 viewport `maximum-scale=1` 解决，那样会禁掉双指缩放。其他 H5（`fnb/mat_expire`、`wecom/ble_print_test` 等）还没检查。
 - **auto 模式下操作 mini 生产服务器（2026-10-15）**：
   - 只读检查、`git pull`、`rm -rf` 都可能被分类器拦下，只说「立刻部署」「继续」也不一定放行。
