@@ -1,5 +1,19 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-16：食材 v4「新建食材档案」改为先选一级分类、再选二级分类，已上线（`ai@d3ef59d0`，Windows 机）
+
+- **起因**：用户反馈弹窗里直接列出所有二级分类，以后分类多了选项会太长。
+- **修改**（`wwwroot/fnb/v4/app.js`）：
+  - 弹窗最上面加「一级分类」，只列启用、并且下面有可用二级分类的大类。只有一个这样的大类时自动选中。
+  - 没选一级分类时，二级分类是灰的，提示「请先选择一级分类」；选了以后只列这个大类下的启用小类，只有一个时自动选中。
+  - 基本单位按选中的二级分类联动，逻辑不变。提交的字段也不变，`parentCategoryId` 不发给服务器。
+  - `index.html` 里 app.js 的版本号改成 `20261016-item-parent-category`。
+  - 「新建半成品」弹窗（`operations.js`）仍是直接选半成品分类，没有改。
+- **测试**：新增 `SnowmeetApi.Tests/H5/fnb-v4.item-category-flows.cjs`，接在浏览器流程里。改之前失败，改之后 H5 单元测试 13 项、完整浏览器流程都通过。
+- **部署**（10-16 12:51）：用户在对话里明确同意后，先 `git pull --ff-only` 核对版本是 `d3ef59d0`，再跑 `republish.sh`。脚本退出码 0，构建日志没有 ` error `；服务正常运行，`NRestarts=0`；Swagger GET 200。在 mini 本机经 nginx 读到的 `index.html` 和 `app.js` 与仓库里的文件哈希一致，最近 5 分钟的服务日志里没有错误。磁盘剩 2.3G。
+- ⚠️ 还没在手机企业微信里实际点过。旧页面要关掉重进才会加载新版。
+- 本机跑 H5 浏览器测试的方法见「已知遗留」里的「Windows 机跑食材 v4 H5 测试」。
+
 ## 2026-10-15：食材 v4 H5 在 iPhone 上点输入框会放大页面，已修复上线（`ai@712d22d`）；mini 服务器上迁移后剩余的旧图片已删除（笔记本操作）
 
 - **原因**：页面里所有输入框都是 14px。iPhone 上的企业微信（系统网页组件）点到字号小于 16px 的输入框，会自动放大页面，失焦后也不缩回去。viewport 没有限制缩放，所以这个行为没有被拦下。
@@ -753,6 +767,7 @@ dotnet run
   4. 可选：抽查价格识别错误的商品，如洪湖粉藕 ¥739。
 - ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
 - ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据用途已明确：做成店员查价的 H5，10-15 已上线，见下一条。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
+- **2026-10-16 食材 v4 补充**：新建食材档案先选一级分类、再选二级分类，已部署（`d3ef59d0`）。待用户在手机上关掉旧页面重进确认；「新建半成品」要不要同样处理，待用户决定。
 - **2026-10-15 食材 v4 补充**：iPhone 点输入框放大页面的问题已修复并部署（`712d22d`）。待用户在 iPhone 企业微信里关掉页面重进，点输入框确认不再放大。
 - **2026-10-13 食材 v4 接下来**：`76246c61` 已部署，停用/删除分离及线上过滤验收通过；23 行旧测试数据保持逻辑删除。关闭企业微信旧页面后重进，重新配置分类、区域、检查项、工具（`fnb_unit` 5 个单位保留，不用补种子），再做企业微信登录、OCR、蓝牙出纸及出餐扣减真机验收。Windows 机补跑 22 项 SQL Server 集成测试和 skill 的 LocalDB 验证（先删 `tools/windows_test/ef_create.sql` 缓存）；「新建食材后列表未刷新」仍待修复。正式业务启用前永久 retire 清理 skill；本次仍为测试阶段。10-13 发布缓存清理后 mini 服务器可用约 1.9 GiB，回滚备份保留。
 - **2026-10-06 当前优先：食材 v4 真机验收与收尾**。完整后端/H5 已按后续授权发布，已交付 45 页带图教程；旧第一期停工要求及下方旧版「食材管理上线」「mat_expire」待办不再适用。先复现并修复“新建食材保存成功后列表未刷新”的页面并发刷新问题，再由用户按教程走通企业微信登录、OCR、蓝牙出纸及出餐余额核对。后续部署前先处理上次记录的服务器磁盘空间不足；不要直接重跑旧建表或清理脚本。正式业务启用前永久 retire 临时测试数据清理 skill。
@@ -862,6 +877,8 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **Windows 机跑食材 v4 H5 测试（2026-10-16）**：本机 PATH 里没有 node，用 Codex 运行时自带的 node 24 和它带的 playwright，浏览器用本机 Chrome（测试脚本的默认路径）。在 `SnowmeetApi` 目录下：`NODE_PATH='C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'`，再用 `C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe` 分别跑 `--test SnowmeetApi.Tests/H5/fnb-v4.test.cjs` 和 `SnowmeetApi.Tests/H5/fnb-v4.browser.cjs`。浏览器流程用本机静态服务加拦截的模拟接口，不连生产；截图写到 workspace 的 `.local/fnb-v4-h5-qa/`。
+- **auto 模式部署 mini（2026-10-16，Windows 机）**：`ssh -p 2222 ubuntu@44.207.251.65 '…republish.sh'` 第一次被分类器以「生产部署」拦下，用户在对话里写明同意（登录哪台、拉到哪个版本、执行什么）后，同样的命令就放行了。拉取和发布分两条命令执行，先确认 HEAD 再发布。
 - **H5 页面的输入控件字号必须不小于 16px（2026-10-15）**：iPhone（含企业微信）点到字号小于 16px 的输入框会放大页面，失焦后不缩回。食材 v4 已改，并用 `fnb-v4.test.cjs` 的测试守住；新写 H5 也要遵守。不要靠 viewport `maximum-scale=1` 解决，那样会禁掉双指缩放。其他 H5（`fnb/mat_expire`、`wecom/ble_print_test` 等）还没检查。
 - **auto 模式下操作 mini 生产服务器（2026-10-15）**：
   - 只读检查、`git pull`、`rm -rf` 都可能被分类器拦下，只说「立刻部署」「继续」也不一定放行。
