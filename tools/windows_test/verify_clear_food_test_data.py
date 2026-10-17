@@ -110,6 +110,9 @@ def verify(connection, ef):
         cur.execute(add_valid)
         while cur.nextset():
             pass
+    # The runner already seeded a category to verify that repeated DDL preserves data.
+    existing_categories = list(cur.execute("SELECT id,valid FROM dbo.fnb_v4_category"))
+    existing_live_categories = [key for key, valid in existing_categories if valid is None or valid]
 
     # Real personal and other-business rows: none of them may change.
     staff = insert(cur, "staff", {"name": "real-staff", "gender": "male"})
@@ -180,7 +183,7 @@ def verify(connection, ef):
         assert preview["database_state"] == "preview"
         assert sorted(preview["tables"]) == with_valid and sorted(preview["skipped_no_valid"]) == without_valid
         assert all(preview["tables"][name]["to_invalidate"] > 0 for name in with_valid)
-        assert preview["tables"]["fnb_v4_category"] == {"rows": 3, "to_invalidate": 2, "stamp_columns": ["updated_at"]}
+        assert preview["tables"]["fnb_v4_category"] == {"rows": len(existing_categories) + 3, "to_invalidate": len(existing_live_categories) + 2, "stamp_columns": ["updated_at"]}
         assert preview["tables"]["fnb_v4_tool"]["stamp_columns"] == [] and preview["tables"]["fnb_v4_supply"]["stamp_columns"] == []
         assert sorted(name for name in with_valid if preview["tables"][name]["stamp_columns"]) == sorted(name for name in v4 if "updated_at" in columns(cur, name))
         assert preview["skipped_no_valid"] == {}
@@ -233,7 +236,7 @@ def verify(connection, ef):
             assert cur.execute(f"SELECT COUNT(*) FROM dbo.{clear.quote(name)} WHERE valid<>0").fetchval() == 0, name
             if "updated_at" in columns(cur, name):
                 assert cur.execute(f"SELECT COUNT(*) FROM dbo.{clear.quote(name)} WHERE updated_at=CONVERT(datetime2(3),?,121)", stamp).fetchval() == done["count"], name
-        assert sorted(result["invalidated"]["fnb_v4_category"]["keys"]) == sorted([parent, child])
+        assert sorted(result["invalidated"]["fnb_v4_category"]["keys"]) == sorted(existing_live_categories + [parent, child])
         assert tuple(cur.execute("SELECT valid,CONVERT(varchar(10),updated_at,120) FROM dbo.fnb_v4_category WHERE id=?", disabled).fetchone()) == (False, "2026-01-01")
         for name in all_tables:
             if name not in with_valid:

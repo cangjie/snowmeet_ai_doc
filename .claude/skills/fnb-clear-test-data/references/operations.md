@@ -84,3 +84,7 @@ py tools/windows_test/run_integration_localdb.py --verify-clear-test-data
 运行器会在原有两份建表脚本之后执行 10-12 的两份增量 SQL（补列、索引和视图）及 10-13 的 `enabled` SQL，再比较 EF 模型和库结构。`tools/windows_test/ef_create.sql` 是运行器缓存的 EF 输出，接口模型改过之后要先删掉它让运行器重新生成，否则会报字段不一致。
 
 2026-10-12 改写后，这套验证和接口的 22 项 SQL Server 集成测试都还没有在 Windows LocalDB 上运行过（改动在 Mac 上完成；集成测试只允许连本机 LocalDB）。当天用户决定直接在线上验证，做法和结果见 [CLAUDE.md](../../../../CLAUDE.md) 顶部 2026-10-12 条目。下次在 Windows 机上动这部分之前先把两套都跑一遍。
+
+2026-10-17 补充：Windows LocalDB 清理专项验证已全部通过，包括只读预览、生命周期限制、异常目标拒绝、中途失败整体回滚、31 表逻辑删除、非 v4 数据逐行保留、更新时间、ID 序号和重复执行。修正了验证夹具的分类计数：运行器预先保留的分类也属于清理目标，预期行数和主键清单应包含这条基线记录。接口集成测试已于 10-16 补跑，26 项通过。
+
+同日用户明确指定本机 `SnowmeetApi/config.sqlServer` 为本次连接来源后，已对 `snowmeet_new` 执行本 skill。31 张表中 23 张共 70 条有效记录置为 `valid=0`，另 8 张更新 0 条；事务状态 `committed`，统一写入时间为 UTC `2026-10-17 04:10:36.991`。清理后核验所有 v4 表有效行均为 0、各表总行数不变、受影响记录的更新时间正确；`fnb_unit` 5 行保留，服务 active/running、NRestarts=0。没有物理删除、上传文件操作或其他表更新。逐表行数、受影响主键和核验结果仅保存在本机 workspace 的 `.local/fnb-clear-20261017/`，不提交 Git。
