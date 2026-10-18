@@ -1,5 +1,19 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-18：食材 v4 教程追加进阶示例「帕斯雀牛肉披萨」，共 67 页（Windows 机）
+
+- **需求**：用户要求在 10-06 教程上加一个更复杂的例子，覆盖面粉、马苏里拉、披萨盒、一次性刀叉、酱料、帕斯雀牛肉，一步步演示：入库食材和辅料 → 作业 → 出餐时微调各项用量 → 扣减。
+- **交付**：[67 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-18.pptx)。第 1–45 页是原教程，内容不变；第 46–67 页是新加的 22 页，[说明](docs/fnb/training/README.md)已更新。旧的 10-06 文件已从仓库删除，新文件包含了它的全部内容。
+- **辅料的做法**：「物资」是单独领用的，不随出餐扣减。披萨盒、刀叉要建成「包材辅料 / 一次性用品」分类下的食材（计量方式选「按件数」，单位「个」），再放进配方，出餐时就会一起扣减，也能微调。
+- **截图方式（和 10-06 不同）**：在本机 LocalDB 建临时演示库，按集成测试的方式写入门店、店长和会话；用 `dotnet SnowmeetApi.dll` 在 127.0.0.1:5199 启动，工作目录里放指向演示库的 `config.sqlServer`；再用 Playwright 操作真实页面，把整套流程跑一遍。
+  - 入库、作业、出餐都由真实接口计算。最终库存经接口核对：面粉 24640 g、奶酪 2170 g（另 1 块 2500 g 未开）、牛肉 830 g（另 1 袋 1000 g 未开）、酱 2830 g、盒 48 个、刀叉 197 个。
+  - 没有连接生产库。演示库已删除，本机 API 已停止。
+  - 美团采集看门狗读工作目录下的状态文件，临时目录里没有这个文件，所以不会发提醒。
+  - 脚本和截图在 workspace `.local/fnb-v4-pizza-guide-20261018/`，不入库。
+- **在真实后端上复现了「新建食材后列表未刷新」**：保存后页面同时触发两次渲染。`hashchange` 那次渲染不强制刷新，用的是旧的食材缓存，没有拿到链路；它的渲染代次更新，把强制刷新那次的正确结果丢弃了。食材其实已经建好，重新进入就能看到。还没修。教程第 50 页写了怎么绕开。
+- **校验**：67 页全部渲染过，新增的 22 页逐页检查；包结构、版面、字体、7 张原生表格的校验都通过；没有在原生 PowerPoint 中打开验收。
+- **渲染的坑**：生成工具的渲染器会在「数字 空格 单位」处断行，也不认不换行空格。新增页里数字与汉字、单位之间不留空格（如 1000g、6样），表格不受影响。
+
 ## 2026-10-16：食材 v4 批次详情页可「撤销入库」，只撤销这一个批次，已上线（`ai@7a9cc267`，Windows 机）
 
 - **起因**：用户在批次详情页找不到 10 分钟内删除入库的入口。v4 原来只有入库页确认后出现的「撤销刚才入库」：撤整张入库单，而且离开或刷新页面后按钮就没了。用户要求和旧版一样，只撤销这一个批次。
@@ -729,7 +743,7 @@ dotnet run
 - 山姆商品查询 H5（`sams_scrape` 仓库 main）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
 - 食材 v4 H5 样式与回归测试：[app.css](../SnowmeetApi/wwwroot/fnb/v4/app.css)（输入控件 16px）、[H5 单元测试](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.test.cjs)。
 - 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
-- 食材 v4 新版培训：[45 页 PowerPoint](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-06.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
+- 食材 v4 新版培训：[67 页 PowerPoint（含帕斯雀牛肉披萨进阶示例）](docs/fnb/training/食材管理-v4-从零上手到出餐扣减-2026-10-18.pptx)、[目录与示例核对](docs/fnb/training/README.md)、[H5 功能与入口](docs/fnb/2026-10-06-fnb-v4-h5.md)、[本次归档](sessions/2026-10-06_fnb-v4-training-guide.md)。
 - reqai 任意格式附件：[解析与模型内容](../../reqai/backend/app/attachments.py)、[上传/列表/原件下载](../../reqai/backend/app/routers/attachments.py)、[附件回归测试](../../reqai/backend/tests/test_attachments.py)、[schema 6 迁移](../../reqai/backend/migrations/2026-10-02_attachment_history.sql)；[部署与验收归档](sessions/2026-10-02_reqai-attachment-history.md)。
 - reqai 成本与输出规则：[价格配置](../../reqai/backend/app/config.py)、[费用回归测试](../../reqai/backend/tests/test_pricing.py)、[对话提示词](../../reqai/backend/app/prompts/)、[检索上下文装配](../../reqai/backend/app/retrieval.py)；[同步/部署及验收记录](sessions/2026-10-02_reqai-sync-pricing-concise.md)。
 - 雪季 Copilot 测试交接（2026-09-30）：[测试方案](docs/testing/2026-09-30-copilot-test-plan.md)、[启动指令](docs/testing/2026-09-30-copilot-test-prompt.md)、[用例索引](docs/testing/2026-09-30-copilot-test-cases.json)；[索引生成器](tools/qa/build_test_plan_index.cjs) 仅读写文档，不运行业务测试。
