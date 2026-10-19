@@ -1,5 +1,12 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-19：七色米企业微信库存 H5 第一阶段原型，待用户确认
+
+- 拟用入口 `https://mini.snowmeet.top/wecom/qisemi`；界面参考小程序和食材管理 V4。见 [需求与阶段状态](docs/qisemi/README.md)、[交互原型源码](docs/qisemi/prototype/inventory.html)。
+- 搜索后按同款归组，展开查看尺码、各仓数量；含库存对照、仓库筛选、零库存与负库存展示。所有数量与编号为演示数据，界面归组口径待确认。
+- **用户明确要求分三步，前两步各需确认**：先确认原型，再设计并确认 SQL Server 表结构，最后实现。当前停在第一步；没有建表、导入、业务接口或正式页面发布。
+- 交互逻辑检查通过；企业微信手机验收待进行。后续会考虑库存数据导入 SQL Server 及零售打通，当前未确定表名、字段或接口。
+
 ## 2026-10-19：七色米抓取工具迁入 tools，可在 Windows / macOS 同步运行
 
 - 程序与安装说明：[tools/qisemiyun](tools/qisemiyun/README.md)。标准 Python 3.11+，每台电脑创建自己的虚拟环境并登录；`run.py run --scope inventory` 更新商品和各仓库存，`--scope full` 抓全部时间范围的业务单据、明细、流水和图片附件。

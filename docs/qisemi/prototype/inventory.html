@@ -1,0 +1,251 @@
+<style>
+#qisemi-prototype{color-scheme:light;font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#111827;width:100%;--qs-bg:#f0f2f7;--qs-card:#fff;--qs-ink:#111827;--qs-muted:#6b7280;--qs-blue:#2563eb;--qs-line:#e5e7eb;--qs-red:#dc2626;--qs-green:#15803d}
+#qisemi-prototype *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+#qisemi-prototype [hidden]{display:none!important}
+#qisemi-prototype button,#qisemi-prototype input,#qisemi-prototype select{font:inherit;touch-action:manipulation}
+#qisemi-prototype button{cursor:pointer}
+#qisemi-prototype button:focus-visible,#qisemi-prototype input:focus-visible,#qisemi-prototype select:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+#qisemi-prototype button:disabled{cursor:default;opacity:.45}
+#qisemi-prototype .qs-app{width:100%;max-width:480px;margin:auto;background:var(--qs-bg);border:1px solid var(--qs-line);border-radius:16px;overflow:hidden;position:relative}
+#qisemi-prototype .qs-header{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--qs-card);padding:18px 20px 14px;border-bottom:1px solid var(--qs-line)}
+#qisemi-prototype .qs-heading{min-width:0}
+#qisemi-prototype h1{font-size:18px;font-weight:700;line-height:1.5;margin:0}
+#qisemi-prototype .qs-subtitle{font-size:12px;color:var(--qs-muted);margin:2px 0 0}
+#qisemi-prototype .qs-identity{background:var(--qs-ink);color:#fff;border-radius:99px;padding:5px 10px;white-space:nowrap;font-size:12px;font-weight:600}
+#qisemi-prototype .qs-content{padding:14px 16px 22px}
+#qisemi-prototype .qs-demo{font-size:12px;color:#92400e;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:8px 11px;margin-bottom:12px}
+#qisemi-prototype .qs-search-card{background:var(--qs-card);border-radius:14px;padding:14px;box-shadow:0 2px 20px #00000006}
+#qisemi-prototype .qs-search-row{display:flex;align-items:stretch;gap:8px}
+#qisemi-prototype .qs-input-wrap{position:relative;flex:1;min-width:0}
+#qisemi-prototype .qs-input{width:100%;min-width:0;height:44px;background:#f3f5f9;border:1px solid transparent;border-radius:9px;padding:10px 35px 10px 12px;color:var(--qs-ink);font-size:16px}
+#qisemi-prototype .qs-clear{position:absolute;right:0;top:0;height:44px;width:34px;padding:0;background:none;border:0;font-size:22px;color:var(--qs-muted)}
+#qisemi-prototype .qs-button{border:0;border-radius:99px;background:var(--qs-blue);color:#fff;padding:9px 17px;min-height:44px;font-size:13px;font-weight:600}
+#qisemi-prototype .qs-search-hint{font-size:12px;color:var(--qs-muted);margin-top:8px}
+#qisemi-prototype .qs-filters{display:flex;align-items:center;gap:10px;margin-top:13px;flex-wrap:wrap}
+#qisemi-prototype .qs-warehouse{flex:1;min-width:0;background:#fff;border:1px solid var(--qs-line);border-radius:9px;padding:9px 10px;color:var(--qs-ink);font-size:16px;min-height:44px;max-width:100%}
+#qisemi-prototype .qs-filter-label{color:var(--qs-muted);font-size:12px;flex:none}
+#qisemi-prototype .qs-meta{display:flex;gap:8px;justify-content:space-between;align-items:center;margin:13px 2px 10px;color:var(--qs-muted);font-size:12px}
+#qisemi-prototype .qs-meta strong{font-weight:600;color:var(--qs-ink)}
+#qisemi-prototype .qs-text-button{border:0;background:none;padding:8px 0;min-height:40px;font-size:12px;color:var(--qs-blue);text-align:left}
+#qisemi-prototype .qs-info{background:#fff;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#4b5563}
+#qisemi-prototype .qs-info p{margin:0 0 6px}
+#qisemi-prototype .qs-info p:last-child{margin:0}
+#qisemi-prototype .qs-results{display:flex;flex-direction:column;gap:12px}
+#qisemi-prototype .qs-product{background:var(--qs-card);border-radius:14px;box-shadow:0 2px 20px #00000006;overflow:hidden}
+#qisemi-prototype .qs-product-head{width:100%;padding:15px 14px;display:flex;align-items:flex-start;gap:12px;background:none;border:0;text-align:left;color:var(--qs-ink)}
+#qisemi-prototype .qs-photo{width:66px;height:76px;background:#f3f5f9;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font-size:11px;font-weight:700;color:#475569}
+#qisemi-prototype .qs-photo img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+#qisemi-prototype .qs-product-main{flex:1;min-width:0}
+#qisemi-prototype .qs-brand{font-size:11px;font-weight:700;letter-spacing:.7px;color:var(--qs-muted);text-transform:uppercase}
+#qisemi-prototype .qs-name{font-size:15px;font-weight:700;line-height:1.55;margin:1px 0 5px;overflow-wrap:anywhere}
+#qisemi-prototype .qs-attributes{font-size:11px;color:var(--qs-muted);display:flex;gap:5px 8px;flex-wrap:wrap}
+#qisemi-prototype .qs-overview{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px;font-size:12px;color:var(--qs-muted)}
+#qisemi-prototype .qs-overview b{font-size:16px;font-weight:700;color:var(--qs-ink)}
+#qisemi-prototype .qs-chevron{color:var(--qs-muted);font-size:18px;line-height:1;flex:none;margin-top:4px}
+#qisemi-prototype .qs-detail{border-top:1px solid #eef0f4;padding:13px 14px 12px}
+#qisemi-prototype .qs-detail-top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+#qisemi-prototype .qs-detail-title{font-size:12px;color:var(--qs-muted)}
+#qisemi-prototype .qs-view-switch{display:flex;background:#f2f4f8;border-radius:9px;padding:3px;flex:none}
+#qisemi-prototype .qs-view{border:0;background:none;padding:7px 10px;border-radius:7px;font-size:12px;color:var(--qs-muted);min-height:36px}
+#qisemi-prototype .qs-view[aria-pressed=true]{background:#fff;color:var(--qs-blue);box-shadow:0 1px 4px #0000000b;font-weight:600}
+#qisemi-prototype .qs-sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin-bottom:13px}
+#qisemi-prototype .qs-size{border:1px solid var(--qs-line);border-radius:10px;background:#fff;padding:9px 5px 7px;text-align:center;color:var(--qs-ink);min-height:64px;position:relative}
+#qisemi-prototype .qs-size[aria-pressed=true]{border-color:var(--qs-blue);background:#eff4ff;color:var(--qs-blue);box-shadow:0 0 0 1px var(--qs-blue) inset}
+#qisemi-prototype .qs-size b{display:block;font-size:16px;font-weight:700;line-height:1.5}
+#qisemi-prototype .qs-size span{display:block;font-size:11px;margin-top:2px;color:var(--qs-muted)}
+#qisemi-prototype .qs-size[aria-pressed=true] span{color:var(--qs-blue)}
+#qisemi-prototype .qs-size.qs-size-hit:after{content:"命中";position:absolute;top:-7px;right:-3px;background:var(--qs-blue);color:#fff;font-size:10px;line-height:1.5;padding:0 4px;border-radius:4px}
+#qisemi-prototype .qs-sku-meta{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--qs-muted);margin-bottom:10px;overflow-wrap:anywhere}
+#qisemi-prototype .qs-warehouse-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px 0;border-top:1px solid #eef0f4}
+#qisemi-prototype .qs-warehouse-title{font-size:13px;font-weight:600}
+#qisemi-prototype .qs-check{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--qs-muted);min-height:36px}
+#qisemi-prototype .qs-check input{accent-color:var(--qs-blue);width:16px;height:16px;margin:0}
+#qisemi-prototype .qs-warehouse-search{display:block;width:100%;padding:8px 10px;min-height:40px;border:1px solid var(--qs-line);border-radius:8px;font-size:16px;color:var(--qs-ink);margin-bottom:6px;background:#fff}
+#qisemi-prototype .qs-stock-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #f1f3f6;padding:10px 0;font-size:12px;min-height:44px}
+#qisemi-prototype .qs-stock-row:last-child{border-bottom:0}
+#qisemi-prototype .qs-warehouse-name{flex:1;min-width:0;overflow-wrap:anywhere}
+#qisemi-prototype .qs-quantity{font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;white-space:nowrap}
+#qisemi-prototype .qs-quantity small{font-size:11px;color:var(--qs-muted);font-weight:400;margin-left:4px}
+#qisemi-prototype .qs-negative{color:var(--qs-red)}
+#qisemi-prototype .qs-zero{color:#9ca3af}
+#qisemi-prototype .qs-negative-label{font-size:10px;font-weight:400;background:#fef2f2;border-radius:4px;padding:2px 4px;color:var(--qs-red);margin-left:5px}
+#qisemi-prototype .qs-stock-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f8faff;border-radius:8px;padding:9px 10px;margin-top:9px;font-size:12px}
+#qisemi-prototype .qs-stock-note{font-size:11px;color:var(--qs-muted);margin:9px 0 0;line-height:1.8}
+#qisemi-prototype .qs-table-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
+#qisemi-prototype .qs-table{width:100%;border-collapse:separate;border-spacing:0;min-width:370px;font-size:12px;font-variant-numeric:tabular-nums}
+#qisemi-prototype .qs-table th,#qisemi-prototype .qs-table td{padding:10px 8px;text-align:right;border-bottom:1px solid #eef0f4;min-width:52px}
+#qisemi-prototype .qs-table th{font-size:11px;color:var(--qs-muted);font-weight:600;background:#f8faff;white-space:nowrap}
+#qisemi-prototype .qs-table th:first-child,#qisemi-prototype .qs-table td:first-child{position:sticky;left:0;text-align:left;min-width:150px;max-width:170px;background:#fff;box-shadow:2px 0 3px #00000004}
+#qisemi-prototype .qs-table th:first-child{background:#f8faff}
+#qisemi-prototype .qs-table tfoot td{font-weight:600;background:#f8faff}
+#qisemi-prototype .qs-table tfoot td:first-child{background:#f8faff}
+#qisemi-prototype .qs-table-caption{font-size:11px;color:var(--qs-muted);padding:8px 0;text-align:left}
+#qisemi-prototype .qs-empty{text-align:center;padding:26px 14px;color:var(--qs-muted);font-size:13px}
+#qisemi-prototype .qs-empty strong{display:block;font-size:14px;color:var(--qs-ink);margin-bottom:5px}
+#qisemi-prototype .qs-match-hint{font-size:11px;color:var(--qs-blue);margin-bottom:10px}
+#qisemi-prototype .qs-footnote{font-size:11px;color:var(--qs-muted);text-align:center;padding-top:16px}
+@media(max-width:360px){#qisemi-prototype .qs-content{padding-left:10px;padding-right:10px}#qisemi-prototype .qs-header{padding-left:14px;padding-right:14px}#qisemi-prototype .qs-photo{width:50px;height:68px}#qisemi-prototype .qs-product-head{gap:9px;padding-left:12px;padding-right:12px}#qisemi-prototype .qs-name{font-size:14px}#qisemi-prototype .qs-detail{padding-left:12px;padding-right:12px}#qisemi-prototype .qs-detail-top{gap:7px}#qisemi-prototype .qs-filter-label{display:none}}
+@media(pointer:coarse){#qisemi-prototype .qs-view,#qisemi-prototype .qs-check,#qisemi-prototype .qs-text-button,#qisemi-prototype .qs-warehouse-search{min-height:44px}}
+</style>
+<div id="qisemi-prototype" class="viz-dotted-background" aria-label="七色米库存查询手机原型">
+  <div class="qs-app">
+    <header class="qs-header">
+      <div class="qs-heading"><h1>七色米库存查询</h1><p class="qs-subtitle">Snowmeet · 门店查货</p></div>
+      <span class="qs-identity">员工端</span>
+    </header>
+    <main class="qs-content">
+      <div class="qs-demo">界面原型 · 库存数量均为演示数据</div>
+      <form class="qs-search-card" id="qs-search-form" role="search">
+        <div class="qs-search-row">
+          <div class="qs-input-wrap">
+            <label class="qs-sr-only" for="qs-keyword" style="position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">搜索商品名称、品牌、款号、条码或尺码</label>
+            <input class="qs-input" id="qs-keyword" type="search" value="Fischer 110" placeholder="商品名称 / 品牌 / 款号 / 条码" autocomplete="off" enterkeyhint="search">
+            <button class="qs-clear" id="qs-clear" type="button" aria-label="清空搜索">×</button>
+          </div>
+          <button class="qs-button" type="submit">搜索</button>
+        </div>
+        <div class="qs-search-hint">支持多个关键词，如 RC4 110、U06424、26.5</div>
+        <div class="qs-filters"><label class="qs-filter-label" for="qs-warehouse-filter">查看库存</label><select class="qs-warehouse" id="qs-warehouse-filter" aria-label="按仓库筛选库存"></select></div>
+      </form>
+      <div class="qs-meta"><span id="qs-result-count" role="status" aria-live="polite"></span><button class="qs-text-button" id="qs-about" type="button" aria-expanded="false" aria-controls="qs-data-info">数据说明</button></div>
+      <section class="qs-info" id="qs-data-info" aria-label="库存数据说明" hidden>
+        <p><strong>演示快照：10月19日 18:00</strong></p>
+        <p>本原型仅演示查询方式，数量不代表实际库存。正式页面将显示最近一次成功导入的时间。</p>
+        <p>库存合计按当前选择的仓库计算，包含负数；负库存不直接作为可售数量。零库存尺码仍保留展示。</p>
+      </section>
+      <div class="qs-results" id="qs-results"></div>
+      <div class="qs-footnote">库存按款式归组 · 尺码与原商品一一对应<br>演示快照 10-19 18:00</div>
+    </main>
+  </div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const root = document.getElementById('qisemi-prototype');
+  if (!root) return;
+  const image = '__QISEMI_BOOT_IMAGE__';
+  const warehouses = [
+    {id:'flagship',name:'【旗舰】零售商品仓'},
+    {id:'nanshan',name:'【南山】零售商品仓'},
+    {id:'wanlong',name:'【万龙】体验商品仓'},
+    {id:'newseason',name:'【新雪季】零售仓'},
+    {id:'issues',name:'【旗舰】问题商品仓'},
+    {id:'checkin',name:'【旗舰】核对入库仓'},
+    {id:'checkout',name:'【旗舰】核对出库仓'},
+    {id:'central',name:'【总部】备用商品仓'},
+    {id:'exhibit',name:'【旗舰】展示商品仓'}
+  ];
+  const specifications = [
+    {key:'rc4-110',brand:'Fischer',model:'RC4 110 MV BOA VAC',style:'U06424',season:'24-25',color:'RHINO GREY',colorName:'犀牛灰',gender:'中性',unit:'双',aliases:'费舍尔 菲舍尔 双板鞋 雪鞋 BOA',photo:true,
+      sizes:[['25.5','DEMO-110-255',[3,1,2,0,0,0,0,0,0]],['26.5','DEMO-110-265',[6,2,1,2,-1,3,-2,0,0]],['27.5','DEMO-110-275',[0,0,0,0,0,0,0,0,0]]]},
+    {key:'rc4-110-next',brand:'Fischer',model:'RC4 110 MV BOA VAC',style:'U06425',season:'25-26',color:'RHINO GREY',colorName:'犀牛灰',gender:'中性',unit:'双',aliases:'费舍尔 菲舍尔 双板鞋 雪鞋 BOA',photo:false,
+      sizes:[['25.5','DEMO-NEXT-255',[2,0,1,0,0,0,0,0,0]],['26.5','DEMO-NEXT-265',[1,1,0,0,0,0,0,0,0]],['27.5','DEMO-NEXT-275',[0,1,1,0,0,0,0,0,0]]]},
+    {key:'rc4-130',brand:'Fischer',model:'RC4 130 MV BOA VAC',style:'DEMO-U130',season:'24-25',color:'BLACK',colorName:'黑色',gender:'中性',unit:'双',aliases:'费舍尔 菲舍尔 双板鞋 雪鞋 BOA',photo:false,
+      sizes:[['25.5','DEMO-130-255',[1,0,0,0,0,0,0,0,0]],['26.5','DEMO-130-265',[2,0,1,0,0,0,0,0,0]],['27.5','DEMO-130-275',[0,2,0,0,0,0,0,0,0]]]},
+    {key:'hawx',brand:'Atomic',model:'HAWX PRIME 110 S BOA GW',style:'DEMO-AE110',season:'24-25',color:'BLACK RED',colorName:'黑红',gender:'男款',unit:'双',aliases:'阿托米克 霍克斯 双板鞋 雪鞋',photo:false,
+      sizes:[['25.5','DEMO-HAWX-255',[2,0,0,1,0,0,0,0,0]],['26.5','DEMO-HAWX-265',[1,1,1,0,0,0,0,0,0]],['27.5','DEMO-HAWX-275',[1,0,1,0,0,0,0,0,0]],['28.5','DEMO-HAWX-285',[0,0,0,0,0,0,0,0,0]]]}
+  ];
+  // The display grouping is a prototype proposal, not an approved SQL model.
+  const skus = specifications.flatMap(spec => spec.sizes.map(([size,code,stock]) => ({...spec,size,code,stock,sizes:undefined})));
+  const groupingKey = sku => [sku.brand,sku.style,sku.model,sku.season,sku.color,sku.gender,sku.unit].join('|');
+  const groups = Array.from(skus.reduce((map,sku) => {
+    const key=groupingKey(sku);
+    if(!map.has(key))map.set(key,{...sku,variants:[]});
+    map.get(key).variants.push(sku);return map;
+  },new Map()).values());
+  const input=root.querySelector('#qs-keyword');
+  const warehouseFilter=root.querySelector('#qs-warehouse-filter');
+  const results=root.querySelector('#qs-results');
+  const saved=globalThis.openai?.widgetState?.privateContent;
+  const state={keyword:typeof saved?.keyword==='string'?saved.keyword:'Fischer 110',warehouse:warehouses.some(w=>w.id===saved?.warehouse)?saved.warehouse:'all',expanded:new Set(Array.isArray(saved?.expanded)?saved.expanded.filter(key=>groups.some(g=>g.key===key)):['rc4-110']),active:saved?.active||{'rc4-110':'26.5'},views:saved?.views||{},zero:saved?.zero||{},warehouseSearch:saved?.warehouseSearch||{}};
+  const escape = value => String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const normalize = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s\-_/·]+/g,'');
+  const tokens = () => state.keyword.trim().normalize('NFKC').toLowerCase().split(/\s+/).filter(Boolean).map(normalize);
+  const matches = sku => tokens().every(token=>normalize([sku.brand,sku.model,sku.style,sku.season,sku.color,sku.colorName,sku.gender,sku.size,sku.code,sku.aliases].join(' ')).includes(token));
+  const warehouseIndices = () => warehouses.map((w,i)=>i).filter(i=>state.warehouse==='all'||warehouses[i].id===state.warehouse);
+  const quantity = sku => warehouseIndices().reduce((sum,i)=>sum+sku.stock[i],0);
+  const groupQuantity = group => group.variants.reduce((sum,sku)=>sum+quantity(sku),0);
+  const formatQuantity = value => `<span class="${value<0?'qs-negative':value===0?'qs-zero':''}">${value}</span>`;
+  const persist = () => {
+    if(globalThis.openai?.setWidgetState)globalThis.openai.setWidgetState({modelContent:{keyword:state.keyword,warehouse:state.warehouse,expandedProducts:[...state.expanded],activeSizes:state.active},privateContent:{keyword:state.keyword,warehouse:state.warehouse,expanded:[...state.expanded],active:state.active,views:state.views,zero:state.zero,warehouseSearch:state.warehouseSearch}}).catch(()=>{});
+  };
+  function visibleWarehouseRows(group,sku,allSizes){
+    return warehouseIndices().filter(i=>{
+      const query=normalize(state.warehouseSearch[group.key]||'');
+      return (!query||normalize(warehouses[i].name).includes(query))&&(state.zero[group.key]||(allSizes?group.variants.some(s=>s.stock[i]!==0):sku.stock[i]!==0));
+    });
+  }
+  function stockTools(group,sku,allSizes){
+    return `<div class="qs-warehouse-tools"><span class="qs-warehouse-title">${allSizes?'各仓尺码库存':escape(sku.size)+' 码 · 各仓库存'}</span><label class="qs-check"><input type="checkbox" data-action="zero" data-group="${group.key}" ${state.zero[group.key]?'checked':''}>显示零库存仓</label></div><input class="qs-warehouse-search" type="search" aria-label="筛选当前产品的仓库" placeholder="查找仓库，如：旗舰、南山" data-action="warehouse-search" data-group="${group.key}" value="${escape(state.warehouseSearch[group.key]||'')}">`;
+  }
+  function stockPanel(group){
+    const sku=group.variants.find(s=>s.size===state.active[group.key])||group.variants[0];
+    const matrix=state.views[group.key]==='matrix';
+    const rows=visibleWarehouseRows(group,sku,matrix);
+    const unit=escape(group.unit);
+    if(matrix){
+      const table=`<div class="qs-table-scroll" role="region" aria-label="${escape(group.model)}各仓尺码库存对照表"><table class="qs-table"><caption class="qs-table-caption">单位：${unit} · 左右滑动查看全部尺码</caption><thead><tr><th scope="col">仓库</th>${group.variants.map(s=>`<th scope="col">${escape(s.size)}</th>`).join('')}<th scope="col">合计</th></tr></thead><tbody>${rows.map(i=>`<tr><th scope="row">${escape(warehouses[i].name)}</th>${group.variants.map(s=>`<td>${formatQuantity(s.stock[i])}</td>`).join('')}<td>${formatQuantity(group.variants.reduce((n,s)=>n+s.stock[i],0))}</td></tr>`).join('')}</tbody><tfoot><tr><td>所选仓库合计</td>${group.variants.map(s=>`<td>${formatQuantity(quantity(s))}</td>`).join('')}<td>${formatQuantity(groupQuantity(group))}</td></tr></tfoot></table></div>`;
+      return `${stockTools(group,sku,true)}${rows.length?table:'<div class="qs-empty">没有符合筛选条件的仓库</div>'}<p class="qs-stock-note">负数以红色显示；合计包含负库存。仓库关键词仅筛选明细，不改变所选仓库合计。</p>`;
+    }
+    const negativeCount=warehouseIndices().filter(i=>sku.stock[i]<0).length;
+    return `<div class="qs-sizes">${group.variants.map(s=>`<button class="qs-size ${matches(s)&&tokens().some(t=>t===normalize(s.size)||t===normalize(s.code))?'qs-size-hit':''}" type="button" data-action="size" data-group="${group.key}" data-size="${escape(s.size)}" aria-pressed="${s.size===sku.size}" aria-label="${escape(s.size)}码，所选仓库库存${quantity(s)}${unit}"><b>${escape(s.size)}</b><span>${quantity(s)===0?'暂无库存':quantity(s)+' '+unit}</span></button>`).join('')}</div><div class="qs-sku-meta"><span>商品编号 ${escape(sku.code)}</span><span>${escape(group.colorName)} · ${escape(group.gender)}</span></div>${stockTools(group,sku,false)}<div class="qs-stock-rows">${rows.length?rows.map(i=>`<div class="qs-stock-row"><span class="qs-warehouse-name">${escape(warehouses[i].name)}</span><span class="qs-quantity ${sku.stock[i]<0?'qs-negative':''}">${sku.stock[i]}<small>${unit}</small>${sku.stock[i]<0?'<span class="qs-negative-label">负库存</span>':''}</span></div>`).join(''):`<div class="qs-empty">${quantity(sku)===0&&!warehouseIndices().some(i=>sku.stock[i]!==0)?'该尺码在所选仓库暂无库存':'没有符合筛选条件的仓库'}<br><span class="qs-subtitle">可切换“显示零库存仓”或调整仓库关键词</span></div>`}</div><div class="qs-stock-footer"><span>所选仓库合计${negativeCount?' · 含'+negativeCount+'个负库存仓':''}</span><strong>${formatQuantity(quantity(sku))} ${unit}</strong></div><p class="qs-stock-note">库存为账面数量，包含问题仓、核对仓等。该合计不直接作为可售数量。</p>`;
+  }
+  function render(){
+    const matched=groups.filter(g=>g.variants.some(matches));
+    root.querySelector('#qs-result-count').innerHTML=`<strong>${matched.length} 款</strong> · ${matched.reduce((n,g)=>n+g.variants.length,0)} 个尺码商品`;
+    root.querySelector('#qs-clear').hidden=!input.value;
+    if(!matched.length){results.innerHTML='<section class="qs-product qs-empty"><strong>未找到匹配商品</strong>试试品牌、型号、款号或尺码<br><button class="qs-text-button" type="button" data-action="clear">清空关键词，查看全部商品</button></section>';return;}
+    results.innerHTML=matched.map(group=>{
+      const expanded=state.expanded.has(group.key);
+      const matching=group.variants.filter(matches);
+      const view=state.views[group.key]||'size';
+      const photo=group.photo&&image.startsWith('data:image/')?`<img src="${image}" alt="Fischer RC4 110 MV BOA 雪鞋">`:escape(group.brand.toUpperCase());
+      return `<article class="qs-product"><button class="qs-product-head" type="button" data-action="expand" data-group="${group.key}" aria-expanded="${expanded}" aria-controls="qs-detail-${group.key}"><span class="qs-photo">${photo}</span><span class="qs-product-main"><span class="qs-brand">${escape(group.brand)} · 双板雪鞋</span><span class="qs-name" style="display:block">${escape(group.model)}</span><span class="qs-attributes"><span>款号 ${escape(group.style)}</span><span>${escape(group.season)} 雪季</span><span>${escape(group.colorName)}</span></span><span class="qs-overview"><span>${group.variants.length} 个尺码 · ${expanded?'收起':'展开查看'}</span><span>合计 <b>${groupQuantity(group)}</b> ${escape(group.unit)}</span></span></span><span class="qs-chevron" aria-hidden="true">${expanded?'⌃':'⌄'}</span></button><div class="qs-detail" id="qs-detail-${group.key}" ${expanded?'':'hidden'}><div class="qs-detail-top"><span class="qs-detail-title">同款尺码 · ${state.warehouse==='all'?'全部仓库':'所选仓库'}</span><div class="qs-view-switch" role="group" aria-label="库存查看方式"><button class="qs-view" type="button" data-action="view" data-group="${group.key}" data-view="size" aria-pressed="${view==='size'}">按尺码</button><button class="qs-view" type="button" data-action="view" data-group="${group.key}" data-view="matrix" aria-pressed="${view==='matrix'}">库存对照</button></div></div>${matching.length<group.variants.length?'<div class="qs-match-hint">搜索命中 '+matching.map(s=>escape(s.size)).join('、')+' 码，仍保留本款全部尺码</div>':''}<div data-stock-panel="${group.key}">${stockPanel(group)}</div></div></article>`;
+    }).join('');
+  }
+  function applySearch(){
+    state.keyword=input.value.trim();
+    const matched=groups.filter(g=>g.variants.some(matches));
+    const explicitSize=tokens().find(t=>skus.some(s=>normalize(s.size)===t||normalize(s.code)===t));
+    if(explicitSize)matched.forEach(g=>{const match=g.variants.find(s=>matches(s));if(match){state.active[g.key]=match.size;state.expanded.add(g.key);state.views[g.key]='size';}});
+    else if(matched.length===1)state.expanded.add(matched[0].key);
+    render();persist();
+  }
+  input.value=state.keyword;
+  warehouseFilter.innerHTML='<option value="all">全部仓库</option>'+warehouses.map(w=>`<option value="${w.id}">${escape(w.name)}</option>`).join('');
+  warehouseFilter.value=state.warehouse;
+  root.querySelector('#qs-search-form').addEventListener('submit',event=>{event.preventDefault();applySearch();});
+  let searchTimer;
+  input.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(applySearch,180);});
+  root.querySelector('#qs-clear').addEventListener('click',()=>{clearTimeout(searchTimer);input.value='';applySearch();input.focus();});
+  warehouseFilter.addEventListener('change',()=>{state.warehouse=warehouseFilter.value;render();persist();});
+  root.querySelector('#qs-about').addEventListener('click',event=>{const target=root.querySelector('#qs-data-info');target.hidden=!target.hidden;event.currentTarget.setAttribute('aria-expanded',String(!target.hidden));});
+  results.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-action]');if(!button)return;
+    const group=button.dataset.group;
+    if(button.dataset.action==='clear'){input.value='';applySearch();input.focus();return;}
+    if(button.dataset.action==='expand'){if(state.expanded.has(group))state.expanded.delete(group);else state.expanded.add(group);}
+    if(button.dataset.action==='size'){state.active[group]=button.dataset.size;}
+    if(button.dataset.action==='view'){state.views[group]=button.dataset.view;}
+    render();persist();
+    const selector=button.dataset.action==='expand'?`button[data-action="expand"][data-group="${group}"]`:button.dataset.action==='size'?`button[data-action="size"][data-group="${group}"][data-size="${button.dataset.size}"]`:`button[data-action="view"][data-group="${group}"][data-view="${button.dataset.view}"]`;
+    root.querySelector(selector)?.focus({preventScroll:true});
+  });
+  results.addEventListener('change',event=>{if(event.target.dataset.action==='zero'){const key=event.target.dataset.group;state.zero[key]=event.target.checked;render();persist();root.querySelector(`input[data-action="zero"][data-group="${key}"]`)?.focus({preventScroll:true});}});
+  results.addEventListener('input',event=>{
+    const target=event.target;if(target.dataset.action!=='warehouse-search')return;
+    const key=target.dataset.group;state.warehouseSearch[key]=target.value;
+    const start=target.selectionStart;root.querySelector(`[data-stock-panel="${key}"]`).innerHTML=stockPanel(groups.find(g=>g.key===key));
+    const next=root.querySelector(`input[data-action="warehouse-search"][data-group="${key}"]`);next.focus({preventScroll:true});try{next.setSelectionRange(start,start);}catch(error){}
+  });
+  window.addEventListener('openai:set_globals',event=>{
+    const stored=event.detail?.globals?.widgetState?.privateContent;if(!stored)return;
+    if(typeof stored.keyword==='string'){state.keyword=stored.keyword;input.value=stored.keyword;}
+    if(stored.warehouse==='all'||warehouses.some(w=>w.id===stored.warehouse)){state.warehouse=stored.warehouse;warehouseFilter.value=stored.warehouse;}
+    if(Array.isArray(stored.expanded))state.expanded=new Set(stored.expanded.filter(key=>groups.some(g=>g.key===key)));
+    for(const field of ['active','views','zero','warehouseSearch'])if(stored[field]&&typeof stored[field]==='object')state[field]=stored[field];
+    render();
+  });
+  render();
+})();
+</script>
