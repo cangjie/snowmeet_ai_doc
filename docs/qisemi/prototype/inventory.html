@@ -93,7 +93,13 @@
       <div class="qs-heading"><h1>七色米库存查询</h1><p class="qs-subtitle">Snowmeet · 门店查货</p></div>
       <span class="qs-identity">员工端</span>
     </header>
-    <main class="qs-content">
+    <nav class="qs-data-nav" aria-label="七色米主要功能">
+      <button type="button" data-qs-tab="inventory" aria-current="page">查库存</button>
+      <button type="button" data-qs-tab="business">业务单据</button>
+      <button type="button" data-qs-tab="archives">基础档案</button>
+      <button type="button" data-qs-tab="more">更多数据</button>
+    </nav>
+    <main class="qs-content" id="qs-inventory-view">
       <div class="qs-demo">界面原型 · 库存数量均为演示数据</div>
       <form class="qs-search-card" id="qs-search-form" role="search">
         <div class="qs-search-row">
@@ -115,6 +121,10 @@
       </section>
       <div class="qs-results" id="qs-results"></div>
       <div class="qs-footnote">库存按款式归组 · 尺码与原商品一一对应<br>演示快照 10-19 18:00</div>
+    </main>
+    <main class="qs-content" id="qs-browser-view" hidden>
+      <div class="qs-demo">界面原型 · 所有记录、金额与数量均为演示</div>
+      <div id="qs-data-screen"></div>
     </main>
   </div>
 </div>
@@ -156,7 +166,9 @@
   const input=root.querySelector('#qs-keyword');
   const warehouseFilter=root.querySelector('#qs-warehouse-filter');
   const results=root.querySelector('#qs-results');
-  const saved=globalThis.openai?.widgetState?.privateContent;
+  const previous=globalThis.openai?.widgetState?.privateContent||{};
+  const saved=previous.inventory||previous;
+  root.qsUiState={inventory:saved,portal:previous.portal||{}};
   const state={keyword:typeof saved?.keyword==='string'?saved.keyword:'Fischer 110',warehouse:warehouses.some(w=>w.id===saved?.warehouse)?saved.warehouse:'all',expanded:new Set(Array.isArray(saved?.expanded)?saved.expanded.filter(key=>groups.some(g=>g.key===key)):['rc4-110']),active:saved?.active||{'rc4-110':'26.5'},views:saved?.views||{},zero:saved?.zero||{},warehouseSearch:saved?.warehouseSearch||{}};
   const escape = value => String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const normalize = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s\-_/·]+/g,'');
@@ -167,7 +179,8 @@
   const groupQuantity = group => group.variants.reduce((sum,sku)=>sum+quantity(sku),0);
   const formatQuantity = value => `<span class="${value<0?'qs-negative':value===0?'qs-zero':''}">${value}</span>`;
   const persist = () => {
-    if(globalThis.openai?.setWidgetState)globalThis.openai.setWidgetState({modelContent:{keyword:state.keyword,warehouse:state.warehouse,expandedProducts:[...state.expanded],activeSizes:state.active},privateContent:{keyword:state.keyword,warehouse:state.warehouse,expanded:[...state.expanded],active:state.active,views:state.views,zero:state.zero,warehouseSearch:state.warehouseSearch}}).catch(()=>{});
+    root.qsUiState.inventory={keyword:state.keyword,warehouse:state.warehouse,expanded:[...state.expanded],active:state.active,views:state.views,zero:state.zero,warehouseSearch:state.warehouseSearch};
+    if(globalThis.openai?.setWidgetState)globalThis.openai.setWidgetState({modelContent:{keyword:state.keyword,warehouse:state.warehouse,expandedProducts:[...state.expanded],activeSizes:state.active,dataView:root.qsUiState.portal},privateContent:root.qsUiState}).catch(()=>{});
   };
   function visibleWarehouseRows(group,sku,allSizes){
     return warehouseIndices().filter(i=>{
@@ -188,7 +201,8 @@
       return `${stockTools(group,sku,true)}${rows.length?table:'<div class="qs-empty">没有符合筛选条件的仓库</div>'}<p class="qs-stock-note">负数以红色显示；合计包含负库存。仓库关键词仅筛选明细，不改变所选仓库合计。</p>`;
     }
     const negativeCount=warehouseIndices().filter(i=>sku.stock[i]<0).length;
-    return `<div class="qs-sizes">${group.variants.map(s=>`<button class="qs-size ${matches(s)&&tokens().some(t=>t===normalize(s.size)||t===normalize(s.code))?'qs-size-hit':''}" type="button" data-action="size" data-group="${group.key}" data-size="${escape(s.size)}" aria-pressed="${s.size===sku.size}" aria-label="${escape(s.size)}码，所选仓库库存${quantity(s)}${unit}"><b>${escape(s.size)}</b><span>${quantity(s)===0?'暂无库存':quantity(s)+' '+unit}</span></button>`).join('')}</div><div class="qs-sku-meta"><span>商品编号 ${escape(sku.code)}</span><span>${escape(group.colorName)} · ${escape(group.gender)}</span></div>${stockTools(group,sku,false)}<div class="qs-stock-rows">${rows.length?rows.map(i=>`<div class="qs-stock-row"><span class="qs-warehouse-name">${escape(warehouses[i].name)}</span><span class="qs-quantity ${sku.stock[i]<0?'qs-negative':''}">${sku.stock[i]}<small>${unit}</small>${sku.stock[i]<0?'<span class="qs-negative-label">负库存</span>':''}</span></div>`).join(''):`<div class="qs-empty">${quantity(sku)===0&&!warehouseIndices().some(i=>sku.stock[i]!==0)?'该尺码在所选仓库暂无库存':'没有符合筛选条件的仓库'}<br><span class="qs-subtitle">可切换“显示零库存仓”或调整仓库关键词</span></div>`}</div><div class="qs-stock-footer"><span>所选仓库合计${negativeCount?' · 含'+negativeCount+'个负库存仓':''}</span><strong>${formatQuantity(quantity(sku))} ${unit}</strong></div><p class="qs-stock-note">库存为账面数量，包含问题仓、核对仓等。该合计不直接作为可售数量。</p>`;
+    const flowButton=`<button class="qs-text-button" type="button" data-action="flow" data-group="${group.key}" data-size="${escape(sku.size)}">查看 ${escape(sku.size)} 码的库存流水 ›</button>`;
+    return `<div class="qs-sizes">${group.variants.map(s=>`<button class="qs-size ${matches(s)&&tokens().some(t=>t===normalize(s.size)||t===normalize(s.code))?'qs-size-hit':''}" type="button" data-action="size" data-group="${group.key}" data-size="${escape(s.size)}" aria-pressed="${s.size===sku.size}" aria-label="${escape(s.size)}码，所选仓库库存${quantity(s)}${unit}"><b>${escape(s.size)}</b><span>${quantity(s)===0?'暂无库存':quantity(s)+' '+unit}</span></button>`).join('')}</div><div class="qs-sku-meta"><span>商品编号 ${escape(sku.code)}</span><span>${escape(group.colorName)} · ${escape(group.gender)}</span></div>${stockTools(group,sku,false)}<div class="qs-stock-rows">${rows.length?rows.map(i=>`<div class="qs-stock-row"><span class="qs-warehouse-name">${escape(warehouses[i].name)}</span><span class="qs-quantity ${sku.stock[i]<0?'qs-negative':''}">${sku.stock[i]}<small>${unit}</small>${sku.stock[i]<0?'<span class="qs-negative-label">负库存</span>':''}</span></div>`).join(''):`<div class="qs-empty">${quantity(sku)===0&&!warehouseIndices().some(i=>sku.stock[i]!==0)?'该尺码在所选仓库暂无库存':'没有符合筛选条件的仓库'}<br><span class="qs-subtitle">可切换“显示零库存仓”或调整仓库关键词</span></div>`}</div><div class="qs-stock-footer"><span>所选仓库合计${negativeCount?' · 含'+negativeCount+'个负库存仓':''}</span><strong>${formatQuantity(quantity(sku))} ${unit}</strong></div><p class="qs-stock-note">库存为账面数量，包含问题仓、核对仓等。该合计不直接作为可售数量。</p>${flowButton}`;
   }
   function render(){
     const matched=groups.filter(g=>g.variants.some(matches));
@@ -224,6 +238,7 @@
     const button=event.target.closest('button[data-action]');if(!button)return;
     const group=button.dataset.group;
     if(button.dataset.action==='clear'){input.value='';applySearch();input.focus();return;}
+    if(button.dataset.action==='flow'){const selected=groups.find(item=>item.key===group)?.variants.find(sku=>sku.size===button.dataset.size);root.dispatchEvent(new CustomEvent('qs:open-data',{detail:{module:'stock_movements',keyword:selected?.code||'',productSize:button.dataset.size}}));return;}
     if(button.dataset.action==='expand'){if(state.expanded.has(group))state.expanded.delete(group);else state.expanded.add(group);}
     if(button.dataset.action==='size'){state.active[group]=button.dataset.size;}
     if(button.dataset.action==='view'){state.views[group]=button.dataset.view;}
@@ -239,13 +254,16 @@
     const next=root.querySelector(`input[data-action="warehouse-search"][data-group="${key}"]`);next.focus({preventScroll:true});try{next.setSelectionRange(start,start);}catch(error){}
   });
   window.addEventListener('openai:set_globals',event=>{
-    const stored=event.detail?.globals?.widgetState?.privateContent;if(!stored)return;
+    const snapshot=event.detail?.globals?.widgetState?.privateContent;
+    const stored=snapshot?.inventory||snapshot;if(!stored)return;
+    root.qsUiState.inventory=stored;
     if(typeof stored.keyword==='string'){state.keyword=stored.keyword;input.value=stored.keyword;}
     if(stored.warehouse==='all'||warehouses.some(w=>w.id===stored.warehouse)){state.warehouse=stored.warehouse;warehouseFilter.value=stored.warehouse;}
     if(Array.isArray(stored.expanded))state.expanded=new Set(stored.expanded.filter(key=>groups.some(g=>g.key===key)));
     for(const field of ['active','views','zero','warehouseSearch'])if(stored[field]&&typeof stored[field]==='object')state[field]=stored[field];
     render();
   });
+  root.addEventListener('qs:inventory-search',event=>{input.value=event.detail?.keyword||'';if(event.detail?.warehouse){state.warehouse=event.detail.warehouse;warehouseFilter.value=state.warehouse;}applySearch();});
   render();
 })();
 </script>

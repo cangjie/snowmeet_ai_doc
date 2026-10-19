@@ -1,0 +1,262 @@
+<style>
+#qisemi-prototype .qs-data-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:#fff;border-bottom:1px solid var(--qs-line);padding:0 8px}
+#qisemi-prototype .qs-data-nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--qs-muted);min-height:48px;padding:10px 3px;font-size:12px;white-space:nowrap}
+#qisemi-prototype .qs-data-nav button[aria-current=page]{color:var(--qs-blue);border-bottom-color:var(--qs-blue);font-weight:700}
+#qisemi-prototype .qs-browser-heading{margin:0 0 13px}
+#qisemi-prototype .qs-browser-heading h2{font-size:17px;line-height:1.5;font-weight:700;margin:0 0 4px}
+#qisemi-prototype .qs-browser-heading p{color:var(--qs-muted);font-size:12px;margin:0}
+#qisemi-prototype .qs-module-search{margin:0 0 14px}
+#qisemi-prototype .qs-section-title{font-size:13px;font-weight:600;color:#4b5563;margin:17px 2px 9px}
+#qisemi-prototype .qs-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#qisemi-prototype .qs-module-button{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:0;border-radius:12px;text-align:left;min-height:70px;padding:12px;color:var(--qs-ink);box-shadow:0 2px 12px #00000004}
+#qisemi-prototype .qs-module-button b{display:block;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+#qisemi-prototype .qs-module-button small{display:block;color:var(--qs-muted);font-size:11px;margin-top:4px}
+#qisemi-prototype .qs-browser-back{border:0;background:none;color:var(--qs-blue);padding:4px 0 10px;min-height:40px;font-size:12px}
+#qisemi-prototype .qs-list-tools{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px}
+#qisemi-prototype .qs-date-row{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+#qisemi-prototype .qs-date-field{flex:1;min-width:0;color:var(--qs-muted);font-size:11px}
+#qisemi-prototype .qs-date-field input{display:block;width:100%;min-width:0;border:1px solid var(--qs-line);background:#fff;color:var(--qs-ink);border-radius:8px;padding:8px 5px;font-size:14px;min-height:42px}
+#qisemi-prototype .qs-list-count{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--qs-muted);font-size:12px;padding:0 2px 9px}
+#qisemi-prototype .qs-list-stack{display:flex;flex-direction:column;gap:10px}
+#qisemi-prototype .qs-data-record{display:block;width:100%;background:#fff;border:0;border-radius:12px;text-align:left;padding:13px 14px;color:var(--qs-ink)}
+#qisemi-prototype .qs-record-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#qisemi-prototype .qs-record-title{font-size:13px;font-weight:600;overflow-wrap:anywhere;min-width:0}
+#qisemi-prototype .qs-record-sub{font-size:12px;color:var(--qs-muted);margin:4px 0;overflow-wrap:anywhere}
+#qisemi-prototype .qs-record-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--qs-muted);margin-top:10px}
+#qisemi-prototype .qs-record-amount{color:var(--qs-ink);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#qisemi-prototype .qs-state{display:inline-block;flex:none;border-radius:5px;padding:2px 6px;background:#eff4ff;color:var(--qs-blue);font-size:10px;font-weight:500;white-space:nowrap}
+#qisemi-prototype .qs-state-red{color:var(--qs-red);background:#fef2f2}
+#qisemi-prototype .qs-detail-card{background:#fff;border-radius:13px;padding:14px;margin-bottom:12px}
+#qisemi-prototype .qs-property-list{display:grid;grid-template-columns:minmax(70px,32%) minmax(0,1fr);gap:10px 12px;font-size:12px;margin:0}
+#qisemi-prototype .qs-property-list dt{color:var(--qs-muted);margin:0}
+#qisemi-prototype .qs-property-list dd{margin:0;overflow-wrap:anywhere}
+#qisemi-prototype .qs-detail-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--qs-line);padding-bottom:8px;margin:0 0 12px}
+#qisemi-prototype .qs-detail-tabs button{border:0;border-radius:8px;background:#f3f5f9;color:var(--qs-muted);font-size:11px;padding:8px 10px;min-height:38px}
+#qisemi-prototype .qs-detail-tabs button[aria-pressed=true]{background:#eff4ff;color:var(--qs-blue);font-weight:600}
+#qisemi-prototype .qs-related{display:flex;align-items:center;justify-content:space-between;gap:9px;width:100%;background:none;border:0;border-bottom:1px solid #f1f3f6;padding:12px 0;color:var(--qs-blue);text-align:left;font-size:12px;min-height:44px}
+#qisemi-prototype .qs-related:last-child{border-bottom:0}
+#qisemi-prototype .qs-line-item{padding:10px 0;border-bottom:1px solid #f0f2f6;font-size:12px}
+#qisemi-prototype .qs-line-item b{display:block;font-weight:600;margin-bottom:6px}
+#qisemi-prototype .qs-line-values{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--qs-muted);font-size:11px}
+#qisemi-prototype .qs-raw{margin-top:14px;border-top:1px solid var(--qs-line);padding-top:10px;font-size:12px;color:var(--qs-muted)}
+#qisemi-prototype .qs-raw summary{min-height:36px;padding:5px 0;color:var(--qs-blue);cursor:pointer}
+#qisemi-prototype .qs-raw pre{font:11px/1.7 ui-monospace,Consolas,monospace;background:#f8faff;color:#374151;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+#qisemi-prototype .qs-history-note{background:#fff7ed;border:1px solid #fed7aa;padding:10px;border-radius:9px;color:#92400e;font-size:12px;margin-bottom:12px}
+#qisemi-prototype .qs-file-button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:#fff;padding:13px;border-radius:11px;text-align:left;color:var(--qs-ink);min-height:70px}
+#qisemi-prototype .qs-file-type{background:#eff4ff;color:var(--qs-blue);border-radius:9px;display:grid;place-items:center;width:46px;height:46px;font-size:11px;font-weight:600;flex:none}
+#qisemi-prototype .qs-file-copy{flex:1;min-width:0;font-size:13px;overflow-wrap:anywhere}
+#qisemi-prototype .qs-file-copy small{display:block;color:var(--qs-muted);font-size:11px;margin-top:3px}
+#qisemi-prototype .qs-photo-preview{display:block;width:100%;max-width:300px;margin:10px auto 0;border-radius:10px;background:#fff}
+#qisemi-prototype .qs-browser-status{font-size:12px;color:var(--qs-muted);margin:14px 0 0}
+#qisemi-prototype .qs-plain-note{font-size:12px;color:var(--qs-muted);margin:8px 0 14px;line-height:1.8}
+@media(pointer:coarse){#qisemi-prototype .qs-detail-tabs button,#qisemi-prototype .qs-browser-back,#qisemi-prototype .qs-date-field input{min-height:44px}#qisemi-prototype .qs-date-field input{font-size:16px}}
+</style>
+<script>
+(() => {
+  'use strict';
+  const root=document.getElementById('qisemi-prototype');if(!root)return;
+  const modules=__QISEMI_MODULES__;
+  const definitions=new Map(modules.map(module=>[module.key,module]));
+  const screen=root.querySelector('#qs-data-screen');
+  const titles={inventory:'查库存',business:'业务单据',archives:'基础档案',more:'更多数据'};
+  const subtitles={business:'采购、销售、库存业务与收付款',archives:'商品、仓店、客户供应商与人员资料',more:'库存追溯、历史版本、图片附件与数据快照'};
+  const saved=root.qsUiState.portal||{};
+  const ui={tab:['inventory','business','archives','more'].includes(saved.tab)?saved.tab:'inventory',module:definitions.has(saved.module)?saved.module:null,record:null,panel:'summary',keyword:'',from:'',to:'',status:'all',catalogueKeyword:'',sheet:null,supplement:null,asset:null,assetKeyword:'',assetType:'all',returnToStock:false};
+  const image='__QISEMI_BOOT_IMAGE__';
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const norm=value=>String(value??'').normalize('NFKC').toLowerCase().replace(/[\s_\-]/g,'');
+  const money=value=>Number(value).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const isDocument=module=>['document','finance','history','flow','line'].includes(module.kind);
+  const moduleHint=module=>module.empty?'示例快照暂无记录':({document:'单据 · 商品明细',finance:'往来 · 核销明细',history:'历史版本 · 关联单据',flow:'出入库 · 来源追溯',media:'商品图片 · 单据附件',files:'原表 · 业务记录 · 数据包',snapshot:'快照时间 · 完整性核对',line:'逐商品销售记录',stock:'按商品与仓库浏览'})[module.kind]||'完整资料 · 相关记录';
+  function persist(){
+    root.qsUiState.portal={tab:ui.tab,module:ui.module,record:ui.record,panel:ui.panel};
+    const inventory=root.qsUiState.inventory||{};
+    if(globalThis.openai?.setWidgetState)globalThis.openai.setWidgetState({modelContent:{keyword:inventory.keyword,warehouse:inventory.warehouse,dataView:root.qsUiState.portal},privateContent:root.qsUiState}).catch(()=>{});
+  }
+  function lines(row){
+    const base={product:'Fischer RC4 110 MV BOA VAC',unit:'双'};
+    if(row.status==='红冲')return [{...base,size:'26.5',code:'DEMO-110-265',quantity:-1,price:1600,amount:-1600,book:6,actual:5,difference:-1}];
+    const second={...base,size:'25.5',code:'DEMO-110-255',quantity:1,price:1400,amount:1400,book:3,actual:3,difference:0};
+    if(row.index===1)return [second];
+    return [{...base,size:'26.5',code:'DEMO-110-265',quantity:1,price:1800,amount:1800,book:6,actual:5,difference:-1},second];
+  }
+  function records(module){
+    if(module.empty)return [];
+    if(['media','files','snapshot'].includes(module.kind))return [];
+    const count=module.kind==='product'||module.kind==='stock'?3:module.key==='sales_drafts'?1:2;
+    return Array.from({length:count},(_,i)=>{
+      const size=['26.5','25.5','27.5'][i%3],code='DEMO-110-'+size.replace('.','');
+      const status=module.key==='sales_drafts'?'草稿':module.kind==='history'?'历史版本':module.kind==='document'&&i===1?'红冲':['archive','client','supplier','warehouse','category','product'].includes(module.kind)&&i===1?'停用':'正常';
+      const name=module.kind==='product'||module.kind==='stock'||module.kind==='line'?'Fischer RC4 110 MV BOA VAC '+size:module.kind==='flow'?(i?'采购入库':'销售出库')+' · '+size+'码':module.kind==='client'?'示例客户 '+(i?'B':'A'):module.kind==='supplier'?'示例供应商 '+(i?'B':'A'):module.kind==='warehouse'?['【旗舰】零售商品仓','【南山】零售商品仓'][i]:module.kind==='category'?['双板雪鞋 / Fischer','双板雪鞋 / Fischer / 24-25'][i]:module.kind==='archive'?({'branches':['示例旗舰门店','示例南山门店'],'units':['双','件'],'accounts_all':['示例收款账户','示例备用账户'],'projects':['销售收款','采购付款'],'employees_all':['示例员工甲','示例员工乙'],'roles':['示例店长','示例员工']})[module.key]?.[i]||module.label+'示例 '+(i+1):'DEMO-'+module.key.toUpperCase()+'-00'+(i+1);
+      const date=i?'2026-09-26':'2026-10-18';
+      const amount=status==='红冲'?-1600:i?1400:3200;
+      const row={id:'demo-'+module.key+'-'+i,index:i,title:name,date,status,size,code,style:'U06424',warehouse:'【旗舰】零售商品仓',party:module.section==='采购'||module.key==='payments'?'示例供应商 A':'示例客户 A',branch:'示例旗舰门店',quantity:status==='红冲'?-1:i?1:2,amount,remark:'用于确认界面与浏览流程的合成记录'};
+      row.sourceNo=['flow','line'].includes(module.kind)?(module.kind==='flow'&&i?'DEMO-PURCHASES-001':'DEMO-SALES-001'):'';
+      row.fields=isDocument(module)?[['单据编号',name],['业务日期',date],['状态',status],['门店',row.branch],['仓库',row.warehouse],['往来单位',row.party],['经办人','示例员工甲'],['数量',row.quantity+' 双'],['金额','¥'+money(amount)],['备注',row.remark]]:[['名称',name],['状态',status],['编号',code],['所属门店',row.branch],['备注',row.remark]];
+      if(['product','stock','line'].includes(module.kind))row.fields=[['商品名称',name],['商品编号',code],['款号','U06424'],['尺码',size],['颜色','犀牛灰'],['雪季','24-25'],['单位','双'],['仓库',row.warehouse],['账面数量',i===2?'0':'6'],['状态',status],['备注',row.remark]];
+      if(module.kind==='client'||module.kind==='supplier')row.fields.push(['联系人','示例联系人'],['联系电话','示例号码（未使用真实联系方式）'],['地址','示例地址'],['分类',module.kind==='client'?'零售客户':'雪具供应商']);
+      if(module.kind==='warehouse')row.fields.push(['所属门店',i?'示例南山门店':'示例旗舰门店'],['类型','商品仓']);
+      if(module.key==='employees_all')row.fields.push(['角色',i?'员工':'店长'],['登录状态',i?'锁定':'正常'],['工作联系','演示资料']);
+      if(module.kind==='category')row.fields.push(['上级分类',i?'双板雪鞋 / Fischer':'双板雪鞋'],['层级',String(i+2)]);
+      if(module.key==='transfers')row.fields=[['调拨单号',name],['业务日期',date],['调出仓','【旗舰】零售商品仓'],['调入仓','【南山】零售商品仓'],['调拨数量',row.quantity+' 双'],['状态',status],['经办人','示例员工甲'],['备注',row.remark]];
+      if(module.key==='stocktaking')row.fields=[['盘点单号',name],['盘点日期',date],['仓库',row.warehouse],['盘盈数量','0 双'],['盘亏数量','1 双'],['差异金额','-¥1,800.00'],['状态',status],['备注',row.remark]];
+      if(['loans_in','loans_out'].includes(module.key))row.fields=[['单据编号',name],['业务日期',date],['往来单位',row.party],['仓库',row.warehouse],['借用数量',row.quantity+' 双'],['归还数量',i?'0 双':'1 双'],['状态',status],['备注',row.remark]];
+      if(module.kind==='flow')row.fields=[['商品名称','Fischer RC4 110 MV BOA VAC '+size],['商品编号',code],['业务日期',date],['仓库',row.warehouse],['类型',i?'采购入库':'销售出库'],['入库数量',i?'2 双':'0 双'],['出库数量',i?'0 双':'1 双'],['结存数量','6 双'],['来源单据',i?'DEMO-PURCHASES-001':'DEMO-SALES-001'],['状态',status]];
+      row.raw={RecordId:row.id,BusiDate:date,ProductCode:code,WriteBack:status==='红冲'?1:0,BranchName:row.branch,WarehouseName:row.warehouse,Remark:row.remark,Fields:Object.fromEntries(row.fields)};
+      if(module.kind==='document'||module.kind==='history')row.raw.ItemList=lines(row);
+      return row;
+    });
+  }
+  function backButton(label){return `<button class="qs-browser-back" type="button" data-data-action="back">‹ ${esc(label)}</button>`;}
+  function heading(title,note=''){return `<div class="qs-browser-heading"><h2>${esc(title)}</h2>${note?'<p>'+esc(note)+'</p>':''}</div>`;}
+  function moduleButton(module){return `<button class="qs-module-button" type="button" data-data-action="module" data-module="${module.key}"><span><b>${esc(module.label)}</b><small>${esc(moduleHint(module))}</small></span><span aria-hidden="true">›</span></button>`;}
+  function catalogue(){
+    const candidates=modules.filter(module=>module.tab===ui.tab);
+    const exact=candidates.filter(module=>norm(module.label).includes(norm(ui.catalogueKeyword)));
+    const available=exact.length?exact:candidates.filter(module=>norm(module.section).includes(norm(ui.catalogueKeyword)));
+    const sections=[...new Set(available.map(module=>module.section))];
+    return `${heading(titles[ui.tab],subtitles[ui.tab])}<input class="qs-input qs-module-search" data-data-field="catalogueKeyword" type="search" aria-label="查找数据模块" placeholder="查找模块，如：退货、仓库、图片" value="${esc(ui.catalogueKeyword)}"><div id="qs-module-catalogue">${sections.map(section=>`<section><h3 class="qs-section-title">${esc(section)}</h3><div class="qs-module-grid">${available.filter(module=>module.section===section).map(moduleButton).join('')}</div></section>`).join('')||'<div class="qs-empty">没有匹配的数据模块</div>'}</div><p class="qs-browser-status">原型演示 · 已有数据与空模块均保留入口</p>`;
+  }
+  function filtered(module){return records(module).filter(row=>ui.keyword.trim().split(/\s+/).filter(Boolean).every(token=>norm([row.title,row.code,row.size,row.style,row.party,row.warehouse,row.status,row.sourceNo].join(' ')).includes(norm(token)))&&(!ui.from||row.date>=ui.from)&&(!ui.to||row.date<=ui.to)&&(ui.status==='all'||row.status===ui.status));}
+  function rowButton(module,row){
+    const amount=module.kind==='finance'||module.kind==='history'||['采购','销售'].includes(module.section);
+    const value=amount?'¥'+money(row.amount):module.key==='stocktaking'?'盘亏 1 双':module.section==='库存业务'?row.quantity+' 双':module.kind==='stock'?(row.index===2?'0':'6')+' 双':'查看详情 ›';
+    const description=module.kind==='client'||module.kind==='supplier'?'联系人、分类、往来记录':module.kind==='flow'?row.warehouse+' · '+row.code:module.key==='transfers'?'【旗舰】零售商品仓 → 【南山】零售商品仓':module.section==='库存业务'?row.warehouse:row.party+' · '+row.warehouse;
+    return `<button class="qs-data-record" type="button" data-data-action="record" data-record="${row.index}"><span class="qs-record-top"><span class="qs-record-title">${esc(row.title)}</span><span class="qs-state ${['红冲','停用'].includes(row.status)?'qs-state-red':''}">${esc(row.status)}</span></span><span class="qs-record-sub" style="display:block">${esc(description)}</span><span class="qs-record-bottom"><span>${esc(isDocument(module)?row.date:row.code)}</span><span class="qs-record-amount">${esc(value)}</span></span></button>`;
+  }
+  function list(module){
+    const rows=filtered(module),dated=isDocument(module);
+    return `${backButton(titles[ui.tab])}${heading(module.label,ui.returnToStock?'从库存查询进入 · 可返回原查询':module.kind==='product'?'档案按原商品与尺码展示，可跳转同款库存':module.kind==='history'?'历史版本单独查看，避免与当前单据重复汇总':'全部日期与状态默认可见')}<div class="qs-list-tools"><input class="qs-input" data-data-field="keyword" type="search" aria-label="搜索${esc(module.label)}" placeholder="${dated?'单号 / 商品 / 客商关键词':'名称 / 编号 / 分类关键词'}" value="${esc(ui.keyword)}">${dated?`<div class="qs-date-row"><label class="qs-date-field">业务日期从<input type="date" data-data-field="from" value="${ui.from}"></label><label class="qs-date-field">到<input type="date" data-data-field="to" value="${ui.to}"></label></div>`:''}<div class="qs-filters"><select class="qs-warehouse" data-data-field="status" aria-label="按记录状态筛选">${['all','正常','红冲','草稿','历史版本','停用'].map(value=>`<option value="${value}" ${ui.status===value?'selected':''}>${value==='all'?'全部状态':value}</option>`).join('')}</select><button class="qs-text-button" type="button" data-data-action="reset">清除筛选</button></div></div><div class="qs-list-count" role="status" aria-live="polite"><span>${rows.length} 条示例记录${ui.from||ui.to?' · 已筛日期':' · 全部日期'}</span>${module.native?.length?'<button class="qs-text-button" type="button" data-data-action="sheet">平台原表 ›</button>':''}</div><div class="qs-list-stack">${rows.map(row=>rowButton(module,row)).join('')||`<section class="qs-detail-card qs-empty"><strong>${module.empty?'该模块在示例快照中暂无记录':'没有符合条件的记录'}</strong>${module.empty?'空数据会明确展示，入口仍然保留。':'可清除日期、状态或关键词后重试。'}</section>`}</div>`;
+  }
+  const related={
+    sales:[['sales_line_items','销售商品明细'],['stock_movements','关联库存流水'],['sales_history_details','历史销售版本'],['receipts','相关收款与核销']],
+    purchases:[['stock_movements','关联库存流水'],['purchases_history_details','历史进货版本'],['payments','相关付款']],
+    clients:[['sales','客户销售单'],['receipts','客户收款单'],['client_stored_orders','储值记录'],['client_points','积分记录']],
+    suppliers:[['purchases','供应商进货单'],['purchase_returns','进货退货单'],['payments','付款记录']],
+    warehouses:[['stock_by_warehouse','本仓库存明细'],['stock_movements','本仓库存流水'],['transfers','调拨单']],
+    products_all:[['stock_movements','商品库存流水'],['sales_line_items','销售商品明细']],
+    stock_movements:[['sales','来源销售单'],['purchases','来源进货单']],
+    sales_line_items:[['sales','来源销售单'],['stock_movements','关联库存流水']],
+    sales_history_details:[['sales','查看当前销售记录'],['sales_line_items','关联销售商品明细']],
+    purchases_history_details:[['purchases','查看当前进货记录']],
+    receipts:[['sales','相关销售单']],payments:[['purchases','相关进货单']],
+    stocktaking:[['stock_movements','盘点关联库存流水']],
+    loans_in:[['stock_movements','借入与归还流水']],loans_out:[['stock_movements','借出与收回流水']],
+    product_classes_tree:[['products_all','分类下的商品']],branches:[['warehouses','门店仓库']],
+    units:[['products_all','使用此单位的商品']],roles:[['employees_all','所属员工']],employees_all:[['roles','员工角色']],accounts_all:[['receipts','收款记录'],['payments','付款记录']],projects:[['daily_income_expenses','收支记录']],client_classes:[['clients','分类客户']],supplier_classes:[['suppliers','分类供应商']],
+    sales_orders:[['sales','关联销售单']],sales_drafts:[['sales','正式销售记录']],outbound:[['sales','关联销售单'],['stock_movements','出库流水']],
+    transfers:[['stock_movements','调出与调入流水']]
+  };
+  function link(module,label){return `<button class="qs-related" type="button" data-data-action="related" data-module="${module}"><span>${esc(label)}</span><span aria-hidden="true">›</span></button>`;}
+  function detail(module,row){
+    const isFinance=module.kind==='finance';
+    const tabs=[['summary','基本信息'],...(['document','history','line'].includes(module.kind)?[['items','商品明细']]:isFinance?[['settlements','核销明细']]:[]),['related','关联资料'],['assets','图片附件']];
+    if(!tabs.some(([key])=>key===ui.panel))ui.panel='summary';
+    let content='';
+    if(ui.supplement){
+      const names={sales_multi_account_details:'销售分账详情',stocktaking_details:'盘点单完整资料',stocktaking_lines:'盘点商品明细',loans_in_return_details:'借入归还明细',loans_out_return_details:'借出收回明细',outbound_details:'出库详情',sales_order_details:'销售预订单详情',sales_draft_details:'销售草稿详情',receipts_details:'收款核销详情',payments_details:'付款核销详情'};
+      content=`<button class="qs-text-button" type="button" data-data-action="close-supplement">‹ 返回关联资料</button><h3 class="qs-section-title">${names[ui.supplement]||'完整详情'}</h3>${ui.supplement==='sales_multi_account_details'?`<dl class="qs-property-list"><dt>示例收款账户</dt><dd>¥${money(row.amount*5/8)}</dd><dt>示例备用账户</dt><dd>¥${money(row.amount*3/8)}</dd><dt>分账合计</dt><dd>¥${money(row.amount)}</dd></dl>`:ui.supplement.includes('return')?'<dl class="qs-property-list"><dt>原借用数量</dt><dd>2 双</dd><dt>本次归还</dt><dd>1 双</dd><dt>未归还</dt><dd>1 双</dd><dt>归还日期</dt><dd>2026-10-18</dd></dl>':['receipts_details','payments_details'].includes(ui.supplement)?settlementContent(module,row):itemContent(module,row)}<details class="qs-raw"><summary>查看完整采集字段（示例）</summary><pre>${esc(JSON.stringify({SourceId:row.id,Data:{...row.raw,Items:lines(row)}},null,2))}</pre></details>`;
+    }else if(ui.panel==='summary'){
+      content=`<dl class="qs-property-list">${row.fields.map(([key,value])=>`<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>${['product','stock','line'].includes(module.kind)?'<button class="qs-related" type="button" data-data-action="inventory"><span>查询这款商品的全部尺码与各仓库存</span><span>›</span></button>':''}${module.kind==='warehouse'?'<button class="qs-related" type="button" data-data-action="warehouse-inventory">查询这个仓库的商品库存 ›</button>':''}<details class="qs-raw"><summary>查看全部采集字段（示例）</summary><pre>${esc(JSON.stringify(row.raw,null,2))}</pre></details>`;
+    }else if(ui.panel==='items')content=itemContent(module,row);
+    else if(ui.panel==='settlements')content=settlementContent(module,row);
+    else if(ui.panel==='related'){
+      const links=module.kind==='flow'?[[row.index?'purchases':'sales',row.index?'来源进货单':'来源销售单']]:(related[module.key]||[]);
+      content=links.map(([key,label])=>link(key,label)).join('');
+      for(const source of module.sources.slice(1))if(!['products','accounts','employees','product_classes'].includes(source))content+=supplementButton(source,({stocktaking_details:'盘点单完整资料',stocktaking_lines:'盘点商品明细',loans_in_return_details:'借入归还明细',loans_out_return_details:'借出收回明细',outbound_details:'出库详情',sales_order_details:'销售预订单详情',sales_draft_details:'销售草稿详情',receipts_details:'收款核销详情',payments_details:'付款核销详情',sales_multi_account_details:'销售分账详情'})[source]||'补充完整资料');
+      if(module.native?.length)content+='<button class="qs-related" type="button" data-data-action="sheet"><span>查看平台原表及其明细字段</span><span>›</span></button>';
+      if(!content)content='<div class="qs-empty">此示例记录暂无关联资料</div>';
+    }else if(ui.panel==='assets')content=assetContent(ui.asset);
+    return `${backButton(module.label)}${heading(row.title,module.label+' · '+row.date)}${module.kind==='history'?'<div class="qs-history-note">这是历史版本；与当前单据分开展示，不重复计入当前单据数量。</div>':''}<div class="qs-detail-card"><div class="qs-detail-tabs" role="group" aria-label="详情内容">${tabs.map(([key,label])=>`<button type="button" data-data-action="panel" data-panel="${key}" aria-pressed="${ui.panel===key}">${label}</button>`).join('')}</div><div id="qs-record-detail">${content}</div></div>`;
+  }
+  function supplementButton(key,label){return `<button class="qs-related" type="button" data-data-action="supplement" data-supplement="${key}"><span>${esc(label)}</span><span>›</span></button>`;}
+  function settlementContent(module,row){const discount=Math.min(200,Math.max(0,row.amount)),writtenOff=row.amount-discount,bill='DEMO-'+(module.key==='payments'?'PURCHASES':'SALES')+'-001';return `<div class="qs-line-item"><b>${bill}</b><div class="qs-line-values"><span>本次核销 ¥${money(writtenOff)}</span><span>优惠 ¥${money(discount)}</span></div></div><dl class="qs-property-list" style="margin-top:15px"><dt>收付款账户</dt><dd>示例收款账户</dd><dt>核销合计</dt><dd>¥${money(row.amount)}</dd></dl><details class="qs-raw"><summary>完整核销详情（示例）</summary><pre>${esc(JSON.stringify({SourceId:row.id,Items:[{BillNo:bill,WriteOffAmt:writtenOff,DiscountAmt:discount}]},null,2))}</pre></details>`;}
+  function itemContent(module,row){return lines(row).map(item=>`<div class="qs-line-item"><b>${esc(item.product)} ${item.size}</b><div class="qs-record-sub">${item.code} · ${item.unit}</div>${module.key==='stocktaking'?`<div class="qs-line-values"><span>账面 ${item.book}</span><span>实盘 ${item.actual}</span><span class="${item.difference<0?'qs-negative':''}">差异 ${item.difference}</span></div>`:`<div class="qs-line-values"><span>数量 ${item.quantity} ${item.unit}</span><span>单价 ¥${money(item.price)}</span><span>金额 ¥${money(item.amount)}</span></div>`}<button class="qs-text-button" type="button" data-data-action="item-inventory" data-code="${item.code}">查看此尺码库存 ›</button></div>`).join('')+`<details class="qs-raw"><summary>查看商品明细全部字段（示例）</summary><pre>${esc(JSON.stringify(lines(row),null,2))}</pre></details>`;}
+  function assetContent(selected){
+    if(selected==='image')return '<button class="qs-text-button" type="button" data-data-action="asset-back">‹ 返回附件列表</button>'+(image.startsWith('data:image/')?`<img class="qs-photo-preview" src="${image}" alt="Fischer RC4 110 MV BOA 商品示例图片">`:'<div class="qs-empty">商品图片示例</div>')+'<p class="qs-plain-note">Fischer RC4 110 MV BOA · 商品原图示例</p>';
+    if(selected==='text')return '<button class="qs-text-button" type="button" data-data-action="asset-back">‹ 返回附件列表</button><div class="qs-info"><strong>演示附件.txt</strong><p>这是一份用于确认附件查看流程的示例文件。</p><p>正式页面按商品、单据和附件的关联展示抓取到的原文件。</p></div>';
+    return '<div class="qs-list-stack"><button class="qs-file-button" type="button" data-data-action="asset" data-asset="image"><span class="qs-file-type">图片</span><span class="qs-file-copy">Fischer RC4 110 商品图片<small>关联商品 · 26.5 码 · 点击预览</small></span><span>›</span></button><button class="qs-file-button" type="button" data-data-action="asset" data-asset="text"><span class="qs-file-type">附件</span><span class="qs-file-copy">演示附件.txt<small>关联单据 · 示例文件 · 点击查看</small></span><span>›</span></button></div>';
+  }
+  function mediaPage(module){
+    let content=assetContent(ui.asset);
+    if(!ui.asset){
+      const itemMatches=kind=>(ui.assetType==='all'||ui.assetType===kind)&&(!ui.assetKeyword||norm(kind==='image'?'Fischer RC4 110 26.5 商品图片 DEMO-110-265':'演示附件.txt 单据 DEMO-SALES-001').includes(norm(ui.assetKeyword)));
+      const filtered=content.replace(/<button class="qs-file-button"[\s\S]*?<\/button>/g,button=>itemMatches(button.includes('data-asset="image"')?'image':'text')?button:'');
+      content=filtered.includes('qs-file-button')?filtered:'<div class="qs-empty">未找到匹配的图片附件</div>';
+    }
+    return `${backButton(titles[ui.tab])}${heading(module.label,'按关联商品、单据查询原图片与附件')}${ui.asset?'':`<div class="qs-list-tools"><input class="qs-input" type="search" data-data-field="assetKeyword" aria-label="搜索图片与附件" placeholder="商品 / 单号 / 文件名关键词" value="${esc(ui.assetKeyword)}"><div class="qs-filters"><select class="qs-warehouse" data-data-field="assetType" aria-label="附件类型">${[['all','全部文件'],['image','商品图片'],['text','单据附件']].map(([key,label])=>`<option value="${key}" ${ui.assetType===key?'selected':''}>${label}</option>`).join('')}</select></div></div>`}<div class="qs-detail-card">${content}${ui.asset?link(ui.asset==='image'?'products_all':'sales','查看关联'+(ui.asset==='image'?'商品档案':'单据')):''}</div>`;
+  }
+  function filesPage(module){
+    const originals=modules.filter(m=>m.native?.length);
+    return `${backButton(titles[ui.tab])}${heading(module.label,'同一业务记录的原表与完整导出载体')}<h3 class="qs-section-title">平台原生表格</h3><div class="qs-list-stack">${originals.map(m=>`<button class="qs-file-button" type="button" data-data-action="file-sheet" data-module="${m.key}"><span class="qs-file-type">Excel</span><span class="qs-file-copy">${esc(m.label)}${m.native.length>1?'及商品明细':''}<small>查看表格内容与原表字段示例</small></span><span>›</span></button>`).join('')}<button class="qs-file-button" type="button" data-data-action="file-sheet" data-module="receipts"><span class="qs-file-type">Excel</span><span class="qs-file-copy">收付款补充表<small>收款、付款与核销字段示例</small></span><span>›</span></button></div><h3 class="qs-section-title">完整导出记录</h3><div class="qs-detail-card">${link('snapshot','JSONL / SQLite / ZIP 的内容与核对信息')}<p class="qs-plain-note">原表、逐条记录、数据库副本与压缩包会归入同一快照；业务页统一查看，不重复累计。</p></div>`;
+  }
+  function sheetPage(module){
+    const parent=definitions.get(ui.sheet)||module;
+    const example=records(parent)[0]||{id:'demo-sheet',status:'正常',fields:[['状态','示例为空']],date:'2026-10-18',title:'演示原表'};
+    const hasItems=parent.native?.some(name=>name.endsWith('.2'));
+    const finance=['receipts','payments'].includes(parent.key);
+    return `<button class="qs-browser-back" type="button" data-data-action="sheet-back">‹ 返回${esc(module.label)}</button>${heading(parent.label+' · 平台原表','查看原表字段与记录内容')}<div class="qs-detail-card"><div class="qs-detail-tabs"><button type="button" data-data-action="sheet-panel" data-panel="summary" aria-pressed="${ui.panel!=='items'}">${finance?'收付款记录':'原表总表'}</button>${hasItems?`<button type="button" data-data-action="sheet-panel" data-panel="items" aria-pressed="${ui.panel==='items'}">原表商品明细</button>`:''}${finance?'<button type="button" data-data-action="file-sheet" data-module="receipts">收款表</button><button type="button" data-data-action="file-sheet" data-module="payments">付款表</button>':''}</div>${ui.panel==='items'&&hasItems?itemContent(parent,example):`<div class="qs-table-scroll"><table class="qs-table"><thead><tr><th>原表字段</th><th>示例值</th></tr></thead><tbody>${example.fields.map(([key,value])=>`<tr><th scope="row">${esc(key)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody></table></div>`}</div>`;
+  }
+  function snapshotPage(module){return `${backButton(titles[ui.tab])}${heading(module.label,'展示最近一次成功导入的快照与来源范围')}<div class="qs-detail-card"><dl class="qs-property-list"><dt>数据性质</dt><dd>原型演示，尚未接入正式数据</dd><dt>示例快照时间</dt><dd>2026-10-19 18:00</dd><dt>业务范围</dt><dd>全部时间范围，含红冲及停用记录</dd><dt>空模块</dt><dd>保留入口并明确显示0条</dd><dt>库存口径</dt><dd>账面库存，负数保留</dd><dt>核对项目</dt><dd>各仓汇总、记录数量、附件完整性、文件校验</dd></dl></div><h3 class="qs-section-title">完整导出内容</h3><div class="qs-detail-card">${link('stock','商品与库存记录')}${link('sales','业务单据与明细')}${link('products_all','基础档案与完整字段')}${link('media','图片附件及业务关联')}${link('exports','平台原表及完整导出载体')}<p class="qs-plain-note">JSONL、SQLite 和 ZIP 是同一批记录的不同载体；历史版本独立标记，避免重复汇总。业务日期与抓取、导入时间分开展示。</p></div>`;}
+  function render(){
+    root.querySelector('#qs-inventory-view').hidden=ui.tab!=='inventory';
+    root.querySelector('#qs-browser-view').hidden=ui.tab==='inventory';
+    for(const button of root.querySelectorAll('[data-qs-tab]')){if(button.dataset.qsTab===ui.tab)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}
+    root.querySelector('.qs-header h1').textContent=ui.tab==='inventory'?'七色米库存查询':'七色米 · '+titles[ui.tab];
+    root.querySelector('.qs-header .qs-subtitle').textContent=ui.tab==='inventory'?'Snowmeet · 门店查货':'Snowmeet · 库存与业务数据';
+    if(ui.tab==='inventory')return;
+    const module=definitions.get(ui.module);
+    if(!module){screen.innerHTML=catalogue();return;}
+    if(ui.sheet){screen.innerHTML=sheetPage(module);return;}
+    if(module.kind==='media'){screen.innerHTML=mediaPage(module);return;}
+    if(module.kind==='files'){screen.innerHTML=filesPage(module);return;}
+    if(module.kind==='snapshot'){screen.innerHTML=snapshotPage(module);return;}
+    const row=records(module).find(record=>record.index===ui.record);
+    screen.innerHTML=row?detail(module,row):list(module);
+  }
+  function openModule(key,keyword=''){const module=definitions.get(key);if(!module)return;Object.assign(ui,{tab:module.tab,module:key,record:null,panel:'summary',keyword,from:'',to:'',status:'all',sheet:null,supplement:null,asset:null});render();persist();}
+  function openInventory(keyword,warehouse){ui.tab='inventory';render();root.dispatchEvent(new CustomEvent('qs:inventory-search',{detail:{keyword,warehouse}}));persist();}
+  root.addEventListener('click',event=>{const button=event.target.closest('button[data-qs-tab]');if(!button)return;Object.assign(ui,{tab:button.dataset.qsTab,module:null,record:null,sheet:null,supplement:null,asset:null,catalogueKeyword:'',returnToStock:false});render();persist();});
+  screen.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-data-action]');if(!button)return;
+    const action=button.dataset.dataAction,module=definitions.get(ui.module),row=module?records(module).find(record=>record.index===ui.record):null;
+    if(action==='module'){openModule(button.dataset.module);return;}
+    if(action==='related'){
+      const target=button.dataset.module;
+      let keyword='';
+      if(row&&['client','supplier'].includes(module.kind))keyword=row.title;
+      if(row&&['product','stock','line'].includes(module.kind)&&target==='stock_movements')keyword=row.code;
+      if(row&&module.kind==='document'&&target==='stock_movements')keyword=row.title;
+      if(row&&module.kind==='warehouse'&&['stock_by_warehouse','stock_movements'].includes(target))keyword=row.title;
+      const direct=row&&((module.kind==='flow'&&['sales','purchases'].includes(target))||(module.kind==='line'&&target==='sales'));
+      openModule(target,keyword);if(direct){ui.record=0;ui.panel='summary';render();persist();}return;
+    }
+    if(action==='back'){if(ui.record!==null){ui.record=null;ui.supplement=null;ui.asset=null;}else if(ui.returnToStock){ui.tab='inventory';ui.returnToStock=false;}else{ui.module=null;ui.catalogueKeyword='';}}
+    if(action==='record'){ui.record=Number(button.dataset.record);ui.panel='summary';ui.supplement=null;ui.asset=null;}
+    if(action==='panel'){ui.panel=button.dataset.panel;ui.supplement=null;ui.asset=null;}
+    if(action==='supplement'){ui.supplement=button.dataset.supplement;ui.panel='related';}
+    if(action==='close-supplement')ui.supplement=null;
+    if(action==='reset'){Object.assign(ui,{keyword:'',from:'',to:'',status:'all'});}
+    if(action==='inventory'){openInventory('U06424 '+(row?.size||''));return;}
+    if(action==='item-inventory'){openInventory(button.dataset.code);return;}
+    if(action==='warehouse-inventory'){openInventory('',row?.index===1?'nanshan':'flagship');return;}
+    if(action==='asset'){ui.asset=button.dataset.asset;}
+    if(action==='asset-back')ui.asset=null;
+    if(action==='sheet'){ui.sheet=ui.module;ui.panel='summary';}
+    if(action==='file-sheet'){ui.sheet=button.dataset.module;ui.panel='summary';}
+    if(action==='sheet-back'){ui.sheet=null;ui.panel='summary';}
+    if(action==='sheet-panel')ui.panel=button.dataset.panel;
+    render();persist();
+  });
+  function fieldChange(event){
+    const target=event.target,field=target.dataset.dataField;if(!['keyword','from','to','status','catalogueKeyword','assetKeyword','assetType'].includes(field))return;
+    ui[field]=target.value;const selection=target.selectionStart;render();persist();
+    const next=screen.querySelector(`[data-data-field="${field}"]`);if(next){next.focus({preventScroll:true});try{next.setSelectionRange(selection,selection);}catch(error){}}
+  }
+  screen.addEventListener('input',fieldChange);screen.addEventListener('change',event=>{if(['status','from','to','assetType'].includes(event.target.dataset.dataField))fieldChange(event);});
+  root.addEventListener('qs:open-data',event=>{openModule(event.detail.module,event.detail.keyword||'');ui.returnToStock=true;render();persist();});
+  window.addEventListener('openai:set_globals',event=>{const stored=event.detail?.globals?.widgetState?.privateContent?.portal;if(!stored)return;if(titles[stored.tab])ui.tab=stored.tab;if(definitions.has(stored.module))ui.module=stored.module;else ui.module=null;ui.record=null;render();});
+  root.qsDataModules=modules;
+  render();
+})();
+</script>
