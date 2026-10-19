@@ -1,0 +1,1174 @@
+{
+  "status": "design_pending_user_confirmation",
+  "design": "database-design.md",
+  "all_tables_require": {
+    "valid": "bit NOT NULL DEFAULT 1",
+    "deleted_value": 0,
+    "common_columns": "C defined in database-design.md; M and P include C"
+  },
+  "api_modules": [
+    {
+      "module": "accessories",
+      "h5_module": "accessories",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist"
+    },
+    {
+      "module": "account_transfers",
+      "h5_module": "account_transfers",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "account_transfer"
+    },
+    {
+      "module": "accounts",
+      "h5_module": "accounts_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_account"
+      ],
+      "mapping_note": "retain_raw_alias; canonical_projection_merges_by_source_identity_with_complete_variant"
+    },
+    {
+      "module": "accounts_all",
+      "h5_module": "accounts_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_account"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "assembly",
+      "h5_module": "assembly",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "assembly"
+    },
+    {
+      "module": "balances",
+      "h5_module": "balances",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist"
+    },
+    {
+      "module": "branches",
+      "h5_module": "branches",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_branch"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "client_classes",
+      "h5_module": "client_classes",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_category"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "client_points",
+      "h5_module": "client_points",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "client_points"
+    },
+    {
+      "module": "client_stored_movements",
+      "h5_module": "client_stored_movements",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "client_stored_movement"
+    },
+    {
+      "module": "client_stored_orders",
+      "h5_module": "client_stored_orders",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "client_stored_order"
+    },
+    {
+      "module": "clients",
+      "h5_module": "clients",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_partner"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "cost_adjustments",
+      "h5_module": "cost_adjustments",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "cost_adjustment"
+    },
+    {
+      "module": "daily_income_expenses",
+      "h5_module": "daily_income_expenses",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "income_expense"
+    },
+    {
+      "module": "employees",
+      "h5_module": "employees_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_employee"
+      ],
+      "mapping_note": "retain_raw_alias; canonical_projection_merges_by_source_identity_with_complete_variant"
+    },
+    {
+      "module": "employees_all",
+      "h5_module": "employees_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_employee"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "inbound",
+      "h5_module": "inbound",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "inbound"
+    },
+    {
+      "module": "loans_in",
+      "h5_module": "loans_in",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "loan_in"
+    },
+    {
+      "module": "loans_in_return_details",
+      "h5_module": "loans_in",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_document_relation"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "loan_in_return"
+    },
+    {
+      "module": "loans_out",
+      "h5_module": "loans_out",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "loan_out"
+    },
+    {
+      "module": "loans_out_return_details",
+      "h5_module": "loans_out",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_document_relation"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "loan_out_return"
+    },
+    {
+      "module": "other_inbound",
+      "h5_module": "other_inbound",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "other_inbound"
+    },
+    {
+      "module": "other_outbound",
+      "h5_module": "other_outbound",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "other_outbound"
+    },
+    {
+      "module": "outbound",
+      "h5_module": "outbound",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "outbound"
+    },
+    {
+      "module": "outbound_details",
+      "h5_module": "outbound",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_document_relation"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "outbound"
+    },
+    {
+      "module": "payments",
+      "h5_module": "payments",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "payment"
+    },
+    {
+      "module": "payments_details",
+      "h5_module": "payments",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_settlement_line",
+        "qsm_writeoff_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "payment"
+    },
+    {
+      "module": "product_classes",
+      "h5_module": "product_classes_tree",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_category"
+      ],
+      "mapping_note": "retain_raw_alias; canonical_projection_merges_by_source_identity_with_complete_variant"
+    },
+    {
+      "module": "product_classes_tree",
+      "h5_module": "product_classes_tree",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_category"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "products",
+      "h5_module": "products_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_product_sku",
+        "qsm_sku_attribute",
+        "qsm_sku_unit",
+        "qsm_file_ref"
+      ],
+      "mapping_note": "retain_raw_alias; canonical_projection_merges_by_source_identity_with_complete_variant"
+    },
+    {
+      "module": "products_all",
+      "h5_module": "products_all",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_product_sku",
+        "qsm_sku_attribute",
+        "qsm_sku_unit",
+        "qsm_file_ref"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "projects",
+      "h5_module": "projects",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_project"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "purchase_orders",
+      "h5_module": "purchase_orders",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "purchase_order"
+    },
+    {
+      "module": "purchase_returns",
+      "h5_module": "purchase_returns",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "purchase_return"
+    },
+    {
+      "module": "purchases",
+      "h5_module": "purchases",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "purchase"
+    },
+    {
+      "module": "purchases_history_details",
+      "h5_module": "purchases_history_details",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_document_relation"
+      ],
+      "mapping_note": "historical_version; excluded_from_current_document_totals",
+      "document_type": "purchase"
+    },
+    {
+      "module": "receipts",
+      "h5_module": "receipts",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "receipt"
+    },
+    {
+      "module": "receipts_details",
+      "h5_module": "receipts",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_settlement_line",
+        "qsm_writeoff_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "receipt"
+    },
+    {
+      "module": "roles",
+      "h5_module": "roles",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_role"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "sales",
+      "h5_module": "sales",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale"
+    },
+    {
+      "module": "sales_draft_details",
+      "h5_module": "sales_drafts",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_document_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale_draft"
+    },
+    {
+      "module": "sales_drafts",
+      "h5_module": "sales_drafts",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale_draft"
+    },
+    {
+      "module": "sales_history_details",
+      "h5_module": "sales_history_details",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_document_relation"
+      ],
+      "mapping_note": "historical_version; excluded_from_current_document_totals",
+      "document_type": "sale"
+    },
+    {
+      "module": "sales_line_items",
+      "h5_module": "sales_line_items",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_sales_report_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "source_document_discriminator": {
+        "field": "BusiType",
+        "known_values": {
+          "3": "sale",
+          "4": "sale_return"
+        },
+        "source_business_key_field": "SaleId",
+        "unknown_type_policy": "preserve_raw_and_report_issue; do_not_guess"
+      }
+    },
+    {
+      "module": "sales_multi_account_details",
+      "h5_module": "sales",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_settlement_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale"
+    },
+    {
+      "module": "sales_order_details",
+      "h5_module": "sales_orders",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_document_line",
+        "qsm_settlement_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale_order"
+    },
+    {
+      "module": "sales_orders",
+      "h5_module": "sales_orders",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale_order"
+    },
+    {
+      "module": "sales_returns",
+      "h5_module": "sales_returns",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "sale_return"
+    },
+    {
+      "module": "stock",
+      "h5_module": "stock",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_stock_total"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "stock_by_warehouse",
+      "h5_module": "stock_by_warehouse",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_stock_snapshot"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "stock_movements",
+      "h5_module": "stock_movements",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_stock_movement"
+      ],
+      "mapping_note": "snapshot_rows; preserve_duplicates; never_add_together_across_batches"
+    },
+    {
+      "module": "stocktaking",
+      "h5_module": "stocktaking",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "stocktake"
+    },
+    {
+      "module": "stocktaking_details",
+      "h5_module": "stocktaking",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_version",
+        "qsm_document_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "stocktake"
+    },
+    {
+      "module": "stocktaking_lines",
+      "h5_module": "stocktaking",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document_line"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "stocktake"
+    },
+    {
+      "module": "supplier_classes",
+      "h5_module": "supplier_classes",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_category"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "suppliers",
+      "h5_module": "suppliers",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_partner"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "transfers",
+      "h5_module": "transfers",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload",
+      "document_type": "transfer"
+    },
+    {
+      "module": "units",
+      "h5_module": "units",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_unit"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "warehouse_positions",
+      "h5_module": "warehouse_positions",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_warehouse_position"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist"
+    },
+    {
+      "module": "warehouses",
+      "h5_module": "warehouses",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_warehouse"
+      ],
+      "mapping_note": "common_fields_and_full_raw_payload"
+    },
+    {
+      "module": "writeoffs",
+      "h5_module": "writeoffs",
+      "raw_tables": [
+        "qsm_import_module",
+        "qsm_raw_record"
+      ],
+      "query_tables": [
+        "qsm_document",
+        "qsm_document_version"
+      ],
+      "mapping_note": "empty_in_inspected_capture; preserve_explicit_empty_status; validate_specific_field_mapping_when_samples_exist",
+      "document_type": "writeoff"
+    }
+  ],
+  "native_sheets": [
+    {
+      "sheet_module": "clients.1",
+      "h5_module": "clients",
+      "sheet_role": "archive",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "loans_in_with_details.1",
+      "h5_module": "loans_in",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "loans_in_with_details.2",
+      "h5_module": "loans_in",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "loans_out_with_details.1",
+      "h5_module": "loans_out",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "loans_out_with_details.2",
+      "h5_module": "loans_out",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "products_all.1",
+      "h5_module": "products_all",
+      "sheet_role": "archive",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchase_orders_with_details.1",
+      "h5_module": "purchase_orders",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchase_orders_with_details.2",
+      "h5_module": "purchase_orders",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchase_returns_with_details.1",
+      "h5_module": "purchase_returns",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchase_returns_with_details.2",
+      "h5_module": "purchase_returns",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchases_with_details.1",
+      "h5_module": "purchases",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "purchases_with_details.2",
+      "h5_module": "purchases",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "sales_returns_with_details.1",
+      "h5_module": "sales_returns",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "sales_returns_with_details.2",
+      "h5_module": "sales_returns",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "sales_with_details.1",
+      "h5_module": "sales",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "sales_with_details.2",
+      "h5_module": "sales",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "stock.1",
+      "h5_module": "stock",
+      "sheet_role": "archive",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "suppliers.1",
+      "h5_module": "suppliers",
+      "sheet_role": "archive",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "transfers_with_details.1",
+      "h5_module": "transfers",
+      "sheet_role": "header",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": null,
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    },
+    {
+      "sheet_module": "transfers_with_details.2",
+      "h5_module": "transfers",
+      "sheet_role": "product_line",
+      "tables": [
+        "qsm_import_module",
+        "qsm_export_sheet",
+        "qsm_raw_record",
+        "qsm_file",
+        "qsm_file_ref"
+      ],
+      "optional_query_table": "qsm_document_line",
+      "association_rule": "exact_source_id_or_unique_verified_match_only; otherwise_full_raw_browse_and_data_issue"
+    }
+  ],
+  "media": {
+    "module": "media/index.jsonl",
+    "tables": [
+      "qsm_import_module",
+      "qsm_raw_record",
+      "qsm_file",
+      "qsm_file_ref"
+    ]
+  },
+  "metadata": {
+    "modules": [
+      "manifest.json",
+      "verification.json",
+      "status/*",
+      "native_status/*",
+      "media/manifest.json",
+      "media/documents.json"
+    ],
+    "tables": [
+      "qsm_import_batch",
+      "qsm_import_module",
+      "qsm_raw_record",
+      "qsm_data_issue"
+    ]
+  },
+  "other_files": {
+    "formats": [
+      "Excel",
+      "CSV",
+      "SQLite",
+      "ZIP"
+    ],
+    "tables": [
+      "qsm_file",
+      "qsm_file_ref"
+    ],
+    "rule": "carriers_of_same_business_data; do_not_import_each_carrier_as_new_business_records"
+  },
+  "derived_or_future_tables": {
+    "style_grouping": [
+      "qsm_product_style",
+      "qsm_style_sku"
+    ],
+    "retail_mapping": [
+      "qsm_retail_sku_map",
+      "qsm_retail_warehouse_map",
+      "qsm_retail_sale_link"
+    ],
+    "audit": [
+      "qsm_change_log"
+    ]
+  }
+}
