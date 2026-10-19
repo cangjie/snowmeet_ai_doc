@@ -226,6 +226,8 @@ def collect(args):
             save(root/'run.json',state);raise
 
 def main():
+    for stream in [sys.stdout,sys.stderr]:
+        if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf-8')
     parser=argparse.ArgumentParser(description='七色米定期抓取：新快照、加密会话、物理网卡直连、防重复运行。')
     sub=parser.add_subparsers(dest='action',required=True)
     for name in ['login','doctor','run']:

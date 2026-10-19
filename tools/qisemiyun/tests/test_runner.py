@@ -42,6 +42,11 @@ class RunnerTests(unittest.TestCase):
         commands=[x['command'][1] for x in plan['steps']]
         self.assertLess(next(i for i,c in enumerate(commands) if c.endswith('stock_movements.py')),next(i for i,c in enumerate(commands) if c.endswith('augment.py')))
         self.assertIn('--verify-only',next(x['command'] for x in plan['steps'] if x['command'][1].endswith('finalize.py')))
+        # English Windows pipes can default to cp1252; CLI output remains UTF-8.
+        env=dict(os.environ,PYTHONIOENCODING='cp1252')
+        result=subprocess.run([sys.executable,str(BASE/'run.py'),'run','--scope','full','--dry-run'],env=env,capture_output=True)
+        self.assertEqual(result.returncode,0,result.stderr.decode('utf-8','replace'))
+        self.assertFalse(json.loads(result.stdout.decode('utf-8'))['network_requests'])
 
     def test_child_scripts_use_isolated_data_root_and_shared_encrypted_session(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -49,7 +54,7 @@ class RunnerTests(unittest.TestCase):
             code="import json,sys;sys.path.insert(0,sys.argv[1]);from client import ROOT;from platform_support import data_home;print(json.dumps([str(ROOT),str(data_home())]))"
             result=subprocess.run([sys.executable,'-c',code,str(BASE)],env=env,capture_output=True,text=True,check=True)
             root,home=json.loads(result.stdout)
-            self.assertEqual(Path(root),Path(temp));self.assertFalse(Path(home).is_relative_to(BASE.parents[1]))
+            self.assertEqual(Path(root),Path(temp).resolve());self.assertFalse(Path(home).is_relative_to(BASE.parents[1]))
             self.assertFalse((Path(root)/'data').exists())
 
     def test_second_process_cannot_enter_run_lock(self):
