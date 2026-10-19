@@ -1,5 +1,5 @@
 {
-  "status": "design_pending_user_confirmation",
+  "status": "schema_approved_initial_migration_completed",
   "design": "database-design.md",
   "all_tables_require": {
     "valid": "bit NOT NULL DEFAULT 1",
