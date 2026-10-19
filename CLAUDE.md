@@ -1,5 +1,12 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-19：七色米抓取工具迁入 tools，可在 Windows / macOS 同步运行
+
+- 程序与安装说明：[tools/qisemiyun](tools/qisemiyun/README.md)。标准 Python 3.11+，每台电脑创建自己的虚拟环境并登录；`run.py run --scope inventory` 更新商品和各仓库存，`--scope full` 抓全部时间范围的业务单据、明细、流水和图片附件。
+- 数据默认位于仓库外的本机应用数据目录，每次运行生成独立快照；Git 仅同步代码、依赖和通用接口配置。密码不保存，会话使用 Windows DPAPI / macOS 系统钥匙串，各电脑分别登录。
+- Windows 已通过本机单元测试、原生 DPAPI 检查与公共站点直连检查；Windows / macOS 自动检查见 GitHub Actions `Qisemi collector tests`。实际账号采集需在目标电脑验证。
+- 早期 `.local/qisemiyun-export` 导出仍保留在本机；入口转发到仓库工具。迁移没有重新抓取或搬运既有业务数据。
+
 ## 2026-10-18：山姆 H5 已完成京东全量销量快照并发布修正版
 
 - **抓取**：覆盖 63 个二级类目、成功 73 页；快照含 885 条类目/SKU 记录、883 个唯一 SKU。京东类目排序是相对名次，不是订单量。

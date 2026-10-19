@@ -1,0 +1,176 @@
+[
+  {
+    "name": "purchases_with_details",
+    "label": "进货单及商品明细",
+    "export_type": "buy",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "purchases",
+    "document_field": "BuyNo",
+    "payload": {
+      "BuyDateForm": "",
+      "BuyDateTo": "",
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "sales_with_details",
+    "label": "销售单及商品明细",
+    "export_type": "",
+    "export_path": "/V1/User/Sale/ExportBigData",
+    "count_path": "/V1/User/Sale/GetexportBigDataCount",
+    "status_path": "/V1/User/Sale/GetExportStatus",
+    "source_module": "sales",
+    "document_field": "SaleNo",
+    "payload": {
+      "SaleDateForm": "",
+      "SaleDateTo": "",
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "transfers_with_details",
+    "label": "调拨单及商品明细",
+    "export_type": "transfer",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "transfers",
+    "document_field": "TranNo",
+    "payload": {
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "purchase_returns_with_details",
+    "label": "进货退货及商品明细",
+    "export_type": "buyreturn",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "purchase_returns",
+    "document_field": "ReturnNo",
+    "payload": {
+      "BuyDateForm": "",
+      "BuyDateTo": "",
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "sales_returns_with_details",
+    "label": "销售退货及商品明细",
+    "export_type": "salereturn",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "sales_returns",
+    "document_field": "ReturnNo",
+    "payload": {
+      "ReturnDateForm": "",
+      "ReturnDateTo": "",
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "purchase_orders_with_details",
+    "label": "进货预订单及商品明细",
+    "export_type": "buyorder",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "purchase_orders",
+    "document_field": "BuyNo",
+    "payload": {
+      "BuyDateForm": "",
+      "BuyDateTo": "",
+      "IsShowWriteBack": "1"
+    }
+  },
+  {
+    "name": "stock",
+    "label": "当前库存",
+    "export_type": "inventory",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": null,
+    "document_field": null,
+    "payload": {
+      "QueryType": "0",
+      "ClassId": "",
+      "WarehouseId": "",
+      "StartDate": "",
+      "EndDate": "",
+      "UserId": "@session:UserId",
+      "OpenSOBDate": "null",
+      "ProductQueryType": "2",
+      "IsShowZero": "1",
+      "IsShowStop": "1",
+      "IsQueryTopData": 0,
+      "PositionId": ""
+    }
+  },
+  {
+    "name": "loans_out_with_details",
+    "label": "借出单及商品明细",
+    "export_type": "lend",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "loans_out",
+    "document_field": "LendNo",
+    "payload": {
+      "LendType": 2,
+      "IsShowWriteBack": "1",
+      "IOState": "",
+      "LendState": ""
+    }
+  },
+  {
+    "name": "loans_in_with_details",
+    "label": "借入单及商品明细",
+    "export_type": "borrow",
+    "export_path": "/V1/User/Export/ExportBigData",
+    "count_path": "/V1/User/Export/GetexportBigDataCount",
+    "status_path": "/V1/User/Export/GetExportStatus",
+    "source_module": "loans_in",
+    "document_field": "LendNo",
+    "payload": {
+      "LendType": 1,
+      "IsShowWriteBack": "1",
+      "IOState": "",
+      "LendState": ""
+    }
+  },
+  {
+    "name": "products_all",
+    "label": "商品档案（含停用）",
+    "export_path": "/V1/User/ProductMainInfo/Export",
+    "payload": {
+      "ClassId": "",
+      "ProductState": "1",
+      "ProductType": "1",
+      "FilterZeroStock": ""
+    }
+  },
+  {
+    "name": "clients",
+    "label": "客户档案",
+    "export_path": "/V1/User/Client/Export",
+    "payload": {
+      "ClassId": "",
+      "IsShowStop": 1,
+      "FilterBranchId": ""
+    }
+  },
+  {
+    "name": "suppliers",
+    "label": "供应商档案",
+    "export_path": "/V1/User/Supplier/Export",
+    "payload": {
+      "ClassId": "",
+      "IsShowStop": 1
+    }
+  }
+]

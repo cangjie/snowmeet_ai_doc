@@ -1,0 +1,493 @@
+[
+  {
+    "name": "clients",
+    "label": "客户档案",
+    "path": "/V1/User/Client/QueryClient",
+    "id_field": "ClientId",
+    "payload": {
+      "IsShowStop": 1,
+      "ClassId": "",
+      "FilterBranchId": ""
+    }
+  },
+  {
+    "name": "purchases",
+    "label": "进货单",
+    "path": "/V1/User/Buy/QueryBuyList",
+    "id_field": "BuyId",
+    "payload": {
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "sales",
+    "label": "销售单",
+    "path": "/V1/User/Sale/QuerySales",
+    "id_field": "SaleId",
+    "payload": {
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "products_all",
+    "label": "商品档案（含停用）",
+    "path": "/V1/User/ProductMainInfo/QueryProduct",
+    "id_field": "ProductId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "ClassId": "",
+      "ProductState": "1",
+      "ProductType": "1",
+      "FilterZeroStock": ""
+    }
+  },
+  {
+    "name": "accessories",
+    "label": "配件档案（含停用）",
+    "path": "/V1/User/ProductMainInfo/QueryProduct",
+    "id_field": "ProductId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "ClassId": "",
+      "ProductState": "1",
+      "ProductType": "2",
+      "FilterZeroStock": ""
+    }
+  },
+  {
+    "name": "suppliers",
+    "label": "供应商档案（含停用）",
+    "path": "/V1/User/Supplier/QuerySupplier",
+    "id_field": "SupplierId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowStop": 1,
+      "ClassId": ""
+    }
+  },
+  {
+    "name": "warehouses",
+    "label": "仓库档案（含停用）",
+    "path": "/V1/User/Warehouse/QueryWarehouseList",
+    "id_field": "WarehouseId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": ""
+    }
+  },
+  {
+    "name": "branches",
+    "label": "门店档案",
+    "path": "/V1/User/Branch/QueryBranchList",
+    "id_field": "BranchId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": ""
+    }
+  },
+  {
+    "name": "stock",
+    "label": "当前库存（含零库存及停用商品）",
+    "path": "/V1/User/InventoryReport/Inventory",
+    "id_field": "productid",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "QueryType": "0",
+      "ClassId": "",
+      "WarehouseId": "",
+      "StartDate": "",
+      "EndDate": "",
+      "UserId": "@session:UserId",
+      "OpenSOBDate": "null",
+      "ProductQueryType": "2",
+      "IsShowZero": "1",
+      "IsShowStop": "1",
+      "IsQueryTopData": 0,
+      "PositionId": ""
+    },
+    "rows_key": "ProductList"
+  },
+  {
+    "name": "receipts",
+    "label": "收款单",
+    "path": "/V1/User/ReceiveAndPay/QueryReceiveList",
+    "id_field": "ReceiveId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "payments",
+    "label": "付款单",
+    "path": "/V1/User/ReceiveAndPay/QueryPayList",
+    "id_field": "PaymentId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "purchase_returns",
+    "label": "进货退货单",
+    "path": "/V1/User/BuyReturn/QueryBuyReturnList",
+    "id_field": "ReturnId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "sales_returns",
+    "label": "销售退货单",
+    "path": "/V1/User/SaleReturn/QuerySaleReturnList",
+    "id_field": "ReturnId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "purchase_orders",
+    "label": "进货预订单",
+    "path": "/V1/User/BuyOrder/QueryBuyOrderList",
+    "id_field": "BuyId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "sales_orders",
+    "label": "销售预订单",
+    "path": "/V1/User/SaleOrder/QuerySaleOrderList",
+    "id_field": "SaleId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "transfers",
+    "label": "调拨单",
+    "path": "/V1/User/Transfer/QueryTransferList",
+    "id_field": "TranId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "daily_income_expenses",
+    "label": "日常收支",
+    "path": "/V1/User/IncomeAndPay/QueryIncomeAndPay",
+    "id_field": "Id",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "assembly",
+    "label": "组装拆卸",
+    "path": "/V1/User/Assembly/QueryPageList",
+    "id_field": "",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "inbound",
+    "label": "入库单",
+    "path": "/V1/User/IO/QueryIOINList",
+    "id_field": "IOId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "outbound",
+    "label": "出库单",
+    "path": "/V1/User/IO/QueryIOOUTList",
+    "id_field": "IOId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "writeoffs",
+    "label": "核销单",
+    "path": "/V1/User/WriteOff/QueryList",
+    "id_field": "Id",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "account_transfers",
+    "label": "账户转账",
+    "path": "/V1/User/Account/QueryAccountTranList",
+    "id_field": "Id",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsInvoice": "1",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "projects",
+    "label": "收支项目",
+    "path": "/V1/User/Project/QueryProject",
+    "id_field": "ProjectId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": ""
+    }
+  },
+  {
+    "name": "sales_line_items",
+    "label": "销售商品明细",
+    "path": "/V1/User/Sale/QuerySaleDetails",
+    "id_field": "SaleDetailId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "balances",
+    "label": "结存记录",
+    "path": "/V1/User/Balance/QueryBalanceList",
+    "id_field": "",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": ""
+    },
+    "single": true
+  },
+  {
+    "name": "client_classes",
+    "label": "客户分类树",
+    "path": "/V1/User/Client/GetClientClassTree",
+    "id_field": "ClassId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "ParentClassId": "",
+      "Rp": 10000
+    },
+    "single": true
+  },
+  {
+    "name": "supplier_classes",
+    "label": "供应商分类树",
+    "path": "/V1/User/Supplier/GetSupplierClassTree",
+    "id_field": "ClassId",
+    "payload": {
+      "SearchType": 1,
+      "SearchKey": "",
+      "ParentClassId": "",
+      "Rp": 10000
+    },
+    "single": true
+  },
+  {
+    "name": "accounts_all",
+    "label": "结算账户（全部）",
+    "path": "/V1/User/Account/QueryAccountList",
+    "id_field": "AccountId",
+    "payload": {}
+  },
+  {
+    "name": "stocktaking",
+    "label": "盘点单",
+    "path": "/V1/User/StoreReserve/QueryAllBill",
+    "id_field": "TakBillId",
+    "payload": {
+      "SearchKey": "",
+      "IsShowWriteBack": 1,
+      "BusiDateFrom": "1900-01-01",
+      "BusiDateTo": "",
+      "SortName": "TakingDate",
+      "SortOrder": "desc"
+    }
+  },
+  {
+    "name": "loans_out",
+    "label": "借出单",
+    "path": "/V1/User/Lend/QueryLendList",
+    "id_field": "LendId",
+    "payload": {
+      "LendType": 2,
+      "IsShowWriteBack": 1,
+      "IOState": "",
+      "LendState": "",
+      "StartBusiDate": "",
+      "EndBusiDate": ""
+    }
+  },
+  {
+    "name": "loans_in",
+    "label": "借入单",
+    "path": "/V1/User/Lend/QueryLendList",
+    "id_field": "LendId",
+    "payload": {
+      "LendType": 1,
+      "IsShowWriteBack": 1,
+      "IOState": "",
+      "LendState": "",
+      "StartBusiDate": "",
+      "EndBusiDate": ""
+    }
+  },
+  {
+    "name": "product_classes",
+    "label": "商品分类",
+    "path": "/V1/User/ProductClass/QueryProductClassList",
+    "id_field": "ClassId",
+    "single": true,
+    "payload": {
+      "Page": 1,
+      "Rp": 10000,
+      "ClassType": "1",
+      "ParentClassId": ""
+    }
+  },
+  {
+    "name": "units",
+    "label": "计量单位",
+    "path": "/V1/User/UnitSetting/QueryUnitList",
+    "id_field": "UnitId",
+    "payload": {}
+  },
+  {
+    "name": "roles",
+    "label": "角色档案",
+    "path": "/V1/User/Role/QueryRoleList",
+    "id_field": "RoleId",
+    "payload": {}
+  },
+  {
+    "name": "warehouse_positions",
+    "label": "仓位档案",
+    "path": "/V1/User/WarehousePosition/QueryWarehousePositionList",
+    "id_field": "PositionId",
+    "payload": {
+      "WarehouseId": "",
+      "SearchKey": "",
+      "IsShowStop": 1
+    }
+  },
+  {
+    "name": "cost_adjustments",
+    "label": "成本调整单",
+    "path": "/V1/User/CostAdjustment/QueryCostAdjustmentList",
+    "id_field": "Id",
+    "payload": {
+      "StartBusiDate": "",
+      "EndBusiDate": "",
+      "SearchKey": "",
+      "IsShowWriteBack": 1
+    }
+  },
+  {
+    "name": "client_points",
+    "label": "客户积分流水",
+    "path": "/V1/User/ClientPoint/QueryClientPointRecordList",
+    "id_field": "Id",
+    "payload": {}
+  },
+  {
+    "name": "client_stored_orders",
+    "label": "客户储值单",
+    "path": "/V1/User/ClientStore/QueryClientStoreOrderList",
+    "id_field": "Id",
+    "payload": {}
+  },
+  {
+    "name": "client_stored_movements",
+    "label": "客户储值流水",
+    "path": "/V1/User/ClientStore/QueryClientStoreOrderRecordList",
+    "id_field": "Id",
+    "payload": {}
+  },
+  {
+    "name": "sales_drafts",
+    "label": "销售草稿",
+    "path": "/V1/User/BillDraft/QueryList",
+    "id_field": "SaleId",
+    "payload": {
+      "BusiType": 3,
+      "SearchKey": ""
+    }
+  },
+  {
+    "name": "employees_all",
+    "label": "全部员工（含锁定及其他用户类型）",
+    "path": "/V1/User/Employee/QueryEmployee",
+    "id_field": "UserId",
+    "single": true,
+    "payload": {
+      "Refer": "SelectCreateUser",
+      "ContactId": "@session:ContactId",
+      "SOBId": "@session:SOBId",
+      "LoginUserId": "@session:UserId",
+      "Rp": 10000,
+      "ShowType": 0,
+      "UserType": null,
+      "ShowLock": "1",
+      "BranchId": ""
+    }
+  },
+  {
+    "name": "other_outbound",
+    "label": "其他出库单",
+    "path": "/V1/User/OtherWarehouseIO/QueryList",
+    "payload": {
+      "StartBusiDate": "",
+      "EndBusiDate": "",
+      "IsShowWriteBack": 1,
+      "IOType": 1,
+      "BusiType": 20,
+      "SearchKey": ""
+    },
+    "id_field": "IOId"
+  },
+  {
+    "name": "other_inbound",
+    "label": "其他入库单",
+    "path": "/V1/User/OtherWarehouseIO/QueryList",
+    "payload": {
+      "StartBusiDate": "",
+      "EndBusiDate": "",
+      "IsShowWriteBack": 1,
+      "IOType": 0,
+      "BusiType": 21,
+      "SearchKey": ""
+    },
+    "id_field": "IOId"
+  }
+]
