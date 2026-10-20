@@ -64,7 +64,7 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths` |
+| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
 | `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
@@ -79,6 +79,10 @@ SessionType: <未来的会话类型>
 `inStockOnly=true` 在计数和分页前筛选款式：全部仓库时至少一个有效尺码的来源总库存大于零；指定仓库时至少一个尺码在该仓的账面数量大于零。零、负数和未知不单独构成有库存。筛选针对整个同款，不要求关键词命中的尺码本身有库存；详情仍保留全部尺码。API 参数缺省为 `false` 以保留原调用行为，H5 默认明确发送 `true`。
 
 `topCategoryId` 必须为 `TopCategories` 返回的有效顶层商品分类，匹配该节点与所有有效后代的 SKU 分类；分类层级中已逻辑删除或来源链不可见的节点不参与遍历。不存在、删除或传入非顶层节点返回 404。原 `categoryId` 仍保持按款式分类精确匹配，未改变旧参数语义。顶级分类、库存、仓库与关键词共同作用后再分页。
+
+`resultCategoryId` 为结果内的二次分类筛选，正数必须是有效顶级分类，`0` 表示没有完整可见分类路径的“未分类”，缺省不过滤。其作用对象是已经满足关键词及其他主筛选的同一个 SKU。`categoryFacets:[{id,name,count}]` 始终统计主筛选条件下、二次筛选及分页之前的全部结果，每个款式在同一顶级分类只计一次；同款跨分类可分别计入，因此分类计数之和可能大于去重总款数。`unfilteredTotal` 为二次筛选前去重款数，`total` 是二次筛选后款数，两个值和 `count` 均返回字符串。空页也返回分类统计，切换分类不会让其他分类消失。
+
+`sortBy=name|topCategory`、`sortDirection=asc|desc`，缺省为名称正序。名称和分类名称使用数据库排序规则，排序先于分页；分类相同时继续按名称及 ID 同方向排序，以固定分页顺序。一个同款跨多个匹配分类时取名称按序最前的一项作为分类排序键，没有完整分类的款式在正序和倒序都排最后。字段和方向仅接受以上白名单值，非法值返回 400。此排序及结果分类条为后续本机增强，尚未部署。
 
 默认 `Inventory.quantityMain` 使用来源总表；指定仓库后为所选仓的账面合计。任一参与尺码数量未知时合计为 null。`negativeOnly` 表示包含负库存尺码的款式，而不是仅筛选合计为负的款式。
 

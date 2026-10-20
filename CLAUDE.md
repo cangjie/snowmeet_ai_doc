@@ -1,5 +1,11 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-20：七色米库存排序与结果分类二次筛选完成，未部署
+
+- 用户追加名称/顶级分类正倒序及搜索区下方横向分类条。新增 `Inventory` 的 `sortBy,sortDirection,resultCategoryId`，返回 `categoryFacets,unfilteredTotal`；分类统计在二次筛选和分页之前按同款去重，不是库存件数。二次选择后保留所有分类及数量，主条件变更清除旧选择，排序和筛选回第一页。[说明](docs/qisemi/sorting-result-categories-2026-10-20.md) / [会话](sessions/2026-10-20_qisemi-sort-result-categories.md)。
+- API 编译、JS 语法、客户端 4/4 通过，后端独立复测 28/28 通过；首轮并行预览时既有原表读取一次超时已留档。真实页面 Fischer 主查询 266 款，双板 2 款、双板鞋 41 款；名称倒序、分类倒序、跨页计数及二次筛选正常。
+- 实现提交 `SnowmeetApi ai@d630e58e`；390px 实测分类条内容约 1255px 可横向滚动，无整页溢出、浏览器错误；截图与证据在 workspace `.local/qisemi-sort-facets-20261020/`。本机 5591 已更新，已恢复默认浏览宽度；未部署、未改 DDL/数据，企微真机待测。
+
 ## 2026-10-20：七色米库存关键词与各级分类本机完成，未部署
 
 - 用户要求继续增强当前库存页；复用搜索框支持商品及各级分类名称的部分词、多关键词组合，每条款式卡片显示完整分类路径，多个分类分别显示，缺失上级明确标记。原有库存/仓库/顶级分类筛选继续组合。[说明与验证边界](docs/qisemi/keyword-category-search-2026-10-20.md) / [会话](sessions/2026-10-20_qisemi-keyword-category-paths.md)。
