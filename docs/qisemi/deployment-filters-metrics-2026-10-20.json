@@ -1,0 +1,155 @@
+{
+  "release": "qisemi-inventory-filters",
+  "date": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "old_commit": "17d06840a8ef16318b063f6794a93f72a1aec8fd",
+  "new_commit": "99a6e306f1c4235e46c00ac6d48abf54edbb4595",
+  "url": "https://mini.snowmeet.top/wecom/qisemi",
+  "measurement": "First failed response completion to first successful response completion; sampling and request timeouts limit precision. Bounds are observations, not exact outage edges.",
+  "probe": {
+    "path": "/ws",
+    "expected_http_status": 400,
+    "local_interval_ms": 100,
+    "public_interval_ms": 250,
+    "local_timeout_seconds": 1,
+    "public_timeout_seconds": 3
+  },
+  "local": {
+    "mode": "local",
+    "samples": 8284,
+    "spans": [
+      {
+        "first_failure_response_cst": "2026-10-20T12:27:37.092+08:00",
+        "last_failure_request_start_cst": "2026-10-20T12:27:38.497+08:00",
+        "recovery_response_cst": "2026-10-20T12:27:38.766+08:00",
+        "failed_probes": 15,
+        "observed_seconds": 1.674592672,
+        "lower_bound_seconds": 1.404749619,
+        "upper_bound_seconds": 1.775303115,
+        "first_failure_status": null,
+        "errors": [
+          "ConnectionRefusedError",
+          "RemoteDisconnected"
+        ],
+        "statuses": [],
+        "category": "application_unreachable",
+        "classification": "service_switch"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T12:29:04.646+08:00",
+        "last_failure_request_start_cst": "2026-10-20T12:29:03.646+08:00",
+        "recovery_response_cst": "2026-10-20T12:29:05.393+08:00",
+        "failed_probes": 1,
+        "observed_seconds": 0.746419494,
+        "lower_bound_seconds": 0,
+        "upper_bound_seconds": 1.847272912,
+        "first_failure_status": null,
+        "errors": [
+          "TimeoutError"
+        ],
+        "statuses": [],
+        "category": "application_unreachable",
+        "classification": "single_local_timeout_public_requests_succeeded_with_latency"
+      }
+    ],
+    "observed_total_seconds": 2.421012166,
+    "lower_total_seconds": 1.404749619,
+    "upper_total_seconds": 3.622576027,
+    "first_response_cst": "2026-10-20T12:17:01.261+08:00",
+    "last_response_cst": "2026-10-20T12:30:55.809+08:00"
+  },
+  "public": {
+    "mode": "public",
+    "samples": 3350,
+    "spans": [
+      {
+        "first_failure_response_cst": "2026-10-20T12:27:37.195+08:00",
+        "last_failure_request_start_cst": "2026-10-20T12:27:37.200+08:00",
+        "recovery_response_cst": "2026-10-20T12:27:38.903+08:00",
+        "failed_probes": 2,
+        "observed_seconds": 1.707687913,
+        "lower_bound_seconds": 0.005114561,
+        "upper_bound_seconds": 2.203127349,
+        "first_failure_status": 502,
+        "errors": [],
+        "statuses": [
+          502
+        ],
+        "category": "http_502"
+      }
+    ],
+    "observed_total_seconds": 1.707687913,
+    "lower_total_seconds": 0.005114561,
+    "upper_total_seconds": 2.203127349,
+    "first_response_cst": "2026-10-20T12:16:59.932+08:00",
+    "last_response_cst": "2026-10-20T12:31:25.252+08:00",
+    "http_502_observed_seconds": 1.707687913,
+    "transport_error_observed_seconds": 0
+  },
+  "public_during_local_timeout": {
+    "from_cst": "2026-10-20T12:29:02+08:00",
+    "to_cst": "2026-10-20T12:29:07+08:00",
+    "samples": 13,
+    "all_successful": true,
+    "max_request_seconds": 1.793899613
+  },
+  "switch": {
+    "status": "deployed",
+    "target": "99a6e306f1c4235e46c00ac6d48abf54edbb4595",
+    "old_operations_preserved": 618,
+    "new_operations": 619,
+    "qisemi_get_operations": 28,
+    "protected_files_unchanged": true,
+    "service_pid": "20767"
+  },
+  "final_health": {
+    "release_source_build_cache_removed": true,
+    "filesystem_free_delta_bytes": 394141696,
+    "free_bytes": 933564416,
+    "qisemi_static_directory_owner": "ubuntu:ubuntu",
+    "protected_files_unchanged": 51,
+    "runtime_sha256": "48b86a194e87bc9d3c0e5177706543a1a36e9ed81adb37daef20a9e8e0a5ebcb",
+    "service": "active",
+    "nrestarts": "0",
+    "qisemi_error_count": 0,
+    "head": "99a6e306f1c4235e46c00ac6d48abf54edbb4595",
+    "pid": "20767",
+    "sql_service": "active",
+    "nginx_service": "active"
+  },
+  "public_browser": {
+    "passed": true,
+    "defaultInStockOnly": true,
+    "topCategories": 59,
+    "selectedWarehouse": true,
+    "combinedFilter": true,
+    "sizes": [
+      "25.5",
+      "26.5",
+      "27.5"
+    ],
+    "category58Page2": true,
+    "inStockToggle": true,
+    "publicOriginalImagePreview": true,
+    "publicDocumentDetail": true,
+    "viewports": [
+      320,
+      390,
+      768,
+      1280
+    ],
+    "consoleErrors": [],
+    "failedResponses": [],
+    "inventoryCalls": 8
+  },
+  "evidence_archives": {
+    "target": {
+      "sha256": "2a0cc70172269a8b4c1f8828589dac03ee9189d4e34181f28aec984b9b5cfd31",
+      "bytes": 267841
+    },
+    "relay": {
+      "sha256": "3c36088fda1091676eab30ec364085a514c234596696e291591bd414fd4d6c10",
+      "bytes": 106742
+    }
+  }
+}
