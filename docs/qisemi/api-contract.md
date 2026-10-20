@@ -64,7 +64,7 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount` |
+| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
 | `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
@@ -72,7 +72,9 @@ SessionType: <未来的会话类型>
 | `StockTotals` | `keyword,skuId,negativeOnly`；原始口径的 SKU 总库存分页 |
 | `WarehouseStocks` | `keyword,skuId,warehouseId,negativeOnly`；实际保存的各仓明细分页，不在这个原表入口补零行 |
 
-`Inventory` 多词可以分别命中款式文本及同一个 SKU 文本；按 `26.5` 命中一个款式后，`Styles/{id}` 仍返回同款所有尺码，不把搜索词继续用作尺码过滤。不同硬度、颜色、雪季等归组直接使用已迁入的 `qsm_style_sku`，查询阶段不再猜测合并。
+`Inventory` 关键词支持部分词、不区分大小写，多词可以分别命中款式文本、同一个 SKU 文本及该 SKU 所属的各级分类名称。例如 `双板鞋 fisch 24-25 110 26.5`；所有词必须由同一个 SKU 及其自身分类路径共同满足，不能把不同尺码的命中拼在一起。按 `26.5` 命中一个款式后，`Styles/{id}` 仍返回同款所有尺码，不把搜索词继续用作尺码过滤。不同硬度、颜色、雪季等归组直接使用已迁入的 `qsm_style_sku`，查询阶段不再猜测合并。
+
+`categoryPaths` 是该同款全部有效 SKU 对应的去重分类路径，不因关键词命中某个尺码而隐藏其他路径。每项包含字符串 `categoryId`、由顶层到叶子排序的 `levels:[{id,name}]` 以及布尔 `complete`。例如 `【硬件】双板鞋 → Fischer → Fischer 24-25`。缺失或删除的上级节点不补造；路径只保留可见的连续节点并返回 `complete=false`。没有可见分类资料时返回空数组。此字段为 2026-10-20 后续开发增强，当前本机验证完成、尚未部署。
 
 `inStockOnly=true` 在计数和分页前筛选款式：全部仓库时至少一个有效尺码的来源总库存大于零；指定仓库时至少一个尺码在该仓的账面数量大于零。零、负数和未知不单独构成有库存。筛选针对整个同款，不要求关键词命中的尺码本身有库存；详情仍保留全部尺码。API 参数缺省为 `false` 以保留原调用行为，H5 默认明确发送 `true`。
 
@@ -152,4 +154,4 @@ dotnet test SnowmeetApi.Tests/SnowmeetApi.Tests.csproj --filter FullyQualifiedNa
 
 验证记录与剩余边界见对应会话归档。用户随后已授权实现 [H5](h5-implementation.md)，页面使用这些真实接口。本期没有部署或执行定期新快照同步；上线和真实企业微信手机验收须后续确认。
 
-组合筛选先读取满足有效性与关键词条件的 SKU/款式身份，再在服务层与正库存款式集合及有效分类后代集合取交集、去重，最后由 SQL 计数分页。分类仍作用在关键词匹配的同一 SKU，正库存仍针对整个同款，不因执行计划优化改变筛选语义。
+组合筛选先读取满足来源链有效性的 SKU/款式/分类身份；关键词的 SQL 字面匹配在小型商品目录查询中单独计算，再与分类路径匹配结果合并。服务层与正库存款式集合及有效分类后代集合取交集、去重，最后由 SQL 计数分页。分类仍作用在关键词匹配的同一 SKU，正库存仍针对整个同款，不因执行计划优化改变筛选语义。长搜索文本不进入来源链哈希连接，避免完整快照上过大的内存授予等待。
