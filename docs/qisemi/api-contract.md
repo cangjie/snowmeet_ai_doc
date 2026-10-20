@@ -64,7 +64,7 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, resultWarehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal,warehouseFacets,warehouseUnfilteredTotal` |
+| `Inventory` | `keyword, warehouseId, resultWarehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal,warehouseFacets,warehouseUnfilteredTotal,warehouseUnfilteredQuantityMain,warehouseUnfilteredUnknownCount` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
 | `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
@@ -87,6 +87,8 @@ SessionType: <未来的会话类型>
 `resultWarehouseId` 为搜索结果中的有货仓二次筛选，必须是当前来源可见的正数仓库 ID。仓内至少一个有效尺码的已取得账面数量大于零才命中，按整个同款判断，不要求关键词命中尺码本身有货；零、负数和未知不构成有货。若设置主 `warehouseId`，二次仓库只在该主仓范围内，传入其他仓返回 400；不存在或逻辑删除的仓返回 404。列表 `quantityMain` 改为二次所选仓的同款合计，可能因其他尺码负库存而为零，未知数量仍按原规则处理；未选择二次仓时保留原总表/主仓口径。H5 展开时将 `resultWarehouseId ?? warehouseId` 传给 `Styles` 的既有 `warehouseId` 参数，流水跳转也沿用此仓。
 
 两组结果统计互相联动、各自排除本组选择：`categoryFacets` 与 `unfilteredTotal` 在当前二次仓库下、二次分类前统计；`warehouseFacets:[{id,name,count}]` 与 `warehouseUnfilteredTotal` 在当前二次分类下、二次仓库前统计。两者都覆盖分页前的全部结果。仓库项只返回至少一款有正库存的可见仓库，每个同款在同仓只计一次，可分别计入多个仓。`warehouseUnfilteredTotal` 是该分类下全部去重款数，取消正库存条件时也可能包含没有任何已知正库存仓的款式。点击仓库后仍保留其他有货仓数量，空页也返回统计。此结果仓库增强尚未部署。
+
+后续数量修正：仓库标签改用新增 `warehouseFacets[].quantityMain`（decimal 或 null），为该仓选中后全部匹配款式、全部有效尺码的账面数量合计，含负库存抵扣；`unknownCount` 为数量未知的 SKU 格数（字符串）。原 `count` 继续表示款数，保留兼容但不再用于仓库标签。“全部仓库”改用 `warehouseUnfilteredQuantityMain`：主仓未限定时汇总来源总库存，已限定时汇总主仓，排除二次仓选择；`warehouseUnfilteredUnknownCount` 为对应未知格数。任意数量未知则合计为 null，缺失只在明确完整仓覆盖内推断零，逻辑删除的已有库存行保持未知。所有合计先筛选再汇总、覆盖全部页，按同款/SKU 身份去重，不能累加款数或拿当前页代替全部结果。H5 仓库显示“件”、分类显示“款”；此项尚未部署。
 
 默认 `Inventory.quantityMain` 使用来源总表；指定仓库后为所选仓的账面合计。任一参与尺码数量未知时合计为 null。`negativeOnly` 表示包含负库存尺码的款式，而不是仅筛选合计为负的款式。
 
