@@ -1,5 +1,7 @@
 # 七色米 H5 实现
 
+2026-10-20 晚更新：本页增强现已获确认并部署为 `ai@af2b9e4c`；见 [生产验收与中断记录](deployment-query-enhancements-2026-10-20.md)。下方保留开发时的验证边界。
+
 2026-10-20。用户授权继续开发前端，沿用确认原型及小程序/食材管理 V4 的风格。代码在 `SnowmeetApi/wwwroot/wecom/qisemi/`，四个文件为 `index.html,app.css,api.js,app.js`。`QisemiPageController` 将 `/wecom/qisemi` 及尾斜杠入口转到真实页面；用户确认后已生产部署，见 [部署记录](deployment-2026-10-20.md)。
 
 ## 已实现

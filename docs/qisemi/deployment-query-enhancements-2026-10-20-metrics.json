@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "baseline": "99a6e306f1c4235e46c00ac6d48abf54edbb4595",
+  "target": "af2b9e4c6016736cb43091e750acbf951d150822",
+  "public_url": "https://mini.snowmeet.top/wecom/qisemi",
+  "definition": "Failure response completion to first recovery response completion, computed using each observer monotonic clock. Sampling and network latency mean these are observations, not exact physical transition boundaries.",
+  "probe": {
+    "path": "/ws",
+    "healthy_status": 400,
+    "local_interval_s": 0.1,
+    "local_timeout_s": 1,
+    "public_interval_s": 0.25,
+    "public_timeout_s": 3
+  },
+  "local": {
+    "mode": "local",
+    "samples": 10439,
+    "spans": [
+      {
+        "first_failure_response_cst": "2026-10-20T21:45:39.807+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:45:41.313+08:00",
+        "recovery_response_cst": "2026-10-20T21:45:41.490+08:00",
+        "failed_probes": 16,
+        "observed_seconds": 1.68328983,
+        "lower_bound_seconds": 1.506410912,
+        "upper_bound_seconds": 1.784062008,
+        "first_failure_status": null,
+        "errors": [
+          "ConnectionRefusedError",
+          "RemoteDisconnected"
+        ],
+        "statuses": [],
+        "category": "application_unreachable"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T21:46:02.608+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:46:03.912+08:00",
+        "recovery_response_cst": "2026-10-20T21:46:04.173+08:00",
+        "failed_probes": 14,
+        "observed_seconds": 1.565412333,
+        "lower_bound_seconds": 1.304050646,
+        "upper_bound_seconds": 1.666047979,
+        "first_failure_status": null,
+        "errors": [
+          "ConnectionRefusedError",
+          "RemoteDisconnected"
+        ],
+        "statuses": [],
+        "category": "application_unreachable"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T21:47:25.461+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:47:26.665+08:00",
+        "recovery_response_cst": "2026-10-20T21:47:26.838+08:00",
+        "failed_probes": 13,
+        "observed_seconds": 1.376456627,
+        "lower_bound_seconds": 1.203915143,
+        "upper_bound_seconds": 1.477470173,
+        "first_failure_status": null,
+        "errors": [
+          "ConnectionRefusedError",
+          "RemoteDisconnected"
+        ],
+        "statuses": [],
+        "category": "application_unreachable"
+      }
+    ],
+    "observed_total_seconds": 4.62515879,
+    "lower_total_seconds": 4.014376701,
+    "upper_total_seconds": 4.92758016,
+    "first_response_cst": "2026-10-20T21:39:00.232+08:00",
+    "last_response_cst": "2026-10-20T21:56:29.648+08:00"
+  },
+  "public": {
+    "mode": "public",
+    "samples": 3626,
+    "spans": [
+      {
+        "first_failure_response_cst": "2026-10-20T21:42:59.335+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:42:59.336+08:00",
+        "recovery_response_cst": "2026-10-20T21:43:06.502+08:00",
+        "failed_probes": 2,
+        "observed_seconds": 7.167064129,
+        "lower_bound_seconds": 0.000166369,
+        "upper_bound_seconds": 13.337549627,
+        "first_failure_status": null,
+        "errors": [
+          "TimeoutError"
+        ],
+        "statuses": [],
+        "category": "public_transport_error"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T21:45:40.363+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:45:40.102+08:00",
+        "recovery_response_cst": "2026-10-20T21:45:43.700+08:00",
+        "failed_probes": 1,
+        "observed_seconds": 3.337130918,
+        "lower_bound_seconds": 0,
+        "upper_bound_seconds": 4.726149482,
+        "first_failure_status": 502,
+        "errors": [],
+        "statuses": [
+          502
+        ],
+        "category": "http_502"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T21:46:02.704+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:46:02.705+08:00",
+        "recovery_response_cst": "2026-10-20T21:46:04.339+08:00",
+        "failed_probes": 2,
+        "observed_seconds": 1.63425139,
+        "lower_bound_seconds": 0.000160379,
+        "upper_bound_seconds": 2.1553374,
+        "first_failure_status": 502,
+        "errors": [],
+        "statuses": [
+          502
+        ],
+        "category": "http_502"
+      },
+      {
+        "first_failure_response_cst": "2026-10-20T21:47:25.622+08:00",
+        "last_failure_request_start_cst": "2026-10-20T21:47:25.367+08:00",
+        "recovery_response_cst": "2026-10-20T21:47:27.438+08:00",
+        "failed_probes": 1,
+        "observed_seconds": 1.816867461,
+        "lower_bound_seconds": 0,
+        "upper_bound_seconds": 2.328333597,
+        "first_failure_status": 502,
+        "errors": [],
+        "statuses": [
+          502
+        ],
+        "category": "http_502"
+      }
+    ],
+    "observed_total_seconds": 13.955313898,
+    "lower_total_seconds": 0.00032674799999999997,
+    "upper_total_seconds": 22.547370106,
+    "first_response_cst": "2026-10-20T21:38:59.968+08:00",
+    "last_response_cst": "2026-10-20T21:57:10.432+08:00",
+    "http_502_observed_seconds": 6.788249769,
+    "transport_error_observed_seconds": 7.167064129
+  },
+  "switch_result": {
+    "status": "deployed",
+    "target": "af2b9e4c6016736cb43091e750acbf951d150822",
+    "old_operations_preserved": 619,
+    "new_operations": 619,
+    "qisemi_get_operations": 28,
+    "protected_files_unchanged": true,
+    "service_pid": "36795"
+  },
+  "verification": {
+    "passed": true,
+    "top_categories": 59,
+    "all_styles": "5793",
+    "in_stock_styles": "2799",
+    "filtered_styles": "1",
+    "category58_page2": true,
+    "modules": 50,
+    "warehouses": 99,
+    "fischer_styles": 5,
+    "style_sizes": [
+      "25.5",
+      "26.5",
+      "27.5"
+    ],
+    "style_warehouses_have_rows": true,
+    "private_image_through_api": true,
+    "document_and_lines": true,
+    "original_sheet_rows": true,
+    "protected_files_unchanged": 51,
+    "free_bytes": 572178432
+  },
+  "public_verification": {
+    "passed": true,
+    "static_sha256_match": true,
+    "two_styles_four_pieces": true,
+    "warehouse_filter": true,
+    "private_image": true,
+    "reserved_session_headers_accepted": true
+  },
+  "enhancements": {
+    "passed": true,
+    "xtr_quantity": 4,
+    "xtr_styles": 2,
+    "warehouse_quantities": {
+      "11": 2,
+      "24": 2,
+      "21": 1,
+      "44": 1,
+      "8": 1
+    },
+    "automatic_photo_payloads": 2,
+    "default_sort": "name/asc",
+    "descending_sort": true,
+    "category_keyword_match": true,
+    "secondary_warehouse": true
+  },
+  "ui": {
+    "passed": true,
+    "transport": "SSH loopback to production port 5000; public HTTPS independently verified from relay",
+    "sort": "name/asc",
+    "auto_loaded_images": 2,
+    "cards_remained_collapsed": true,
+    "warehouse_secondary_selection": true,
+    "console_errors": 0
+  },
+  "final_state": {
+    "release_source_build_cache_removed": true,
+    "filesystem_free_delta_bytes": 246722560,
+    "free_bytes": 813428736,
+    "qisemi_static_directory_owner": "ubuntu:ubuntu",
+    "protected_files_unchanged": 51,
+    "runtime_sha256": "76ec01e0ce02ca8da287a8f62365e0a34e6a70f980585e1faf83a636aca93c26",
+    "service": "active",
+    "nrestarts": "0",
+    "all_attempts_qisemi_error_count": 1,
+    "qisemi_error_count": 0,
+    "head": "af2b9e4c6016736cb43091e750acbf951d150822",
+    "pid": "36795",
+    "sql_service": "active",
+    "nginx_service": "active"
+  },
+  "evidence_directory": ".local/qisemi-query-release-20261020-af2b9e4c/evidence/",
+  "public_transport_correlation": [
+    {
+      "local_probes": 130,
+      "local_failures": 0,
+      "local_max_latency_s": 0.003507429
+    }
+  ]
+}

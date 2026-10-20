@@ -1,5 +1,7 @@
 # 七色米只读 API
 
+2026-10-20 晚更新：本页增强现已获确认并部署为 `ai@af2b9e4c`；见 [生产验收与中断记录](deployment-query-enhancements-2026-10-20.md)。下方保留开发时的验证边界。
+
 2026-10-20。代码位于 `SnowmeetApi`，基础路径 `/api/Qisemi`。开发验收后已获用户确认并生产部署，库存筛选增强现为 `ai@99a6e306`；见 [筛选说明](inventory-filters-2026-10-20.md) 和 [本轮部署记录](deployment-filters-2026-10-20.md)。接口不执行建表、导入、零售映射或扣库存。
 
 ## 会话与响应
