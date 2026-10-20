@@ -64,7 +64,7 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal` |
+| `Inventory` | `keyword, warehouseId, resultWarehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal,warehouseFacets,warehouseUnfilteredTotal` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
 | `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
@@ -80,9 +80,13 @@ SessionType: <未来的会话类型>
 
 `topCategoryId` 必须为 `TopCategories` 返回的有效顶层商品分类，匹配该节点与所有有效后代的 SKU 分类；分类层级中已逻辑删除或来源链不可见的节点不参与遍历。不存在、删除或传入非顶层节点返回 404。原 `categoryId` 仍保持按款式分类精确匹配，未改变旧参数语义。顶级分类、库存、仓库与关键词共同作用后再分页。
 
-`resultCategoryId` 为结果内的二次分类筛选，正数必须是有效顶级分类，`0` 表示没有完整可见分类路径的“未分类”，缺省不过滤。其作用对象是已经满足关键词及其他主筛选的同一个 SKU。`categoryFacets:[{id,name,count}]` 始终统计主筛选条件下、二次筛选及分页之前的全部结果，每个款式在同一顶级分类只计一次；同款跨分类可分别计入，因此分类计数之和可能大于去重总款数。`unfilteredTotal` 为二次筛选前去重款数，`total` 是二次筛选后款数，两个值和 `count` 均返回字符串。空页也返回分类统计，切换分类不会让其他分类消失。
+`resultCategoryId` 为结果内的二次分类筛选，正数必须是有效顶级分类，`0` 表示没有完整可见分类路径的“未分类”，缺省不过滤。其作用对象是已经满足关键词及其他主筛选的同一个 SKU。`categoryFacets:[{id,name,count}]` 始终统计主筛选和当前二次仓库条件下、二次分类及分页之前的全部结果，每个款式在同一顶级分类只计一次；同款跨分类可分别计入，因此分类计数之和可能大于去重总款数。`unfilteredTotal` 为二次分类前去重款数，`total` 是全部二次筛选后款数，两个值和 `count` 均返回字符串。空页也返回分类统计，切换分类不会让其他分类消失。
 
 `sortBy=name|topCategory`、`sortDirection=asc|desc`，缺省为名称正序。名称和分类名称使用数据库排序规则，排序先于分页；分类相同时继续按名称及 ID 同方向排序，以固定分页顺序。一个同款跨多个匹配分类时取名称按序最前的一项作为分类排序键，没有完整分类的款式在正序和倒序都排最后。字段和方向仅接受以上白名单值，非法值返回 400。此排序及结果分类条为后续本机增强，尚未部署。
+
+`resultWarehouseId` 为搜索结果中的有货仓二次筛选，必须是当前来源可见的正数仓库 ID。仓内至少一个有效尺码的已取得账面数量大于零才命中，按整个同款判断，不要求关键词命中尺码本身有货；零、负数和未知不构成有货。若设置主 `warehouseId`，二次仓库只在该主仓范围内，传入其他仓返回 400；不存在或逻辑删除的仓返回 404。列表 `quantityMain` 改为二次所选仓的同款合计，可能因其他尺码负库存而为零，未知数量仍按原规则处理；未选择二次仓时保留原总表/主仓口径。H5 展开时将 `resultWarehouseId ?? warehouseId` 传给 `Styles` 的既有 `warehouseId` 参数，流水跳转也沿用此仓。
+
+两组结果统计互相联动、各自排除本组选择：`categoryFacets` 与 `unfilteredTotal` 在当前二次仓库下、二次分类前统计；`warehouseFacets:[{id,name,count}]` 与 `warehouseUnfilteredTotal` 在当前二次分类下、二次仓库前统计。两者都覆盖分页前的全部结果。仓库项只返回至少一款有正库存的可见仓库，每个同款在同仓只计一次，可分别计入多个仓。`warehouseUnfilteredTotal` 是该分类下全部去重款数，取消正库存条件时也可能包含没有任何已知正库存仓的款式。点击仓库后仍保留其他有货仓数量，空页也返回统计。此结果仓库增强尚未部署。
 
 默认 `Inventory.quantityMain` 使用来源总表；指定仓库后为所选仓的账面合计。任一参与尺码数量未知时合计为 null。`negativeOnly` 表示包含负库存尺码的款式，而不是仅筛选合计为负的款式。
 

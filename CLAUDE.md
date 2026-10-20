@@ -1,5 +1,12 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-20：七色米搜索结果有货仓二次筛选，本机增强未部署
+
+- 用户要求在结果分类条下增加各仓筛选。新增“有货仓库”横向条与括号款数；同款任一有效尺码在该仓正库存即计一款，多尺码不重复；与二次分类交叉筛选，选择后保留其他有货仓，分页前统计。[说明](docs/qisemi/result-warehouse-filter-2026-10-20.md) / [会话](sessions/2026-10-20_qisemi-result-warehouse.md)。
+- `Inventory` 新增 `resultWarehouseId` 及 `warehouseFacets,warehouseUnfilteredTotal`，分类统计考虑二次仓、仓库统计考虑二次分类，均排除自身选择。列表合计、展开全部尺码/矩阵、流水同步到所选仓；换仓清理缓存。主仓限定范围，主条件变更清除二次仓。
+- 实现提交 `SnowmeetApi ai@cefa138f`。本轮未部署、未改 DDL 或导入数据；构建/测试/浏览器证据在 workspace `.local/qisemi-warehouse-facets-20261020/`，本机预览仍用 5591 隔离 LocalDB。
+- API 构建、JS 语法、客户端 4/4、后端专项 29/29 通过；真实 `XTR RC4 85 HV` 查询 2 款分布 5 个有货仓，选旗舰仓后 1 款/数量 1、尺码和矩阵同步，切仓及恢复全部正常。390px 横向滚动无整页溢出，浏览器错误为空，已截图并恢复默认宽度；企微真机待测。
+
 ## 2026-10-20：七色米库存排序与结果分类二次筛选完成，未部署
 
 - 用户追加名称/顶级分类正倒序及搜索区下方横向分类条。新增 `Inventory` 的 `sortBy,sortDirection,resultCategoryId`，返回 `categoryFacets,unfilteredTotal`；分类统计在二次筛选和分页之前按同款去重，不是库存件数。二次选择后保留所有分类及数量，主条件变更清除旧选择，排序和筛选回第一页。[说明](docs/qisemi/sorting-result-categories-2026-10-20.md) / [会话](sessions/2026-10-20_qisemi-sort-result-categories.md)。
