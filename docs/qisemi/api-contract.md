@@ -1,6 +1,6 @@
 # 七色米只读 API
 
-2026-10-20。代码位于 `SnowmeetApi`，基础路径 `/api/Qisemi`。开发验收后已获用户确认并生产部署，最终 `ai@17d06840`；见 [部署记录](deployment-2026-10-20.md)。接口不执行建表、导入、零售映射或扣库存。
+2026-10-20。代码位于 `SnowmeetApi`，基础路径 `/api/Qisemi`。开发验收后已获用户确认并生产部署，当时版本 `ai@17d06840`；本次库存筛选增强见 [筛选说明](inventory-filters-2026-10-20.md)，尚未部署。见 [部署记录](deployment-2026-10-20.md)。接口不执行建表、导入、零售映射或扣库存。
 
 ## 会话与响应
 
@@ -55,7 +55,7 @@ SessionType: <未来的会话类型>
 | `keyword` | 最长 160 字，多关键词按空白分开，最多 12 个不同词，全部词命中；SQL 通配符按字面匹配 |
 | `dateFrom` / `dateTo` | `yyyy-MM-dd`，业务日期首尾均包含；仅业务单据、历史版本、流水和销售报表应用日期筛选 |
 
-库存、款式、仓库及库存明细使用 `currentInventoryBatchId`；其余使用 `currentFullBatchId`。两个批次可以不同，前端不能把库存批次号传给全业务接口。结构化查询只展示当前已发布指针对应的数据；`Batches` 可列出以往发布元数据，但本轮不提供任意旧快照的主档重建与切换。
+库存、款式、仓库、顶级商品分类及库存明细使用 `currentInventoryBatchId`；其余使用 `currentFullBatchId`。两个批次可以不同，前端不能把库存批次号传给全业务接口。结构化查询只展示当前已发布指针对应的数据；`Batches` 可列出以往发布元数据，但本轮不提供任意旧快照的主档重建与切换。
 
 只读 SQL 服务复用既有 `ApplicationDBContext` 的连接配置，新建短连接；不额外维护生产连接串。每个请求用只读语句和 RepeatableRead 事务固定本次读取过程，查询检查有效源、已发布且核对通过的批次、模块、原始记录和所属对象。来源停用、来源删除、红冲与本地逻辑删除分别处理：`valid=0` 隐藏，来源标记保留展示。
 
@@ -64,14 +64,19 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, categoryId, skuId, styleId, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount` |
+| `Inventory` | `keyword, warehouseId, categoryId, topCategoryId, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
+| `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
 | `Skus/{id}` | SKU 字段、属性、单位/价格、款式归组、完整档案原始记录 |
 | `StockTotals` | `keyword,skuId,negativeOnly`；原始口径的 SKU 总库存分页 |
 | `WarehouseStocks` | `keyword,skuId,warehouseId,negativeOnly`；实际保存的各仓明细分页，不在这个原表入口补零行 |
 
 `Inventory` 多词可以分别命中款式文本及同一个 SKU 文本；按 `26.5` 命中一个款式后，`Styles/{id}` 仍返回同款所有尺码，不把搜索词继续用作尺码过滤。不同硬度、颜色、雪季等归组直接使用已迁入的 `qsm_style_sku`，查询阶段不再猜测合并。
+
+`inStockOnly=true` 在计数和分页前筛选款式：全部仓库时至少一个有效尺码的来源总库存大于零；指定仓库时至少一个尺码在该仓的账面数量大于零。零、负数和未知不单独构成有库存。筛选针对整个同款，不要求关键词命中的尺码本身有库存；详情仍保留全部尺码。API 参数缺省为 `false` 以保留原调用行为，H5 默认明确发送 `true`。
+
+`topCategoryId` 必须为 `TopCategories` 返回的有效顶层商品分类，匹配该节点与所有有效后代的 SKU 分类；分类层级中已逻辑删除或来源链不可见的节点不参与遍历。不存在、删除或传入非顶层节点返回 404。原 `categoryId` 仍保持按款式分类精确匹配，未改变旧参数语义。顶级分类、库存、仓库与关键词共同作用后再分页。
 
 默认 `Inventory.quantityMain` 使用来源总表；指定仓库后为所选仓的账面合计。任一参与尺码数量未知时合计为 null。`negativeOnly` 表示包含负库存尺码的款式，而不是仅筛选合计为负的款式。
 
