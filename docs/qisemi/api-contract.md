@@ -66,13 +66,15 @@ SessionType: <未来的会话类型>
 | GET 路径 | 筛选 / 返回 |
 | --- | --- |
 | `Sources` | 有效数据源、两个当前指针、当前会话策略 |
-| `Inventory` | `keyword, warehouseId, resultWarehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal,warehouseFacets,warehouseUnfilteredTotal,warehouseUnfilteredQuantityMain,warehouseUnfilteredUnknownCount` |
+| `Inventory` | `keyword, warehouseId, resultWarehouseId, categoryId, topCategoryId, resultCategoryId, sortBy, sortDirection, skuId, styleId, inStockOnly, negativeOnly, sourceEnabled, sourceDeleted, refreshCache`；按款式分页，返回款式字段、`sizeCount,quantityMain,hasNegative,unknownCount,categoryPaths`；分页对象另含 `categoryFacets,unfilteredTotal,warehouseFacets,warehouseUnfilteredTotal,warehouseUnfilteredQuantityMain,warehouseUnfilteredUnknownCount` |
 | `Styles/{id}` | `warehouseId,warehouseKeyword,includeZero`；返回 `style,sizes,warehouses,warehouseScopeComplete`，含尺码的逐仓数量矩阵 |
 | `Warehouses` | `keyword`；仓库列表、来源状态、`coverageComplete` |
 | `TopCategories` | 商品分类中 `parentId=null` 的有效顶层节点，返回 `id,name,parentId,sort,sourceEnabled,sourceDeleted`，沿用库存发布批次 |
 | `Skus/{id}` | SKU 字段、属性、单位/价格、款式归组、完整档案原始记录 |
 | `StockTotals` | `keyword,skuId,negativeOnly`；原始口径的 SKU 总库存分页 |
 | `WarehouseStocks` | `keyword,skuId,warehouseId,negativeOnly`；实际保存的各仓明细分页，不在这个原表入口补零行 |
+
+2026-10-21 缓存增强（本机完成、未部署）：`Inventory` 在服务端按账套、发布批次、依赖版本及主条件缓存完整匹配结果，二次分类/仓库、排序及分页复用，返回 JSON 结构保持不变。`refreshCache` 为 bool，默认 false；true 强制重建当前主条件。绝对有效期 5 分钟、最多 32 项、估算存储预算 64 MiB；数据变更使版本指纹变化，旧批次仍返回 409。命中时仍查询有效源、发布批次及依赖版本，不重复库存匹配与数量汇总；HTTP `Cache-Control: no-store` 保持不变。见 [缓存实现与验证](search-result-cache-2026-10-21.md)。下文各项“尚未部署”为对应历史开发记录，2026-10-20 已部署范围以 [部署记录](deployment-query-enhancements-2026-10-20.md) 为准。
 
 `Inventory` 关键词支持部分词、不区分大小写，多词可以分别命中款式文本、同一个 SKU 文本及该 SKU 所属的各级分类名称。例如 `双板鞋 fisch 24-25 110 26.5`；所有词必须由同一个 SKU 及其自身分类路径共同满足，不能把不同尺码的命中拼在一起。按 `26.5` 命中一个款式后，`Styles/{id}` 仍返回同款所有尺码，不把搜索词继续用作尺码过滤。不同硬度、颜色、雪季等归组直接使用已迁入的 `qsm_style_sku`，查询阶段不再猜测合并。
 
