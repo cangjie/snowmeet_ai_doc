@@ -1,5 +1,11 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-21 收工：七色米 35 页操作 PPT 已交付，缓存优化留待实现
+
+- 已交付真实截图与可编辑文字的 35 页操作 PPT，覆盖库存查询/筛选/排序、款数与件数、尺码各仓/矩阵/流水/图片，以及单据、档案、原表与快照。交付文件在 workspace `output/qisemi-training-20261021/七色米库存与业务查询-用户操作说明-2026-10-21.pptx`，PPT 和私有素材未入 Git。[交付、验证边界及会话归档](sessions/2026-10-20_qisemi-training-cache-handoff.md)。
+- 逐页渲染检查、最终包/布局/字体/回读及 Office XML 验证通过；原生 PowerPoint 与企微真机未实测。业务数据示例为 2026-10-18 快照。本段未改业务代码、数据库或生产部署，收工已关闭截图用本机 5591 隔离预览。
+- 下一步：换电脑拉齐后读 [结果缓存交接](docs/qisemi/result-filter-cache-handoff-2026-10-21.md)；缓存选型未定稿、功能尚未实现，收到后续指示再开发，部署另行确认。关键索引：[七色米 README](docs/qisemi/README.md)。
+
 ## 2026-10-21：七色米结果二次筛选缓存优化，待换电脑实现
 
 - 用户要求记录“从已有搜索结果二次筛选，避免每次重新查库”的优化，可能换电脑实现。本轮仅文档交接，**未实现、未部署、未改数据库**。[需求、建议与验收清单](docs/qisemi/result-filter-cache-handoff-2026-10-21.md)。
@@ -394,7 +400,11 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-18）：山姆 H5 京东全量销量快照已完成并发布（`products.b9e5feaa.json`，4604 件）；食材 v4 新建食材先选一级分类（`d3ef59d0`）、批次详情页撤销入库（`7a9cc267`）已上线，22 项 LocalDB 集成测试已补跑通过；停用/删除分离已部署，iPhone 输入框放大问题已修复上线（`712d22d`，待真机确认）；mini 的 `wwwroot/upload` 旧图片已删；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
+## 当前状态（截至 2026-10-21）
+
+- 七色米 API/H5 的生产结论沿用 10-20 `ai@af2b9e4c` 部署验收，本次未重新登录生产；35 页图文 PPT 已交付，结果二次筛选缓存优化已记录、待实现。新电脑先读 [缓存交接](docs/qisemi/result-filter-cache-handoff-2026-10-21.md) 与 [本段收工归档](sessions/2026-10-20_qisemi-training-cache-handoff.md)。企微真机及日常新快照同步仍待办。
+
+**此前摘要（截至 2026-10-18，历史记录）**：山姆 H5 京东全量销量快照已完成并发布（`products.b9e5feaa.json`，4604 件）；食材 v4 新建食材先选一级分类（`d3ef59d0`）、批次详情页撤销入库（`7a9cc267`）已上线，22 项 LocalDB 集成测试已补跑通过；停用/删除分离已部署，iPhone 输入框放大问题已修复上线（`712d22d`，待真机确认）；mini 的 `wwwroot/upload` 旧图片已删；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
 
 - **10-16 下午 / 10-17 补充**：SnowmeetApi 又有 4 个食材 v4 提交（到 `6e38f60d`），⚠️ 部署状态未确认；10-17 在生产库又逻辑删除了 70 行测试数据。见文件顶部两节。
 - **10-16 补充（Windows 机）**：
@@ -4983,3 +4993,11 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - ✅ 相关 Python 测试 45 项通过；`report_h5_changes.py` 增加基线 URL 参数，便于复现历史版本差异。
 - 📌 发布前检查 `dist/index.html` 引用的数据指纹，避免把旧构建误当作最新数据。
 - 详细归档：[sessions/2026-10-18_sams-jd-capture-and-h5-publish.md](sessions/2026-10-18_sams-jd-capture-and-h5-publish.md)。
+
+### 2026-10-20 晚～21：七色米图文操作 PPT 与结果缓存交接（Windows 机）
+
+- ✅ 35 页操作 PPT 已交付，真实界面截图加分步说明；逐页渲染及文件校验通过，原生 PowerPoint 和企微真机未实测。文件和私有素材保留本机，未随文档入 Git。
+- ✅ 核对当前二次筛选会重发 `Inventory` 并重做 SQL，解释分页数据不足以直接筛选的原因；按用户要求把复用完整结果的缓存优化记入跨机交接，`main@9442830` 已推送。
+- 🚧 缓存功能尚未实现，选型与失效时间未定稿；下次先读交接、拉齐最新 `SnowmeetApi ai`，保留跨页、交叉标签、款/件、负/未知及批次语义。部署另行确认。
+- 收工五仓 fetch 后均与各自上游一致；保留公众号既有单文件改动及文档仓已有 `docs/care/`、`docs/rental/` 未跟踪资料，仅提交本段文档。截图用本机 5591 隔离预览已停止，无本段生产改动或新增定期任务。
+- 详细归档：[sessions/2026-10-20_qisemi-training-cache-handoff.md](sessions/2026-10-20_qisemi-training-cache-handoff.md)。
