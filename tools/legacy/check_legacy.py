@@ -148,6 +148,16 @@ def check_isolation():
         rel = path.relative_to(MINI_DIR).as_posix()
         if rel not in page_wxml and banner in path.read_text(encoding="utf-8", errors="replace"):
             err("返回新版提示不应注入非页面 WXML：%s" % rel)
+    # 旧版页面不能关掉系统导航栏：它们自己画的顶栏没让出状态栏，iPhone 上返回键点不动
+    for pg in pages:
+        path = legacy / (pg[len(LEGACY_ROOT) + 1:] + ".json")
+        if path.is_file():
+            try:
+                style = json.loads(path.read_text(encoding="utf-8")).get("navigationStyle")
+            except ValueError:
+                style = None
+            if style == "custom":
+                err("旧版页面不能用 navigationStyle: custom：%s.json" % pg)
     other_roots = [s["root"].rstrip("/") for s in subpackages(app) if s["root"].rstrip("/") != LEGACY_ROOT]
     F = Files()
     for pg in pages:

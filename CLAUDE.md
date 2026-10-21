@@ -1,5 +1,19 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-21：小程序零售开单迁到新版接待流程 + iPhone 顶栏返回键修复（Windows 机，未上传）
+
+- **零售开单**：用户决定保留 6 种订单类型，其中两种卡类先置灰；不存草稿；一单一件；零售订单详情页一起重做。
+  - 新增零售开单表单组件 `retail_recept_form`，点「去结算」时调 `Order/PlaceOrder` 下单，然后进结算页。七色米单号按后端规则校验并查重，支持紧急开单之后再补单号；招待单 0 元，走「确认生效」。
+  - 零售订单详情页 `retail_order_detail` 已重写：顾客信息、零售内容都能改，未支付时可以「去收款 / 去确认生效」。
+  - **后端零改动**，只用了已有接口。
+- **iPhone 返回键点不动**：原因是关掉系统导航栏的页面自己画了顶栏，但没有让出状态栏高度。
+  - 新增组件 `components/safe_nav_bar`：按胶囊按钮位置排版；从分享或扫码进来、没有上一页时，返回到首页或指定页面。主包 4 页已改用它：开单入口、开单页、选择套餐、万龙雪票预定。
+  - 旧版演示有 2 页同样的问题，改用系统导航栏：修改生成器 `build_legacy.py`，用生成器的输出写回这两个页面的 json，`check_legacy.py` 也加了这一项检查。
+  - 新增回归测试 `tests/custom_nav_safe_area.test.js`：关掉系统导航栏的注册页面必须用这个组件，否则测试失败。小程序测试 203/203 通过。
+- **提交情况**：小程序 `be14ac8d`、`a2515491` 已由用户提交并推送；文档仓的生成器和检查器改动随本次收尾提交。
+- **尚未做**：小程序上传；真机验证。待验证项见「下一步」。另外，`legacy/` 仍有 110 页缺「返回新版」横幅，这是旧的遗留问题，本次没有重新生成。
+- 详见 [会话记录](sessions/2026-10-21_retail-reception-migration-and-ios-nav.md)。
+
 ## 2026-10-21 晚：七色米搜索结果缓存已部署，全目录超时已修正
 
 - 用户确认部署，最终生产 `SnowmeetApi ai@cd2e292b`（含缓存 `1394cbfe`），入口不变。[部署与中断记录](docs/qisemi/deployment-search-cache-2026-10-21.md) / [统计 JSON](docs/qisemi/deployment-search-cache-2026-10-21-metrics.json)。缓存完整集合，二次分类/仓库、排序及分页复用；日常同步、鉴权及零售打通仍待实现。
@@ -417,6 +431,7 @@
 
 ## 当前状态（截至 2026-10-21）
 
+- 10-21 补充：小程序零售开单已迁到新版接待流程，iPhone 顶栏返回键问题已修（`a2515491`）。两项都还没上传、没在真机上验证，见文件顶部同日一节。
 - 七色米 API/H5 的生产结论沿用 10-20 `ai@af2b9e4c` 部署验收，本次未重新登录生产；35 页图文 PPT 已交付，结果二次筛选缓存优化已记录、待实现。新电脑先读 [缓存交接](docs/qisemi/result-filter-cache-handoff-2026-10-21.md) 与 [本段收工归档](sessions/2026-10-20_qisemi-training-cache-handoff.md)。企微真机及日常新快照同步仍待办。
 
 **此前摘要（截至 2026-10-18，历史记录）**：山姆 H5 京东全量销量快照已完成并发布（`products.b9e5feaa.json`，4604 件）；食材 v4 新建食材先选一级分类（`d3ef59d0`）、批次详情页撤销入库（`7a9cc267`）已上线，22 项 LocalDB 集成测试已补跑通过；停用/删除分离已部署，iPhone 输入框放大问题已修复上线（`712d22d`，待真机确认）；mini 的 `wwwroot/upload` 旧图片已删；5 个域名证书已改为 Let's Encrypt 自动续期（到 2027-01-12/13，每 75 天续）
@@ -892,6 +907,8 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 小程序零售开单（10-21）：[零售类型与七色米单号校验](../snowmeet_wechat_mini/utils/retail.js)、[零售开单表单](../snowmeet_wechat_mini/components/reception/retail_recept_form/retail_recept_form.js)、[零售订单详情](../snowmeet_wechat_mini/pages/admin/retail/retail_order_detail.js)；下单入口在 [recept_new.js](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `onRetailCheckout`。
+- 小程序自定义顶栏（10-21）：[safe_nav_bar 组件](../snowmeet_wechat_mini/components/safe_nav_bar/safe_nav_bar.js)、[尺寸计算 navbar.js](../snowmeet_wechat_mini/utils/navbar.js)、[回归测试](../snowmeet_wechat_mini/tests/custom_nav_safe_area.test.js)。
 - 山姆商品查询 H5（`sams_scrape` 仓库 main）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
 - 食材 v4 H5 样式与回归测试：[app.css](../SnowmeetApi/wwwroot/fnb/v4/app.css)（输入控件 16px）、[H5 单元测试](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.test.cjs)。
 - 食材 v4 停用/删除分离：[查询过滤配置](../SnowmeetApi/Data/FnbSchemaConfiguration.cs)、[区域/物资/工具服务](../SnowmeetApi/Services/Fnb/FnbV4FacilitiesService.cs)、[服务层回归](../SnowmeetApi/SnowmeetApi.Tests/FnbV4DeletionAndSuspensionTests.cs)、[H5 状态流程](../SnowmeetApi/SnowmeetApi.Tests/H5/fnb-v4.state-flows.cjs)、[enabled 增量 SQL](sql/2026-10-13_fnb_v4_enabled.sql)；[生产部署与验收](sessions/2026-10-13_fnb-v4-enabled-deletion-production-deploy.md)。
@@ -961,6 +978,16 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- 🚧 **小程序零售开单与 iPhone 顶栏修复**（10-21，`a2515491` 已推送，还没上传）：在开发者工具里编译、上传，然后在真机上验证：
+  - **iPhone 顶栏**：开单入口、开单页、选择套餐、万龙雪票预定 4 页，返回键不和时间重叠、能点；标题不被胶囊挡住；用分享或扫码直接打开开单页、雪票预定页，点返回能回到首页（开单页回开单入口）；旧版演示的雪票预定页顶部是系统导航栏，返回能用。
+  - **零售单**：
+    - 普通单：开单、扫码付款，进入零售详情；
+    - 紧急开单：先下单，之后在详情页补七色米单号；
+    - 招待单：0 元，「确认生效」；
+    - 七色米单号重复时有提示；
+    - 卡类置灰、点了提示；
+    - 详情页能改顾客信息、零售内容，未支付单能改金额。
+  - **可选**：重新生成 `legacy/`，补上 110 页「返回新版」横幅。这会改动约 118 个文件，还会删掉 8 个空 JSON/WXSS 文件（用户之前加回过），要先确认那 8 个文件还需不需要。
 - 🚧 **山姆商品查询 H5**（10-15 上线 `https://mini.snowmeet.top/sams/`）
   1. 用户用手机按清单验收：首页、分类、搜索、详情、分享链接返回、滚动位置、边输入时键盘不收起；在 iPhone 上确认左栏最后几个子分类能点到。
   2. ✅ 代码审查要修的 5 处已修好并重新发布（10-15 22:13），另修了 2 组京东图配错；暂不修的 5 个小问题见文件顶部 10-15 山姆 H5 一节。
@@ -1080,6 +1107,12 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **小程序页面关掉系统导航栏时，必须用 `safe-nav-bar`（2026-10-21）**：页面 json 设了 `navigationStyle: custom`，就要自己让出状态栏，否则 iPhone 上返回键会被时间挡住、点了没反应。这个要求由 `tests/custom_nav_safe_area.test.js` 守住。
+  - 用组件时，页面内容默认排在组件自带的占位块下面。整页 scroll-view 的页面设 `placeholder="{{false}}"`，上边距在 `onLoad` 里用 `utils/navbar.js` 的 `getNavMetrics().totalHeight` 计算。
+  - 返回时如果页面栈只有一页（从分享或扫码进来），会 `reLaunch` 到 `homeUrl`。
+  - 旧版演示页面由生成器统一去掉 custom，不在旧版里接入这个组件。
+- **这台 Windows 机跑小程序测试（2026-10-21）**：微信开发者工具自带的 node 在这台机器上不存在，要用 Codex 运行时自带的 node `C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe`。在 `snowmeet_wechat_mini` 下执行 `--test --test-isolation=none --test-reporter=tap tests/*.test.js`，不加 isolation 参数会报 IPC deserialize 错误。所有测试在同一个进程里跑，测试里改过的全局变量（`wx`、`Component`、`getCurrentPages`）要恢复。
+- **`check_legacy.py` 会扫新版代码里带引号或斜杠的 `legacy/` 字样（2026-10-21）**：测试文件也在扫描范围内。写新代码时不要出现这种路径字样，旧版页面可以通过 app.json 注册的页面列表间接覆盖。检查器还要求工作区里除了 `legacy/` 以外没有改动，所以要在干净的工作区里跑。现在跑会报 110 个旧版页面缺返回横幅，这是旧的遗留问题，原因见 10-21 一节。
 - **Windows 机跑食材 v4 H5 测试（2026-10-16）**：本机 PATH 里没有 node，用 Codex 运行时自带的 node 24 和它带的 playwright，浏览器用本机 Chrome（测试脚本的默认路径）。在 `SnowmeetApi` 目录下：`NODE_PATH='C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'`，再用 `C:\Users\cangj\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe` 分别跑 `--test SnowmeetApi.Tests/H5/fnb-v4.test.cjs` 和 `SnowmeetApi.Tests/H5/fnb-v4.browser.cjs`。浏览器流程用本机静态服务加拦截的模拟接口，不连生产；截图写到 workspace 的 `.local/fnb-v4-h5-qa/`。
 - **auto 模式部署 mini（2026-10-16，Windows 机）**：`ssh -p 2222 ubuntu@44.207.251.65 '…republish.sh'` 第一次被分类器以「生产部署」拦下，用户在对话里写明同意（登录哪台、拉到哪个版本、执行什么）后，同样的命令就放行了。拉取和发布分两条命令执行，先确认 HEAD 再发布。从这台机器用 pyodbc 只读查询生产库也被拦过；用户在对话里写明要查哪些数据、要改什么之后才放行。
 - **H5 页面的输入控件字号必须不小于 16px（2026-10-15）**：iPhone（含企业微信）点到字号小于 16px 的输入框会放大页面，失焦后不缩回。食材 v4 已改，并用 `fnb-v4.test.cjs` 的测试守住；新写 H5 也要遵守。不要靠 viewport `maximum-scale=1` 解决，那样会禁掉双指缩放。其他 H5（`fnb/mat_expire`、`wecom/ble_print_test` 等）还没检查。
@@ -5016,3 +5049,22 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 缓存功能尚未实现，选型与失效时间未定稿；下次先读交接、拉齐最新 `SnowmeetApi ai`，保留跨页、交叉标签、款/件、负/未知及批次语义。部署另行确认。
 - 收工五仓 fetch 后均与各自上游一致；保留公众号既有单文件改动及文档仓已有 `docs/care/`、`docs/rental/` 未跟踪资料，仅提交本段文档。截图用本机 5591 隔离预览已停止，无本段生产改动或新增定期任务。
 - 详细归档：[sessions/2026-10-20_qisemi-training-cache-handoff.md](sessions/2026-10-20_qisemi-training-cache-handoff.md)。
+
+### 2026-10-21：小程序零售开单迁移 + iPhone 顶栏返回键修复（Windows 机）
+
+- ✅ 零售开单迁到新版接待流程（用户决定：保留 6 种类型、卡类置灰，不存草稿，一单一件，详情页一起重做）：
+  - 新增 `retail_recept_form` 组件和 `utils/retail.js`；`recept_new` 调 `Order/PlaceOrder` 下单，然后进结算页；
+  - 结算完成后，零售单跳零售详情；
+  - `retail_order_detail` 重写，顾客信息和零售内容都能改，可以补七色米单号，未支付单能改金额。
+- ✅ 用户问服务器端有没有改动：没有，只用了已有接口。
+- ✅ iPhone 返回键被状态栏时间挡住：
+  - 检查了 app.json 注册的全部页面，关掉系统导航栏的共 6 页；
+  - 主包 4 页改用新组件 `safe_nav_bar`：按胶囊按钮排版，从分享或扫码进来时返回到首页；雪票预定页删掉了不起作用的「⋯」；
+  - 旧版演示 2 页：改生成器 `build_legacy.py`，以后生成时去掉 custom，两页的 json 按生成器输出写回，`check_legacy.py` 加了这项检查。
+- ✅ 回归测试 `custom_nav_safe_area.test.js`：关掉系统导航栏的页面必须用这个组件，故意删掉一个页面的组件会失败。全部 203/203 通过。
+- ✅ 用户已在会话中自己提交并推送小程序 `be14ac8d retail`、`a2515491 safe area`；文档仓的生成器和检查器改动随本次收尾提交。
+- 🚧 小程序上传和真机验证（顶栏 4 页加旧版 1 页、零售 5 种场景），清单见「下一步」。
+- 📌 教训 1：用户说「所有页面」，就按 app.json 注册的完整页面列表（含分包和 legacy）检查，并写成测试固定下来，不能只改报问题的那一页。
+- 📌 教训 2：生成的代码不能手改时，先改生成器，再只把相关文件按生成器的输出写回，核对差异只有预期的那一行。整个目录重新生成会把旧的、无关的改动一起带出来（这次是 110 页横幅和 8 个空文件）。
+- 📌 教训 3：用户会在会话中途自己提交。收尾汇报前要重新查 `git status` 和 `git log`。
+- 详细归档：[sessions/2026-10-21_retail-reception-migration-and-ios-nav.md](sessions/2026-10-21_retail-reception-migration-and-ios-nav.md)。

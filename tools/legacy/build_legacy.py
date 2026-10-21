@@ -173,6 +173,10 @@ class Builder:
                         uc = j["usingComponents"] = {}
                     uc[tag] = self.component_ref("", v, "app.json")
                     self.stats["inject"] += 1
+        # 旧版页面自己画的顶栏没让出手机状态栏：iPhone 上返回键和时间重叠、点不动，注入的「返回新版」条也会被压住。
+        # 生成时去掉 navigationStyle: custom，用回系统导航栏（check_legacy.py 和小程序 tests/custom_nav_safe_area.test.js 都会检查）。
+        if unit_of(src) in self.P.pageunits and j.get("navigationStyle") == "custom":
+            del j["navigationStyle"]
         return json.dumps(j, ensure_ascii=False, indent=2) + "\n"
 
     def component_ref(self, d, v, src):
