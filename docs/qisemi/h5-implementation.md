@@ -1,6 +1,6 @@
 # 七色米 H5 实现
 
-2026-10-21：搜索结果缓存已在 `SnowmeetApi ai@1394cbfe` 实现、本机验证并推送，尚未部署。H5 继续按页调用 `Inventory`，结果分类/仓库、排序和翻页从服务端完整缓存计算；既有刷新动作增加 `refreshCache=true`。脚本版本为 `20261021-result-cache`，无界面布局变化。见 [缓存实现及验证边界](search-result-cache-2026-10-21.md)。
+2026-10-21：搜索结果缓存已实现，用户确认后以 `SnowmeetApi ai@cd2e292b` 部署，含全目录查询计划修正。H5 继续按页调用 `Inventory`，结果分类/仓库、排序和翻页从服务端完整缓存计算；既有刷新动作增加 `refreshCache=true`。脚本版本为 `20261021-result-cache`，无界面布局变化。见 [缓存实现](search-result-cache-2026-10-21.md) / [生产验收及中断](deployment-search-cache-2026-10-21.md)。
 
 2026-10-20 晚更新：本页增强现已获确认并部署为 `ai@af2b9e4c`；见 [生产验收与中断记录](deployment-query-enhancements-2026-10-20.md)。下方保留开发时的验证边界。
 

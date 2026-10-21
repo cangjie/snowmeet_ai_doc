@@ -1,0 +1,205 @@
+{
+  "date": "2026-10-21",
+  "timezone": "Asia/Shanghai",
+  "previousCommit": "af2b9e4c6016736cb43091e750acbf951d150822",
+  "initialCommit": "1394cbfe91215ef5b3dd18ee22f8583fe3999aca",
+  "deployedCommit": "cd2e292be8e11a9a6555eebc6c696021a95ed49c",
+  "endpoint": "https://mini.snowmeet.top/wecom/qisemi",
+  "restartPhases": [
+    "initial_release",
+    "rollback",
+    "fixed_release"
+  ],
+  "sampling": {
+    "localIntervalSeconds": 0.1,
+    "localTimeoutSeconds": 1,
+    "publicIntervalSeconds": 0.25,
+    "publicTimeoutSeconds": 3,
+    "healthPath": "/ws",
+    "healthyHttpStatus": 400
+  },
+  "availability": {
+    "local": {
+      "mode": "local",
+      "samples": 23617,
+      "spans": [
+        {
+          "first_failure_response_cst": "2026-10-21T20:59:30.103+08:00",
+          "last_failure_request_start_cst": "2026-10-21T20:59:31.708+08:00",
+          "recovery_response_cst": "2026-10-21T20:59:31.992+08:00",
+          "failed_probes": 17,
+          "observed_seconds": 1.889505556,
+          "lower_bound_seconds": 1.60575179,
+          "upper_bound_seconds": 1.990138305,
+          "first_failure_status": null,
+          "errors": [
+            "ConnectionRefusedError",
+            "RemoteDisconnected"
+          ],
+          "statuses": [],
+          "category": "application_unreachable"
+        },
+        {
+          "first_failure_response_cst": "2026-10-21T21:04:22.784+08:00",
+          "last_failure_request_start_cst": "2026-10-21T21:04:23.988+08:00",
+          "recovery_response_cst": "2026-10-21T21:04:24.243+08:00",
+          "failed_probes": 13,
+          "observed_seconds": 1.458977943,
+          "lower_bound_seconds": 1.204093808,
+          "upper_bound_seconds": 1.559541926,
+          "first_failure_status": null,
+          "errors": [
+            "ConnectionRefusedError",
+            "RemoteDisconnected"
+          ],
+          "statuses": [],
+          "category": "application_unreachable"
+        },
+        {
+          "first_failure_response_cst": "2026-10-21T21:17:23.207+08:00",
+          "last_failure_request_start_cst": "2026-10-21T21:17:24.712+08:00",
+          "recovery_response_cst": "2026-10-21T21:17:24.981+08:00",
+          "failed_probes": 16,
+          "observed_seconds": 1.773979557,
+          "lower_bound_seconds": 1.505203883,
+          "upper_bound_seconds": 1.874604672,
+          "first_failure_status": null,
+          "errors": [
+            "ConnectionRefusedError",
+            "RemoteDisconnected"
+          ],
+          "statuses": [],
+          "category": "application_unreachable"
+        }
+      ],
+      "observed_total_seconds": 5.122463056000001,
+      "lower_total_seconds": 4.315049481,
+      "upper_total_seconds": 5.424284903,
+      "first_response_cst": "2026-10-21T20:43:11.322+08:00",
+      "last_response_cst": "2026-10-21T21:22:43.073+08:00"
+    },
+    "public": {
+      "mode": "public",
+      "samples": 8229,
+      "spans": [
+        {
+          "first_failure_response_cst": "2026-10-21T20:59:30.308+08:00",
+          "last_failure_request_start_cst": "2026-10-21T20:59:31.047+08:00",
+          "recovery_response_cst": "2026-10-21T20:59:32.923+08:00",
+          "failed_probes": 3,
+          "observed_seconds": 2.615486067,
+          "lower_bound_seconds": 0.73941213,
+          "upper_bound_seconds": 3.104186887,
+          "first_failure_status": 502,
+          "errors": [],
+          "statuses": [
+            502
+          ],
+          "category": "http_502"
+        },
+        {
+          "first_failure_response_cst": "2026-10-21T21:04:23.521+08:00",
+          "last_failure_request_start_cst": "2026-10-21T21:04:22.535+08:00",
+          "recovery_response_cst": "2026-10-21T21:04:24.355+08:00",
+          "failed_probes": 1,
+          "observed_seconds": 0.833893448,
+          "lower_bound_seconds": 0,
+          "upper_bound_seconds": 2.070702272,
+          "first_failure_status": 502,
+          "errors": [],
+          "statuses": [
+            502
+          ],
+          "category": "http_502"
+        },
+        {
+          "first_failure_response_cst": "2026-10-21T21:17:23.496+08:00",
+          "last_failure_request_start_cst": "2026-10-21T21:17:23.497+08:00",
+          "recovery_response_cst": "2026-10-21T21:17:25.094+08:00",
+          "failed_probes": 2,
+          "observed_seconds": 1.597741843,
+          "lower_bound_seconds": 0.000158713,
+          "upper_bound_seconds": 2.117540869,
+          "first_failure_status": 502,
+          "errors": [],
+          "statuses": [
+            502
+          ],
+          "category": "http_502"
+        }
+      ],
+      "observed_total_seconds": 5.047121358,
+      "lower_total_seconds": 0.739570843,
+      "upper_total_seconds": 7.292430028,
+      "first_response_cst": "2026-10-21T20:43:19.523+08:00",
+      "last_response_cst": "2026-10-21T21:22:50.852+08:00",
+      "http_502_observed_seconds": 5.047121358,
+      "transport_error_observed_seconds": 0
+    }
+  },
+  "finalState": {
+    "target": "cd2e292be8e11a9a6555eebc6c696021a95ed49c",
+    "service": "active",
+    "sql_service": "active",
+    "nginx_service": "active",
+    "pid": "81923",
+    "nrestarts": "0",
+    "qisemi_error_count": 0,
+    "protected_files_unchanged": 55,
+    "free_bytes": 853753856,
+    "api_rss_kib": 417896,
+    "runtime_sha256": "3d7143570c51264e026c85412d440268d3fc25f5cf36e4a344cb61f1a10620cb",
+    "preserved_metadata_unchanged": true
+  },
+  "cacheHttpPerformance": {
+    "passed": true,
+    "checks": [
+      {
+        "label": "fischer-force-cold",
+        "seconds": 10.742506779002724,
+        "total": "266",
+        "items": 30
+      },
+      {
+        "label": "fischer-sort-page-hit",
+        "seconds": 1.3361626940022688,
+        "total": "266",
+        "items": 30
+      },
+      {
+        "label": "fischer-category-hit",
+        "seconds": 1.2913995519993478,
+        "total": "41",
+        "items": 30
+      },
+      {
+        "label": "fischer-category-warehouse-hit",
+        "seconds": 1.3309958999961964,
+        "total": "27",
+        "items": 27
+      },
+      {
+        "label": "fischer-restore-hit",
+        "seconds": 1.3177108889940428,
+        "total": "266",
+        "items": 30
+      }
+    ]
+  },
+  "allAttemptsBusinessErrors": 1,
+  "finalReleaseBusinessErrors": 0,
+  "verification": {
+    "existingApiOperationsPreserved": 619,
+    "qisemiGetOperations": 28,
+    "allStyles": 5793,
+    "inStockStyles": 2799,
+    "topCategories": 59,
+    "warehouses": 99,
+    "modules": 50,
+    "publicHttpsVerified": true,
+    "productionUiThroughSshVerified": true,
+    "wecomPhoneVerified": false
+  },
+  "measurementMeaning": "First failed response completion to recovered response completion on each observer monotonic clock; sampled intervals are not exact physical shutdown boundaries.",
+  "rawEvidence": "workspace .local/qisemi-cache-release-20261021-1394cbfe/evidence/ (private, not in Git)"
+}
