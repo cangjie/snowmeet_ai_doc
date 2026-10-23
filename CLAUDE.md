@@ -1199,6 +1199,8 @@ dotnet run
   - `republish.sh` 会先停服务、删 `SnowmeetApi.*.json` 再构建，磁盘一满服务就起不来。
   - 部署前先 `df -h /`、`sudo iptables -S INPUT | grep 1433`，再看 errorlog 末尾有没有成批的 Login failed。
   - 1433 的白名单是临时 iptables，不持久，改动前的规则在 `/home/ubuntu/reception-checkin-deploy-20261022/iptables-before.rules`。
+  - **10-23 补**：mini 10-23 04:30 重启后这条白名单已经没了（`sudo iptables -S INPUT | grep 1433` 为空）。而且登录失败的来源都是 `44.207.251.65`，是从美国服务器公网 1433 转发进来的，**在 mini 上放行这个 IP 本身就挡不住攻击**，要在美国服务器的 `snowmeet-forward-1433.socket` 上限制来源或停用。
+  - `.git` 和 `Controllers` 属于 www-data 但权限 777，以 ubuntu 身份 `git fetch` / `pull` 可以正常写入（10-23 实测）；部署前用 `find .git -not -user ubuntu` 看到的 www-data 文件不影响拉取，要警惕的只是 root 所有、权限不是 777 的文件和目录。
 - **mini 上不要用 root 跑 git（2026-10-22）**：`republish.sh` 以 `ubuntu` 身份 `git pull`。10-21 有人用 root 跑过 git，`.git` 里留下 240 个 root 所有的文件，结果拉取报 `insufficient permission`。已改回 `ubuntu`，清单在同一备份目录。工作区里还有 59 个 root 所有的七色米 / 食材源码文件没动，以后拉到它们会再遇到同样的问题。
 - **本机 `SnowmeetApi/config.sqlServer` 的 `100.28.143.19` 连不上（2026-10-23）**：TCP 1433 能打开，但 SQL 握手失败，测试期间 mini 的 1433 DROP 计数为 0，所以和 iptables 无关。只读查询改连美国服务器转发 `44.207.251.65,1433`（账号密码仍取该文件）。这台机器是什么待用户确认。
 - **「扫普通链接二维码打开小程序」的体验版测试（2026-10-22）**：只有管理员、开发者、体验者扫「测试链接」里的码，才会打开体验版；测试链接最多 5 条，文档要求带参数时完整填写。接待码、取板码每张都不同，按前缀能不能匹配要实测。规则发布要等带该页面的版本先发版。
@@ -5191,3 +5193,10 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 测试：后端 546 过 / 43 跳过，小程序 255 过；未上真机。
 - 📌 教训：用户问「为什么要改 X」时，先老实说明这是设计选择、有没有不改的办法；能在后端独立完成的就不要让功能依赖小程序发版（审核周期长）。
 - 详细归档：[sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md)。
+
+### 2026-10-23 晚（Mac mini）：SnowmeetApi `2d611b98` 部署到 mini
+
+- ✅ 用户通知审核中的小程序已通过后，部署 `33e1b2de` → `2d611b98`（4 个提交）。部署前：磁盘 7.4G、以 ubuntu fetch 正常；先单独 `pull --ff-only` 核对 HEAD 和新文件，再跑原 `republish.sh`（退出码 0、无 ` error `）。停机 18:44:21～18:46:12，约 1 分 51 秒；active、`NRestarts=0`、启动后无异常；「其他支付」列表从 10 项（4 项微信转账）变为 6 项；公网 200。
+- 🚧 发现 1433 白名单在 10-23 04:30 重启后已失效，errorlog 仍有 `sa` 登录失败，来源是美国服务器的公网 1433 转发。没改防火墙，待用户决定（见「下一步」）。
+- 本机记忆「后端 4 个提交等审核后部署」已删除。
+- 详细归档：[sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md) 第 8 节。

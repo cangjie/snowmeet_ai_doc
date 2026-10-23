@@ -1,6 +1,6 @@
-# 2026-10-23 扫码报到算已核验本人 + 测试订单 + 隐藏个人微信转账：四项后端改动已推送，等审核后部署
+# 2026-10-23 扫码报到算已核验本人 + 测试订单 + 隐藏个人微信转账：后端当晚部署，小程序待下次提审
 
-Mac mini（`/Users/cangjie/source/snowmeet/snowmeet_ai`）。接续 10-22～23 的扫码接待上线工作。改动落在 SnowmeetApi（`ai`，`33e1b2de` → `2d611b98`）和 snowmeet_wechat_mini（`ai`，`5de080ba` → `f8a1d17e`），**都已推送，都未部署 / 未上传**。
+Mac mini（`/Users/cangjie/source/snowmeet/snowmeet_ai`）。接续 10-22～23 的扫码接待上线工作。改动落在 SnowmeetApi（`ai`，`33e1b2de` → `2d611b98`）和 snowmeet_wechat_mini（`ai`，`5de080ba` → `f8a1d17e`），都已推送；**后端当晚 18:46 部署到 mini（见第 8 节）**，小程序待下一次提审。
 
 ## 1. start-work
 
@@ -112,3 +112,22 @@ Mac mini（`/Users/cangjie/source/snowmeet/snowmeet_ai`）。接续 10-22～23 �
 4. **Node 24 的 `node --test` 子进程通信报 `Unable to deserialize cloned data`**：加 `--test-isolation=none` 在同进程跑；顺带暴露出一个用例结束后仍有异步回调的旧测试。
 5. **只隐藏选项不等于禁止**：有「手工填写」时，必须在确认收款接口里再拦一次。
 6. **旧客户端的错误提示可能被覆盖**：`performWebRequest` 先弹后端 message，调用方 `.catch` 再弹「处理失败」，后者覆盖前者。
+
+## 8. 部署（10-23 晚，用户通知审核已通过）
+
+- 用户：「现在可以部署服务器端了。」
+- 部署前检查（经 `ssh -p 2222 ubuntu@44.207.251.65`）：
+  - 磁盘 34G 用 27G，剩 7.4G；
+  - `.git`、`.git/objects`、`Controllers` 属于 www-data 但权限 777；`Helpers`、`SnowmeetApi.Tests` 属于 ubuntu；这次要改的文件都不属于 root；
+  - 以 ubuntu `git fetch origin ai` 成功，落后 4 个提交；
+  - **1433 iptables 白名单为空**：`uptime -s` 显示 10-23 04:30:15 重启过，10-22 的临时规则没了。errorlog 末尾 200 行有 36 条 `sa` 登录失败，最近一条 05:46，来源 `[CLIENT: 44.207.251.65]`——美国服务器的公网 1433 转发。
+- 先单独 `git pull --ff-only origin ai`：HEAD `2d611b98`，4 个新文件都在、ubuntu 所有，已跟踪文件无本地改动。
+- 基线：`GetUnCommonPayMethod` 返回 10 项：苍杰微信转账、苍杰支付宝、储值支付、多拉宝、王政微信转账、微信转账、肖志强工作微信转账、银行转账、支付宝布乖、支付宝转账。
+- 跑原命令 `ssh ... 'cd /home/ubuntu/webs/SnowmeetApi && ./republish.sh'`（后台，不加脱离会话的包装）：退出码 0，git pull「Already up to date」，构建只有既有警告。
+- 验收：
+  - 停机 18:44:21（Stopping）～18:46:12（Started），约 1 分 51 秒；
+  - active / running、`NRestarts=0`、MainPID 39099，`SnowmeetApi.dll` 18:46:03；启动后 journal 无 exception / fail；
+  - `GetUnCommonPayMethod` 返回 6 项：苍杰支付宝、储值支付、多拉宝、银行转账、支付宝布乖、支付宝转账；
+  - `SaveRentRecept?sessionKey=invalid&isTest=true` 返回「没有权限」；公网 `https://mini.snowmeet.top/api/Order/GetUnCommonPayMethod` 200。
+- 没做：已核验本人要等报到页面随新版小程序上线后真机验证；没改任何防火墙规则。
+- 建议用户（待决定）：美国服务器 1433 转发限制来源或停用；mini 的 AWS 安全组只放行美国服务器；换 `sa` 密码或停用 `sa`。
