@@ -1,5 +1,36 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-22～23：扫码接待、手机号进入、扫码取板改小程序码已上线后端；mini 1433 暴力破解临时挡住（Windows 机）
+
+- **接待改回「店员出码、顾客扫码」**（用户要求，参照旧版流程返工两次）：
+  - 管理员菜单默认进 [`recept_scan`](../snowmeet_wechat_mini/pages/admin/reception/recept_scan.wxml)，可以出一次性码（120 秒换新）、点「散客进入」，也可以输会员手机号进入。
+  - 顾客用微信扫码直接进小程序 [`recept_checkin`](../snowmeet_wechat_mini/pages/order/recept_checkin.js)，不经公众号。没有手机号的先授权，然后等待开单。店员选微信支付后，顾客手机自动跳 `payment_entry?autoPay=1` 付款；选支付宝时提示顾客用支付宝扫码。
+  - 店员手机扫码后跳顾客信息页 [`recept_member`](../snowmeet_wechat_mini/pages/admin/reception/recept_member.wxml)：老顾客直接显示；新顾客授权后弹「顾客已授权手机号」；再选店铺和业务。
+  - 在顾客信息页改称呼、电话**只进本次订单**；点「更新顾客信息」才改会员资料（`Member/UpdateMemberInfo`，新电话追加为联系号码，不动绑定手机号）。
+  - 输手机号进入时，普通店员要店长在新补回的「【接待】接待授权」（[`recept_auth_list`](../snowmeet_wechat_mini/pages/admin/reception/recept_auth_list.wxml)）授权。
+  - 原手动录入页 `recept_entry` 保留，由扫码页底部链接进入。
+- **用户拍板**：
+  - 散客的姓名、性别、电话都选填；
+  - 非雪季养护仍只接会员；
+  - 订单生效后补会员空姓名、性别的逻辑保留；
+  - 开单选店首项为「请选择店铺」，没扫到信标就手动选，不默认基地店；
+  - **去掉万龙体验中心发起养护的特例**，养护只看门店自己的 `care` 标志（后端 `ResolveCareShop` 只作旧客户端兜底）。
+- **扫码取板改小程序码**：
+  - 码 `cp_{随机串}_{careId}_{id}`，顾客页 [`care_pick_verify`](../snowmeet_wechat_mini/pages/order/care_pick_verify.wxml)，规则不变：扫码人是下单会员才通过；
+  - 店员页改成轮询，通过后自动发板；
+  - 公众号旧码保留给旧版客户端。
+- **养护订单列表**改显示 `Order.orderStatus`（待支付、支付成功等），没付成功的置灰；没有装备的仍显示「临时订单」。
+- **版本**：
+  - SnowmeetApi `ai@33e1b2de` 已三次部署到 mini 并验收（不需要 SQL）；
+  - 小程序 `ai@5de080ba` 已推送，**未上传**；
+  - 后端判定在 `Helpers/ReceptCheckinRules.cs`、`Helpers/CarePickRules.cs`，有单测。测试：后端不含 DDL 部分 501 条，小程序 255 条。
+- **mini 生产库被公网暴力破解 `sa`**（errorlog 29 万条），日志把磁盘灌到只剩约 70 MB。经用户同意的处置：
+  - iptables 只放行 127.0.0.1、172.31.0.0/16、44.207.251.65 访问 1433，**未持久化**；
+  - 清理 journal、旧 xel、syslog，腾出约 1.8 GB。
+  - **待用户**：收紧 AWS 安全组、换 `sa` 密码。
+- **待用户**：在小程序后台加两条「扫普通链接二维码打开小程序」规则（`mapp/recept_checkin`、`mapp/care_pick`），上传体验版后真机测试。体验版测试链接的限制见「已知遗留」。
+- 详见 [会话记录](sessions/2026-10-22_scan-reception-care-pick.md)。
+
 ## 2026-10-21：小程序零售开单迁到新版接待流程 + iPhone 顶栏返回键修复（Windows 机，未上传）
 
 - **零售开单**：用户决定保留 6 种订单类型，其中两种卡类先置灰；不存草稿；一单一件；零售订单详情页一起重做。
@@ -429,8 +460,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-21）
+## 当前状态（截至 2026-10-23）
 
+- 10-22～23：扫码接待、手机号进入（店长授权）、扫码取板改小程序码。后端 `ai@33e1b2de` 已上线；小程序 `ai@5de080ba` 已推送、未上传。两条扫码规则待用户在小程序后台配置。mini 的 1433 只有临时 iptables 白名单，AWS 安全组、`sa` 密码待用户处理。见文件顶部同名一节。
 - 10-21 补充：小程序零售开单已迁到新版接待流程，iPhone 顶栏返回键问题已修（`a2515491`）。两项都还没上传、没在真机上验证，见文件顶部同日一节。
 - 七色米 API/H5 的生产结论沿用 10-20 `ai@af2b9e4c` 部署验收，本次未重新登录生产；35 页图文 PPT 已交付，结果二次筛选缓存优化已记录、待实现。新电脑先读 [缓存交接](docs/qisemi/result-filter-cache-handoff-2026-10-21.md) 与 [本段收工归档](sessions/2026-10-20_qisemi-training-cache-handoff.md)。企微真机及日常新快照同步仍待办。
 
@@ -978,6 +1010,21 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- 🚧 **mini 生产库 1433 长期处置**（10-22 暴力破解 `sa` 撑满磁盘）：用户在 AWS 安全组把 1433 只留给 44.207.251.65；换 `sa` 密码或停用 `sa`；本机 `.claude/settings.local.json` 权限规则里的明文 `sa` 密码一并清掉。现在只有不持久的 iptables 白名单，mini 重启即失效。之后可执行 `sp_cycle_errorlog` 轮换约 65 MB 的 errorlog。
+- 🚧 **扫码接待 / 扫码取板上线**（后端 `33e1b2de` 已上线，小程序 `5de080ba` 待上传）：
+  1. 小程序后台「扫普通链接二维码打开小程序」加两条规则：`https://mini.snowmeet.top/mapp/recept_checkin` → `pages/order/recept_checkin`；`https://mini.snowmeet.top/mapp/care_pick` → `pages/order/care_pick_verify`。规则要等带新页面的版本发布后才能发布；体验版只能用「测试链接」测，限制见「已知遗留」。
+  2. 两个微信号（店员 + 顾客）都加体验成员；店员号在生产库员工等级 ≥ 100。体验版连的就是生产，订单和付款都是真的。
+  3. 真机测试：
+     - 新顾客扫码 → 授权 → 店员手机弹窗 → 开单选微信 → 顾客手机自动付款；
+     - 老会员直接显示；
+     - 散客进入；
+     - 普通店员输手机号 → 店长「【接待】接待授权」→ 进入；
+     - 顾客信息页改称呼只进订单、「更新顾客信息」才改会员；
+     - 选店首项「请选择店铺」；
+     - 万龙体验中心养护置灰；
+     - 扫码取板本人、非本人、新微信号、过期四种情况；
+     - 养护列表待支付置灰。
+  4. 若测试链接按前缀匹配不通（扫码打开网页），在顾客报到页加「扫描店员二维码」按钮（`wx.scanCode`），走体验版二维码进页面。
 - 🚧 **小程序零售开单与 iPhone 顶栏修复**（10-21，`a2515491` 已推送，还没上传）：在开发者工具里编译、上传，然后在真机上验证：
   - **iPhone 顶栏**：开单入口、开单页、选择套餐、万龙雪票预定 4 页，返回键不和时间重叠、能点；标题不被胶囊挡住；用分享或扫码直接打开开单页、雪票预定页，点返回能回到首页（开单页回开单入口）；旧版演示的雪票预定页顶部是系统导航栏，返回能用。
   - **零售单**：
@@ -1107,6 +1154,16 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **mini 部署前先看磁盘和 1433 规则（2026-10-22）**：公网暴力破解 `sa` 会把 SQL Server errorlog、`system_health_*.xel`（约 100 MB 一个）、syslog、journal 一起灌满。
+  - 当时磁盘从 686 MB 掉到 70 MB，速度约每分钟 9 MB。
+  - `republish.sh` 会先停服务、删 `SnowmeetApi.*.json` 再构建，磁盘一满服务就起不来。
+  - 部署前先 `df -h /`、`sudo iptables -S INPUT | grep 1433`，再看 errorlog 末尾有没有成批的 Login failed。
+  - 1433 的白名单是临时 iptables，不持久，改动前的规则在 `/home/ubuntu/reception-checkin-deploy-20261022/iptables-before.rules`。
+- **mini 上不要用 root 跑 git（2026-10-22）**：`republish.sh` 以 `ubuntu` 身份 `git pull`。10-21 有人用 root 跑过 git，`.git` 里留下 240 个 root 所有的文件，结果拉取报 `insufficient permission`。已改回 `ubuntu`，清单在同一备份目录。工作区里还有 59 个 root 所有的七色米 / 食材源码文件没动，以后拉到它们会再遇到同样的问题。
+- **本机 `SnowmeetApi/config.sqlServer` 的 `100.28.143.19` 连不上（2026-10-23）**：TCP 1433 能打开，但 SQL 握手失败，测试期间 mini 的 1433 DROP 计数为 0，所以和 iptables 无关。只读查询改连美国服务器转发 `44.207.251.65,1433`（账号密码仍取该文件）。这台机器是什么待用户确认。
+- **「扫普通链接二维码打开小程序」的体验版测试（2026-10-22）**：只有管理员、开发者、体验者扫「测试链接」里的码，才会打开体验版；测试链接最多 5 条，文档要求带参数时完整填写。接待码、取板码每张都不同，按前缀能不能匹配要实测。规则发布要等带该页面的版本先发版。
+- **两套订单状态别混（2026-10-23）**：`careProperties.orderStatus` 只看有没有装备（临时、正常）；`Order.orderStatus` 才反映付款（待生成 / 待支付 / 部分支付 / 支付成功 / 已下单 / 订单关闭 / 退款 / 挂账）。养护列表现在显示后者。**养护任务和任务码只在订单生效时由 `CareController.EffectCareOrder` 生成**，未付款的单没有任务是正常的。
+- **接待扫码码格式**：接待 `rc_{10 位随机串}_{id}`、取板 `cp_{随机串}_{careId}_{id}`，都存在 `scan_qrcode`（`platform='wechat_mini'`）。店员在出码页输手机号时会把 `cell` 写进同一行，这张码顾客就不能再扫了。店长授权列表 `GetTodayAuthCellList` 只列 `scaned=0`、`stoped=0` 的申请。
 - **小程序页面关掉系统导航栏时，必须用 `safe-nav-bar`（2026-10-21）**：页面 json 设了 `navigationStyle: custom`，就要自己让出状态栏，否则 iPhone 上返回键会被时间挡住、点了没反应。这个要求由 `tests/custom_nav_safe_area.test.js` 守住。
   - 用组件时，页面内容默认排在组件自带的占位块下面。整页 scroll-view 的页面设 `placeholder="{{false}}"`，上边距在 `onLoad` 里用 `utils/navbar.js` 的 `getNavMetrics().totalHeight` 计算。
   - 返回时如果页面栈只有一页（从分享或扫码进来），会 `reLaunch` 到 `homeUrl`。
@@ -5068,3 +5125,18 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 📌 教训 2：生成的代码不能手改时，先改生成器，再只把相关文件按生成器的输出写回，核对差异只有预期的那一行。整个目录重新生成会把旧的、无关的改动一起带出来（这次是 110 页横幅和 8 个空文件）。
 - 📌 教训 3：用户会在会话中途自己提交。收尾汇报前要重新查 `git status` 和 `git log`。
 - 详细归档：[sessions/2026-10-21_retail-reception-migration-and-ios-nav.md](sessions/2026-10-21_retail-reception-migration-and-ios-nav.md)。
+
+### 2026-10-22～23：扫码接待、手机号进入店长授权、扫码取板改小程序码，处置 mini 1433 暴力破解（Windows 机）
+
+- ✅ 扫码接待按用户要求做了三轮：
+  1. 顾客扫码进小程序报到，支付自动跳转（API `c04e67b7`、小程序 `4f0d2956`）；
+  2. 按旧版流程改成出码页 + 「散客进入」 + 顾客信息页选店选业务（`34e2d9d7`）；
+  3. 顾客信息页就地修改称呼电话、只进订单，「更新顾客信息」才改会员（`ea2091e8`）。
+- ✅ 手机号进入 + 店长授权：服务器原有接口还在，但新版授权页早删了，补回 `recept_auth_list` 和后台入口（API `2700ed4b`、小程序 `20154553`）。
+- ✅ 开单选店首项「请选择店铺」（`dfa3db9e`）；去掉万龙体验中心发起养护的特例（`9d78029c`）。
+- ✅ 扫码取板改小程序码 + 顾客验证页（API `33e1b2de`、小程序 `f5b5a934`）；养护列表显示真实订单状态、未付款置灰（`5de080ba`）。
+- ✅ 三次部署 mini 均验收通过（`c04e67b7` → `2700ed4b` → `33e1b2de`）。第一次先把 `.git` 里 root 所有的文件改回 `ubuntu`；第二次撞上 1433 暴力破解、磁盘将满，按用户逐条同意加了临时 iptables 白名单、清理日志后才发布。
+- ✅ 排查 `WF_YH_261022_00006` 没有养护任务：¥0.01 没付成功，订单未生效，不是漏建。
+- 🚧 待用户：两条扫码规则、小程序上传和真机测试、AWS 安全组和 `sa` 密码，见「下一步」。
+- 📌 教训：部署前先看磁盘；用户说「参考老的页面和流程」时，先把旧版页面结构和每一步跳转读全再动手。这次第一版把选店、选业务和顾客信息合在一页，不符合旧版习惯，返工了两次。
+- 详细归档：[sessions/2026-10-22_scan-reception-care-pick.md](sessions/2026-10-22_scan-reception-care-pick.md)。
