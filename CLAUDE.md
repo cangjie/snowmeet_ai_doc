@@ -1,5 +1,17 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-23 晚（Mac mini）：店员入口自动进管理员菜单，应用内可正常回首页（小程序本地未提交）
+
+- 用户反馈店员以 1089 进入时不能稳定跳管理员菜单、苹果却可以。查到登录后的管理员跳转与首页无条件跳次卡商城竞争；后台重新进入没有 `App.onShow` 处理；原跳转还依赖系统信息获取成功。模拟确认存在两个跳转请求，**未取得两端真机日志，不能据此断言具体的 iOS/Android 差异原因**。
+- **最终规则**（用户两次补充后）：店员在 1000 / 1010 / 1089 场景下，每次进入小程序只自动进菜单一次；进菜单后可正常打开接待、租赁、养护、会员等业务页；主动回首页时进入次卡商城，不再因旧启动场景跳回菜单。普通顾客进入商城；扫码、分享和付款等指定页面保留。
+- 实现集中在小程序 [`app.js`](../snowmeet_wechat_mini/app.js) 的 `routeEntry`：`onShow` 读取本次场景，入口 revision 隔离旧异步结果，`_entryHandledRevision` 标记本次分流已处理，导航未完成时不重复跳。首页 [`pages/index/index.js`](../snowmeet_wechat_mini/pages/index/index.js) 复用该方法。登录就绪与系统信息补充解耦，系统信息失败/延迟不阻塞入口。
+- 第一轮修复漏了“主动回首页”，用户反馈后补了本次入口已处理标记，同时纠正了原先错误的测试预期（不能期待每次回首页都再进后台）。
+- **验证**：新增 [`tests/entry_navigation.test.js`](../snowmeet_wechat_mini/tests/entry_navigation.test.js) 最终 31/31、退出 0；全量 286 项断言通过，但因既有 `fnbinv_pages.test.js` 用例结束后的 `wx.navigateBack is not a function` 异步错误，**进程退出 1**。JS 语法和 `git diff --check` 通过。
+- **交付边界**：小程序仍为 `ai@f8a1d17e` + 本地三个文件（`app.js`、`pages/index/index.js` 修改，入口测试未跟踪），**未提交、未推送，未上传发布，安卓/iPhone 真机尚未验收**。本轮未改后端、生产库或服务器。end-work 只提交文档仓。
+- 开发者工具验证：添加三种编译模式，启动页统一 `pages/index/index`，进入场景分别 1000 / 1010 / 1089；现有 `admin_index` 直接打开管理员页，不能验证自动分流。每种都测“自动进菜单 → 业务页 → 返回菜单 → 主动回首页”。模拟场景不能代替真机入口验证。
+- **本轮归档同步**：文档已本地提交；推送 `cangjie/snowmeet_ai_doc` 被自动审批拒绝，理由是目标信任与本次资料导出授权尚未被认定充分。待用户明确授权后再推送，本轮归档尚未同步到 GitHub。
+- 详见 [本次会话归档](sessions/2026-10-23_staff-entry-home-navigation.md)。
+
 ## 2026-10-23（Mac mini）：扫码报到算作「已核验本人」、测试订单勾选、隐藏个人微信转账、打印按钮移位——**后端 `2d611b98` 已于 10-23 18:46 部署到 mini；小程序改动待下一次提审**
 
 - **部署（10-23 晚，用户通知审核已通过后）**：部署前检查磁盘剩 7.4G；`.git` 属于 www-data 但权限 777，这次要改的文件都不属于 root，以 ubuntu 身份 fetch 正常。先单独 `git pull --ff-only` 核对 HEAD 是 `2d611b98`、4 个新文件都在，再跑原 `republish.sh`（退出码 0，构建日志无 ` error `）。停机 18:44:21～18:46:12，约 1 分 51 秒。服务 active、`NRestarts=0`，启动后日志无异常。`GetUnCommonPayMethod` 部署前返回 10 项（含 4 项微信转账），部署后 6 项、不含任何「微信转账」；`SaveRentRecept` 无效会话带 `isTest` 返回「没有权限」；公网 200。
@@ -480,8 +492,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-23 晚）
+## 当前状态（截至 2026-10-23 晚，店员入口修复后）
 
+- 10-23 晚（本轮）：小程序店员 1000 / 1010 / 1089 入口统一分流，每次进入只自动进管理员菜单一次，内部业务跳转正常，主动回首页进商城。入口 31 项通过；全量 286 项断言通过但保留既有异步错误、进程退出 1。业务仓三个文件**本地未提交/未推送，未上传，待安卓与 iPhone 真机验收**，详见文件顶部与 [会话归档](sessions/2026-10-23_staff-entry-home-navigation.md)。
 - 10-23（Mac mini）：扫码报到算作已核验本人（后端自己查报到）、「这是测试订单」勾选、隐藏个人微信转账、养护详情页打印按钮移位。SnowmeetApi `ai@2d611b98` **已于 10-23 18:46 部署到 mini**（审核中的小程序已通过，用户通知后部署）；小程序 `ai@f8a1d17e` 已推送、待下一次提审。10-16 下午那 4 个食材 v4 提交已随 `33e1b2de` 上线（`6e38f60d` 是它的祖先），不再是待确认项。见文件顶部 10-23 一节。
 - 10-22～23：扫码接待、手机号进入（店长授权）、扫码取板改小程序码。后端 `ai@33e1b2de` 已上线；小程序 `ai@5de080ba` 已推送、未上传。两条扫码规则待用户在小程序后台配置。mini 的 1433 只有临时 iptables 白名单，AWS 安全组、`sa` 密码待用户处理。见文件顶部同名一节。
 - 10-21 补充：小程序零售开单已迁到新版接待流程，iPhone 顶栏返回键问题已修（`a2515491`）。两项都还没上传、没在真机上验证，见文件顶部同日一节。
@@ -964,6 +977,7 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 店员进入小程序与主动回首页（10-23 晚）：[入口路由与登录](../snowmeet_wechat_mini/app.js)（`routeEntry`、`_entryHandledRevision`、导航去重及系统信息解耦）、[首页跳板](../snowmeet_wechat_mini/pages/index/index.js)、[31 项入口回归](../snowmeet_wechat_mini/tests/entry_navigation.test.js)。三个文件目前均只在本机工作区，业务仓未提交。
 - 订单「已核验本人」与测试订单（10-23）：[判定规则 OrderVerifiedRules](../SnowmeetApi/Helpers/OrderVerifiedRules.cs)（报到能否担保、草稿保存取值、支付成功取值）、后端查报到 `QrCodeController.ResolveReceptOrderVerified`、[单测](../SnowmeetApi/SnowmeetApi.Tests/OrderVerifiedRulesTests.cs)；调用点 `Rent/SaveRentRecept`、`Care/SaveCareRecept`、`Order/PlaceOrder`、`OrderController.DealSuccessPaidOrder`。测试订单勾选在 [recept_member](../snowmeet_wechat_mini/pages/admin/reception/recept_member.js)，经 [recept_new](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `_receptQuery` 带给后端。
 - 个人微信转账收款限制（10-23）：[PayMethodRules](../SnowmeetApi/Helpers/PayMethodRules.cs)；用在 `Order/GetUnCommonPayMethod`（列表过滤）和 `Order/EffectUnpaidOrder`（拒绝手工填写）。
 - 小程序零售开单（10-21）：[零售类型与七色米单号校验](../snowmeet_wechat_mini/utils/retail.js)、[零售开单表单](../snowmeet_wechat_mini/components/reception/retail_recept_form/retail_recept_form.js)、[零售订单详情](../snowmeet_wechat_mini/pages/admin/retail/retail_order_detail.js)；下单入口在 [recept_new.js](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `onRetailCheckout`。
@@ -1037,6 +1051,7 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- 🚧 **本轮店员入口修复验收与业务仓提交**：先重新编译预览本地改动，三种场景均从 `pages/index/index` 开始；安卓/iPhone 分别确认冷启动、后台重新进入、菜单内业务页与返回、主动回首页进商城、扫码/分享/付款页不被抢跳。当前 `ai@f8a1d17e` + 三个本地文件未提交/未推送，换机前由用户按发布节奏提交，新增入口测试也要纳入；本轮没有代为上传或提审。
 - ✅ ~~SnowmeetApi `2d611b98` 等用户通知再部署~~：10-23 18:46 已部署并验收，见文件顶部 10-23 一节。
 - 🚧 **mini 的 1433 又对外放开了（10-23 部署前发现）**：mini 在 10-23 04:30 重启过，10-22 加的 iptables 白名单不持久，已经没了。SQL errorlog 末尾 200 行里仍有 36 条 `sa` 登录失败，来源都是 `44.207.251.65`——即美国服务器的公网 1433 转发，所以在 mini 上放行这个 IP 本身挡不住经转发进来的攻击。待用户决定：收紧美国服务器 `snowmeet-forward-1433.socket` 的来源（或停用），收紧 mini 的 AWS 安全组，换 `sa` 密码或停用 `sa`。本次没有改任何防火墙规则。
 - 🚧 **下一次小程序提审**（`f8a1d17e` 及之前未提审的改动）：测试订单勾选、已核验单的核销按钮文案、养护详情页打印按钮移位。真机要验：
@@ -1190,8 +1205,9 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **自动进后台只处理本次入口一次（2026-10-23 晚）**：不能每次加载 `pages/index/index` 都看旧 `globalData.scene` 再送后台，否则店员无法主动回首页。`_entryHandledRevision` 与入口 revision 配合：本次已自动进菜单（或已在菜单/保留指定页面）后，内部返回首页走次卡商城；退出后再次从符合条件的入口进入才重新分流。App 与首页共用路由，导航未完成时去重，旧登录回调不能抢后来的扫码入口。回归必须同时覆盖“自动进菜单”与“主动回首页”。
 - **`order.wechat_unverified` 由后端决定，前端传的值不算（2026-10-23）**：1 = 已核验为订单会员本人（命名与字面相反）。来源只有三个：开单前扫码报到（建单/草稿保存时后端自己查）、扫「微信身份核验码」、本人微信付款成功。养护 0 元核销、储值支付、支付宝付款、租赁储值付租金/次卡都读它。改这几处逻辑先看 `Helpers/OrderVerifiedRules.cs` 头部注释。草稿接口（`SaveRentRecept`/`SaveCareRecept`）会把整张订单原样写库，以后给订单加「状态类」字段也要注意别被前端回传的旧值覆盖。
-- **Mac mini 上 `npm test`（小程序）跑不起来（2026-10-23）**：Node 24.2 的测试运行器报 `Unable to deserialize cloned data due to invalid or unsupported version`。改用 `node --test --test-isolation=none tests/*.test.js`（在 `snowmeet_wechat_mini` 下），255 项全过；但 `fnbinv_pages.test.js` 里「批次页…删除这次入库」用例结束后还有异步回调（`wx.navigateBack is not a function`），进程退出码是 1，与业务无关。
+- **Mac mini 上 `npm test`（小程序）跑不起来（2026-10-23）**：Node 24.2 的测试运行器报 `Unable to deserialize cloned data due to invalid or unsupported version`。改用 `node --test --test-isolation=none --test-reporter=tap tests/*.test.js`（在 `snowmeet_wechat_mini` 下）；本轮新增入口测试后 286 项断言通过。但 `fnbinv_pages.test.js` 里「批次页…删除这次入库」用例结束后还有异步回调（`wx.navigateBack is not a function`），进程退出码仍为 1，不能写成整套测试退出成功。入口测试单独 31/31，退出 0。
 - **旧版收银组件会盖掉后端的拒绝原因（2026-10-23）**：`order-payment` 的 `effectUnpaidOrder` 在 `.catch` 里固定弹「处理失败」，把 `performWebRequest` 刚弹出的后端 message 盖掉。比如手工填写个人微信转账被拒时，店员看不到「暂不允许个人微信转账收款」。还没改。
 - **`EffectUnpaidOrder` 的权限判断写错（2026-10-23 发现，未改）**：`if (staff == null && staff.title_level < 100)`，staff 为空时会抛空引用（500），staff 不为空时又永远不拦等级。同样的写法在 `LogShowWechatQrCode` 里也有。
 - **mini 部署前先看磁盘和 1433 规则（2026-10-22）**：公网暴力破解 `sa` 会把 SQL Server errorlog、`system_health_*.xel`（约 100 MB 一个）、syslog、journal 一起灌满。
@@ -5200,3 +5216,15 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 发现 1433 白名单在 10-23 04:30 重启后已失效，errorlog 仍有 `sa` 登录失败，来源是美国服务器的公网 1433 转发。没改防火墙，待用户决定（见「下一步」）。
 - 本机记忆「后端 4 个提交等审核后部署」已删除。
 - 详细归档：[sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md) 第 8 节。
+
+### 2026-10-23 晚（Mac mini）：店员 1089 自动进菜单与主动回首页修复
+
+- ✅ start-work 同步文档、核查五仓；小程序 `ai@f8a1d17e` 起始干净，独立 reqai 本地落后 18。本轮只检查归档增量，未分析需求摘要。
+- ✅ 定位两个入口跳转竞争、缺少 App.onShow 与系统信息成功回调耦合；只能证明模拟时序问题，未定位两端真机表现差异的直接原因。
+- ✅ 统一 `routeEntry`，按本次场景分流，旧异步结果作废、导航未完成时去重，登录不等待系统信息补充。
+- ✅ 用户强调“进菜单后应正常打开业务页”，补三场景下真实菜单 `nav` 的接待/租赁/养护/会员与返回测试。
+- ✅ 用户随后反馈“不能进入首页”，发现第一版仍把内部回首页按启动场景送后台，且对应测试预期写错。增加 `_entryHandledRevision`，最终改为每次进入仅自动分流一次，之后主动回首页进入商城；新增边界用例先 6 败，修复后全过。
+- 验证：入口 31/31、退出 0；全量 286 项断言通过，保留既有食材页测试结束后的异步错误、进程退出 1；JS 语法与 diff 检查通过。
+- 🚧 小程序三个文件留在本地未提交/未推送，未上传、未提审、未在安卓/iPhone 实测；end-work 只自动提交并推送文档仓。下次先重新编译预览，验证自动进菜单与主动回首页，再按发布节奏处理业务仓。
+- 🚧 文档已完成本地提交，但 GitHub push 被自动审批拒绝，等待用户对本轮文档推送明确授权；尚不能视为跨机已同步。
+- 详细归档：[sessions/2026-10-23_staff-entry-home-navigation.md](sessions/2026-10-23_staff-entry-home-navigation.md)。
