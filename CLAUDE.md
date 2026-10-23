@@ -1,5 +1,23 @@
 # Snowmeet AI — 项目上下文
 
+## 2026-10-23（Mac mini）：扫码报到算作「已核验本人」、测试订单勾选、隐藏个人微信转账、打印按钮移位——**全部已推送、未部署，等审核中的小程序通过后用户通知再部署**
+
+- **扫码报到 = 已核验本人**（用户原话：「开单前的接待页面扫码了验证身份了，订单从一生成开始，wechat_unverified 就应该设置为1」）：
+  - 之前扫码报到只记在 `scan_qrcode`，和订单没有关联，用券/卡/储值/支付宝时仍要再扫「微信身份核验码」。
+  - 现在租赁/养护草稿保存（`Rent/SaveRentRecept`、`Care/SaveCareRecept`）和零售下单（`Order/PlaceOrder`）时，**后端自己查**：这位店员 60 分钟内出过、被本单会员本人扫码并验证手机号的报到码（`rc_` 码，`scaned=1`）。找到就置 1，并记一条 `core_data_mod_log`（scene=开单，备注带扫码记录 id）。店员输手机号进入、散客都不算。
+  - 起初做的是小程序带 `checkinId`，用户问「为什么需要修改小程序」后改成后端自己查（`902af2ed`），小程序传参已撤掉。
+  - **后端不再采信前端传来的 `wechat_unverified`**：草稿保存时，已经是 1 且会员没换就保留，换了人（如扫别人的券切人）自动变 0。
+  - **支付成功回调改了 6-15 的规则**：原来「不是本人微信付款一律 0」，会把已核验的单在支付宝付款后冲回 0。现在已核验、且这次付款没有改订单会员（本人支付宝、他人代付）就保持 1；「订单转归我」改了会员的仍置 0。
+  - 规则集中在 [`Helpers/OrderVerifiedRules.cs`](../SnowmeetApi/Helpers/OrderVerifiedRules.cs)，单测 15 项。
+- **「这是测试订单」**：顾客信息页 [`recept_member`](../snowmeet_wechat_mini/pages/admin/reception/recept_member.wxml) 在店铺和业务类型之间加勾选行（勾上变红）；带 `isTest=1` 到开单页，三个建单接口加 `isTest` 参数，勾了就 `is_test=1`。原有规则（租赁/养护按域名、零售按店员 28/31/34）保留，勾选只会额外标成测试单。零售 `PlaceOrder` 只认店员会话。只加在这一页，手动录入页 `recept_entry` 没加（问过用户，未答复）。
+- **隐藏个人微信转账**（用户：「以微信转账结尾的支付方式，全部隐藏，暂时不允许个人微信转账」）：`Order/GetUnCommonPayMethod` 过滤掉以「微信转账」结尾的（苍杰/王政/肖志强工作微信转账，以及就叫「微信转账」的那一项——用户没圈它，按字面一并隐藏，已告知可排除）；`EffectUnpaidOrder` 拒绝这类手工填写，提示「暂不允许个人微信转账收款」。规则在 [`Helpers/PayMethodRules.cs`](../SnowmeetApi/Helpers/PayMethodRules.cs)，单测 12 项。纯后端，历史记录不动。
+- **养护详情页打印按钮移位**：「打印标签存根 / 打印顾客小票」从卡片最底部（发板核销下面）移到装备信息之后、养护任务之前（`f8a1d17e`）。
+- **收银组件文案**：已核验的养护核销单，按钮从「微信核验会员本人并核销」改成「确认核销 / 确认储值扣款」（`6fc36470`）。
+- **版本**：SnowmeetApi `ai@2d611b98`（`c5605156`、`bfe9d020`、`902af2ed`、`2d611b98` 四个提交，线上仍是 `33e1b2de`）；小程序 `ai@f8a1d17e`（`6fc36470`、`0d65bbb2`、`1d51fac0`、`f8a1d17e`）。都无 SQL。
+- **兼容性已核对**（用户问「部署服务器端，旧的小程序可以安全运行吗」）：新参数都是可选的；线上旧版没有扫码报到页面，后端查不到报到，行为不变；旧版选手工填写个人微信转账会被拒，订单保持未付，但旧组件会用「处理失败」盖掉后端原因。**结论：可以单独先部署后端，但用户决定等审核中的小程序通过后再部署，届时用户通知。**
+- **测试**：后端 546 过 / 43 跳过（Windows LocalDB 集成测试）；小程序 255 过。没在真机上走过。
+- 详见 [会话记录](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md)。
+
 ## 2026-10-22～23：扫码接待、手机号进入、扫码取板改小程序码已上线后端；mini 1433 暴力破解临时挡住（Windows 机）
 
 - **接待改回「店员出码、顾客扫码」**（用户要求，参照旧版流程返工两次）：
@@ -194,7 +212,7 @@
 - 按时间看是 10-17 11:45 开始的 Codex 会话执行的，没有对应的会话归档。10-19 start-work 核对本机文件时才发现。
 - **到这次为止，生产库一共执行过 4 次**：10-12 两次（14 行、9 行）、10-13 一次（0 行）、10-17 一次（70 行）。10-06 那次只做了准备，没有执行。skill 状态仍是 `testing`。
 
-## 2026-10-16 下午：食材 v4 又有 4 个提交（`b2dc9270`～`6e38f60d`），⚠️ 部署状态未确认
+## 2026-10-16 下午：食材 v4 又有 4 个提交（`b2dc9270`～`6e38f60d`），已随 `33e1b2de` 上线（10-23 核实）
 
 - `b2dc9270`（14:35）：批次详情页「撤销入库」和「报损」按钮放到同一行（`operations.js`、`index.html`）。
 - `288fb76a`（14:57）：厨房单显示详情，出餐时用料数量可以改；新增浏览器流程 `fnb-v4.serve-flows.cjs`。
@@ -460,8 +478,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-23）
+## 当前状态（截至 2026-10-23 晚）
 
+- 10-23（Mac mini）：扫码报到算作已核验本人（后端自己查报到）、「这是测试订单」勾选、隐藏个人微信转账、养护详情页打印按钮移位。SnowmeetApi `ai@2d611b98`、小程序 `ai@f8a1d17e` 已推送，**都未部署 / 未上传**：用户要等审核中的小程序通过后再部署后端，届时会通知。10-16 下午那 4 个食材 v4 提交已随 `33e1b2de` 上线（`6e38f60d` 是它的祖先），不再是待确认项。见文件顶部 10-23 一节。
 - 10-22～23：扫码接待、手机号进入（店长授权）、扫码取板改小程序码。后端 `ai@33e1b2de` 已上线；小程序 `ai@5de080ba` 已推送、未上传。两条扫码规则待用户在小程序后台配置。mini 的 1433 只有临时 iptables 白名单，AWS 安全组、`sa` 密码待用户处理。见文件顶部同名一节。
 - 10-21 补充：小程序零售开单已迁到新版接待流程，iPhone 顶栏返回键问题已修（`a2515491`）。两项都还没上传、没在真机上验证，见文件顶部同日一节。
 - 七色米 API/H5 的生产结论沿用 10-20 `ai@af2b9e4c` 部署验收，本次未重新登录生产；35 页图文 PPT 已交付，结果二次筛选缓存优化已记录、待实现。新电脑先读 [缓存交接](docs/qisemi/result-filter-cache-handoff-2026-10-21.md) 与 [本段收工归档](sessions/2026-10-20_qisemi-training-cache-handoff.md)。企微真机及日常新快照同步仍待办。
@@ -853,6 +872,10 @@ dotnet run
 
 ### 显示规则
 
+- **接待顾客信息页「这是测试订单」（2026-10-23）**：放在「当前店铺」和「业务类型」之间；勾上后方框和文字变红并提示「本次开的单记为测试单」。只影响勾完之后开的单，已存的草稿不会改回正式单。
+- **养护详情页每件装备卡顺序（2026-10-23）**：装备信息（含照片 / 编辑面板）→ 打印标签存根、打印顾客小票 → 养护任务 → 发板核销。
+- **收银组件养护核销按钮（2026-10-23）**：订单已核验本人（`wechat_unverified=1`）时显示「确认核销」或「确认储值扣款」，点了直接核销；未核验时才显示「微信核验会员本人并核销」并出核验码。
+
 - **食材 v4 停用与删除（2026-10-13）**：`valid=false` 的记录在界面消失，不提供恢复入口；`enabled=false` 且 `valid=true` 的主数据显示“停用”，可重新启用。启停按钮与删除按钮分开；“包含停用”也不能显示删除记录。兼容旧请求的 `valid` 字段只映射启停，不可恢复已删除 ID。
 - **套餐内装备卡片（rentItem）折叠态标题**：必须显示该槽位所属品类的名称；如允许多品类（`canChooseCategory`），把所有可选品类名用 `/` 拼接（如 `双板/单板`）。**禁止**回落为 `待录入`。
 - 持久化：品类名拼接结果写入 `class_name`（后端 `RentItem` 持久化字段），扛得住 `Rent/SaveRentRecept` 往返；`categoryName` / `chooseCategories` 是前端临时字段，后端不回传。
@@ -939,6 +962,8 @@ dotnet run
 **2026-09-11 补充（模型与成本）**：管理员帮助与 reqai 主对话的模型已从 `gpt-5.6-sol` 切到 **`gpt-5.6-luna`**（09-11 02:21 UTC 重启生效）。切换点有三处、缺一不可：`/etc/reqai/env` 的 `CHAT_MODEL`、同文件的 `UTILITY_MODEL`（检索前的问题改写走它，`ENABLE_QUERY_REWRITE` 默认 true，每次提问都跑），以及 reqai 数据库 `app_settings.model_defaults`（DB 值覆盖 env，管理后台可改、改完立即生效不用重启）。**模型设置是全局的，没法只切帮助系统而让 reqai 主对话留在 sol**——要分开必须给帮助系统单独加设置。OpenAI key 同日轮换，旧配置备份在 `/etc/reqai/env.bak-20260911-014447` 与 `.bak-20260911-022146-pre-luna`。
 
 **关键文件**
+- 订单「已核验本人」与测试订单（10-23）：[判定规则 OrderVerifiedRules](../SnowmeetApi/Helpers/OrderVerifiedRules.cs)（报到能否担保、草稿保存取值、支付成功取值）、后端查报到 `QrCodeController.ResolveReceptOrderVerified`、[单测](../SnowmeetApi/SnowmeetApi.Tests/OrderVerifiedRulesTests.cs)；调用点 `Rent/SaveRentRecept`、`Care/SaveCareRecept`、`Order/PlaceOrder`、`OrderController.DealSuccessPaidOrder`。测试订单勾选在 [recept_member](../snowmeet_wechat_mini/pages/admin/reception/recept_member.js)，经 [recept_new](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `_receptQuery` 带给后端。
+- 个人微信转账收款限制（10-23）：[PayMethodRules](../SnowmeetApi/Helpers/PayMethodRules.cs)；用在 `Order/GetUnCommonPayMethod`（列表过滤）和 `Order/EffectUnpaidOrder`（拒绝手工填写）。
 - 小程序零售开单（10-21）：[零售类型与七色米单号校验](../snowmeet_wechat_mini/utils/retail.js)、[零售开单表单](../snowmeet_wechat_mini/components/reception/retail_recept_form/retail_recept_form.js)、[零售订单详情](../snowmeet_wechat_mini/pages/admin/retail/retail_order_detail.js)；下单入口在 [recept_new.js](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `onRetailCheckout`。
 - 小程序自定义顶栏（10-21）：[safe_nav_bar 组件](../snowmeet_wechat_mini/components/safe_nav_bar/safe_nav_bar.js)、[尺寸计算 navbar.js](../snowmeet_wechat_mini/utils/navbar.js)、[回归测试](../snowmeet_wechat_mini/tests/custom_nav_safe_area.test.js)。
 - 山姆商品查询 H5（`sams_scrape` 仓库 main）：[生成与发布](../sams_scrape/sams_site.py)、[网页数据](../sams_scrape/site_data.py)、[商品图与找卡](../sams_scrape/site_images.py)、[网页源码](../sams_scrape/site/)、[nginx 规则](../sams_scrape/deploy/nginx_sams.py)、[设计](../sams_scrape/docs/superpowers/specs/2026-10-15-sams-h5-design.md)、[计划](../sams_scrape/docs/superpowers/plans/2026-10-15-sams-h5.md)。
@@ -1010,6 +1035,14 @@ dotnet run
 - **店员侧次卡能力（7-25~26，用户并行扩展）**：`RentController` 的 `BuildPunchCardUsageView`（顾客侧/店员侧共用展示组装）+ `GetPunchCardUsagesByStaff`（不校验"卡是我的"、不下发 refund）+ `UpdatePunchCardEquipByStaff`（改季卡绑定装备品牌/长度，装备类型不开放）+ `GetPunchCardSalesByStaff`；新页面 `pages/admin/rent/punchcard_sales/`（卡类产品销售列表 staff≥200）；`punchcard_usage` 加店员模式（`?staff=1`）、`member_detail` 名下次卡整行可点跳该页、`my_punchcards` 补开卡日期
 
 **下一步要做的**
+- ⏸️ **SnowmeetApi `2d611b98` 等用户通知再部署**（10-23）：用户要等当前审核中的小程序通过后再部署后端，**通知前不要部署、不要追问**。通知后按惯例：经美国服务器 2222 登录 mini → 先 `df -h /` 和 1433 规则 → `git pull --ff-only` 核对 HEAD 是 `2d611b98` → `republish.sh` → 核对构建日志、服务状态、`Order/GetUnCommonPayMethod` 不再返回「微信转账」结尾的项。
+- 🚧 **下一次小程序提审**（`f8a1d17e` 及之前未提审的改动）：测试订单勾选、已核验单的核销按钮文案、养护详情页打印按钮移位。真机要验：
+  - 新顾客扫码报到 → 开养护单用券全额抵扣 → 结算页直接显示「确认核销」、不出核验码；查 `order.wechat_unverified=1` 和 `core_data_mod_log`（scene=开单）；
+  - 报到后用支付宝付款，付完 `wechat_unverified` 仍是 1；
+  - 开单中扫别人的券切人后变 0；
+  - 勾「这是测试订单」开三种业务各一单，`is_test=1`；
+  - 「其他支付」里看不到微信转账类，手工填写「XX微信转账」被拒。
+- ❓ **待用户答复**：「微信转账」（不带人名的那一项）要不要保留；手动录入页 `recept_entry` 要不要也加「这是测试订单」。
 - 🚧 **mini 生产库 1433 长期处置**（10-22 暴力破解 `sa` 撑满磁盘）：用户在 AWS 安全组把 1433 只留给 44.207.251.65；换 `sa` 密码或停用 `sa`；本机 `.claude/settings.local.json` 权限规则里的明文 `sa` 密码一并清掉。现在只有不持久的 iptables 白名单，mini 重启即失效。之后可执行 `sp_cycle_errorlog` 轮换约 65 MB 的 errorlog。
 - 🚧 **扫码接待 / 扫码取板上线**（后端 `33e1b2de` 已上线，小程序 `5de080ba` 待上传）：
   1. 小程序后台「扫普通链接二维码打开小程序」加两条规则：`https://mini.snowmeet.top/mapp/recept_checkin` → `pages/order/recept_checkin`；`https://mini.snowmeet.top/mapp/care_pick` → `pages/order/care_pick_verify`。规则要等带新页面的版本发布后才能发布；体验版只能用「测试链接」测，限制见「已知遗留」。
@@ -1042,7 +1075,7 @@ dotnet run
   4. 可选：抽查价格识别错误的商品，如洪湖粉藕 ¥739。
 - ✅ **5 个域名证书已改为 Let's Encrypt 自动续期**（10-14～15，每 75 天，下一轮约 12-28/12-29）。待办：① 核对 10-14 证书过期期间（mini 19:59～21:39）有付款的订单是否都已变成已支付（靠微信/支付宝重发通知补上，没逐单查）；② 12-30 笔记本上的提醒任务 `ssl-cert-renewal-check` 会核查本轮续期，换电脑时记得自己看；③ 可考虑加一个每天检查证书剩余天数的监控（Let's Encrypt 不发到期邮件）。
 - ✅ **山姆商品清单 / 京东山姆店补价已收尾**（10-15）：738/746 有价，缺 8 个按用户决定留空；整个 `sams_scrape` 已推到 GitHub 公开仓库 `cangjie/sams_scrape`。数据用途已明确：做成店员查价的 H5，10-15 已上线，见下一条。Mac mini 那份停在 10-13，要用时从 GitHub clone；Mac mini 磁盘紧张，`sams_scrape/data/shots/`（880 MB）已进仓库，那边可以删。
-- **2026-10-19 待确认**：10-16 下午的 4 个 SnowmeetApi 提交（到 `6e38f60d`）是否已部署。没部署的话，按惯例先 `git pull --ff-only` 核对 HEAD，再跑 `republish.sh`（需用户在对话里明确同意）。
+- ✅ ~~**2026-10-19 待确认**：10-16 下午的 4 个 SnowmeetApi 提交（到 `6e38f60d`）是否已部署。~~ 10-23 核实：`6e38f60d` 是已部署的 `33e1b2de` 的祖先，已经上线。
 - **2026-10-16 食材 v4 补充（二）**：批次详情页「撤销入库」（只撤这一个批次）已部署（`7a9cc267`），待手机上实际撤销一次确认。22 项 LocalDB 集成测试已在 Windows 机补跑通过；skill 的 LocalDB 验证仍没跑。「新建食材后列表未刷新」仍待修复。
 - **2026-10-16 食材 v4 补充**：新建食材档案先选一级分类、再选二级分类，已部署（`d3ef59d0`）。待用户在手机上关掉旧页面重进确认；「新建半成品」要不要同样处理，待用户决定。
 - **2026-10-15 食材 v4 补充**：iPhone 点输入框放大页面的问题已修复并部署（`712d22d`）。待用户在 iPhone 企业微信里关掉页面重进，点输入框确认不再放大。
@@ -1154,6 +1187,10 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **`order.wechat_unverified` 由后端决定，前端传的值不算（2026-10-23）**：1 = 已核验为订单会员本人（命名与字面相反）。来源只有三个：开单前扫码报到（建单/草稿保存时后端自己查）、扫「微信身份核验码」、本人微信付款成功。养护 0 元核销、储值支付、支付宝付款、租赁储值付租金/次卡都读它。改这几处逻辑先看 `Helpers/OrderVerifiedRules.cs` 头部注释。草稿接口（`SaveRentRecept`/`SaveCareRecept`）会把整张订单原样写库，以后给订单加「状态类」字段也要注意别被前端回传的旧值覆盖。
+- **Mac mini 上 `npm test`（小程序）跑不起来（2026-10-23）**：Node 24.2 的测试运行器报 `Unable to deserialize cloned data due to invalid or unsupported version`。改用 `node --test --test-isolation=none tests/*.test.js`（在 `snowmeet_wechat_mini` 下），255 项全过；但 `fnbinv_pages.test.js` 里「批次页…删除这次入库」用例结束后还有异步回调（`wx.navigateBack is not a function`），进程退出码是 1，与业务无关。
+- **旧版收银组件会盖掉后端的拒绝原因（2026-10-23）**：`order-payment` 的 `effectUnpaidOrder` 在 `.catch` 里固定弹「处理失败」，把 `performWebRequest` 刚弹出的后端 message 盖掉。比如手工填写个人微信转账被拒时，店员看不到「暂不允许个人微信转账收款」。还没改。
+- **`EffectUnpaidOrder` 的权限判断写错（2026-10-23 发现，未改）**：`if (staff == null && staff.title_level < 100)`，staff 为空时会抛空引用（500），staff 不为空时又永远不拦等级。同样的写法在 `LogShowWechatQrCode` 里也有。
 - **mini 部署前先看磁盘和 1433 规则（2026-10-22）**：公网暴力破解 `sa` 会把 SQL Server errorlog、`system_health_*.xel`（约 100 MB 一个）、syslog、journal 一起灌满。
   - 当时磁盘从 686 MB 掉到 70 MB，速度约每分钟 9 MB。
   - `republish.sh` 会先停服务、删 `SnowmeetApi.*.json` 再构建，磁盘一满服务就起不来。
@@ -5140,3 +5177,14 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 待用户：两条扫码规则、小程序上传和真机测试、AWS 安全组和 `sa` 密码，见「下一步」。
 - 📌 教训：部署前先看磁盘；用户说「参考老的页面和流程」时，先把旧版页面结构和每一步跳转读全再动手。这次第一版把选店、选业务和顾客信息合在一页，不符合旧版习惯，返工了两次。
 - 详细归档：[sessions/2026-10-22_scan-reception-care-pick.md](sessions/2026-10-22_scan-reception-care-pick.md)。
+
+### 2026-10-23（Mac mini）：扫码报到算作已核验本人 + 测试订单勾选 + 隐藏个人微信转账 + 打印按钮移位
+
+- start-work：22 端口超时，改走 443 才拉到 `e28a804`；SnowmeetApi 本机落后 22（用户随后自己 pull），reqai 落后 18；`/reqai-digest` 仍有 #5 #7 未分析。
+- ✅ 用户问「开单前扫码识别了身份，用券支付后是不是可以直接核销」。核查结论：报到只记在 `scan_qrcode`、不写订单，所以支付宝、0 元券卡核销、储值仍要再扫核验码。用户拍板「订单从一生成开始 wechat_unverified 就应该设置为1」。
+- ✅ 第一版让小程序带 `checkinId`（`c5605156` / `6fc36470`）；用户问「为什么需要修改小程序」后改成后端自己查报到（`902af2ed` / `1d51fac0`），小程序传参撤掉。支付成功回调同时改为「已核验且会员没变就不冲回 0」。
+- ✅ 「这是测试订单」勾选（`bfe9d020` / `0d65bbb2`）；隐藏并拒绝以「微信转账」结尾的支付方式（`2d611b98`）；养护详情页打印按钮移到装备信息之后（`f8a1d17e`）。
+- ✅ 核对 4 个后端提交与线上旧版小程序兼容。用户决定：**等审核中的小程序通过后再部署，届时通知**。
+- 测试：后端 546 过 / 43 跳过，小程序 255 过；未上真机。
+- 📌 教训：用户问「为什么要改 X」时，先老实说明这是设计选择、有没有不改的办法；能在后端独立完成的就不要让功能依赖小程序发版（审核周期长）。
+- 详细归档：[sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md)。
