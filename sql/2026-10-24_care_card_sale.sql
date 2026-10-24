@@ -1,0 +1,5 @@
+-- 已作废：养护开单购卡不再新增三张关联表。
+-- 当前实现复用现有 order、retail、punch_card、punch_card_used 和 care。
+-- 无需执行任何建表、加列或数据迁移 SQL；本文件不包含可执行 DDL。
+-- 此前三表方案未由本次开发执行或部署，本文件也不执行 DROP TABLE。
+-- 说明见 docs/2026-10-24-care-card-sale-implementation.md。
