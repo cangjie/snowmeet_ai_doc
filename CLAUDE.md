@@ -1,6 +1,9 @@
 # Snowmeet AI — 项目上下文
 
-## 2026-10-24（Mac mini）：养护单放开代付（只拦「用了权益又没核验」的单）、养护详情页加「去收款」——后端 `9f9f8217` 已部署
+## 2026-10-24（Mac mini）：养护单放开代付（只拦「用了权益又没核验」的单）、养护详情页加「去收款」、SQL Server 转发改 5789——后端 `9f9f8217` 已部署
+
+- **SQL Server 公网转发改到 5789**：查明攻击全部经美国服务器公网 1433 转发进来（近两天 1157 次 `sa` 登录失败全是 `44.207.251.65`，mini 自己的安全组已挡住公网直连），mini 每天 04:30 重启来自 `/etc/crontab` 第 29 行 `30 4 * * * root reboot`（未动）。用户在美国区安全组放行 5789 后，把 `snowmeet-forward-1433.socket` 的 `ListenStream` 改为 `0.0.0.0:5789`（单元名未改，改前备份 `/home/ubuntu/forward-5789-20261024/`），1433 已关闭；本机经 `44.207.251.65,5789` 查库正常，SSH 隧道 `-L 14330:127.0.0.1:1433 -p 2222` 也验证可用。换端口前当天 errorlog 734 次失败、最后一次 11:44:31，过几天对照。
+- **扫码接待已在正式版生效**：10-24 店员用的是正式版 392（nginx Referer `servicewechat.com/wxd1310896f2aa68bb/392/`），顾客 10:07 扫店员出的码进 `recept_checkin` 报到成功、开单后订单 `wechat_unverified=1`，说明报到页、`mapp/recept_checkin` 扫码规则和后端「报到算已核验」都已生效。`care_pick` 扫码取板这次没有实际用例。
 
 - **起因**：`WF_YH_261024_00001`（会员 2472 赵先生，10:07 扫码报到已核验，没用券卡储值，只有店员减免 30）被会员 4264、41204 扫付款码时都提示「请用订单会员本人的微信扫码支付」。这是 7-14 按用户要求加的规则（养护 + 微信 + 有会员 + 非本人 → `care_member_required`），当时不看有没有用权益、是否已核验。
 - **用户确认的新规则**：已核验本人的订单允许别人代付并核销权益；没核验的单用了权益仍须本人付款；没用权益的单允许代付。用户确认与旧规则不冲突。
@@ -505,7 +508,9 @@
 - ✅ SnowmeetApi `ai@fc106a87` 已推送，并经服务器现有 `republish.sh` 发布；444 项回归通过，服务 active/running、`NRestarts=0`，服务器本机 Swagger HTTP 200。真实支付/退款及真实回调本轮未触发。[会话记录](sessions/2026-10-05_wepay-cert-1615235183.md)
 - 📌 用户明确：**部署修改直接在 `/home/ubuntu/webs/SnowmeetApi` 执行 `republish.sh`，脚本第一行会自动 `git pull`**，随后停止服务、清理构建目录、publish 并启动。不要另设 DLL 上传发布流程。
 
-## 当前状态（截至 2026-10-23 晚，店员入口修复后）
+## 当前状态（截至 2026-10-24 中午）
+
+- 10-24（Mac mini）：养护单放开代付（只拦「用了券卡储值又没核验本人」的单，养护单代付后订单仍归原会员），SnowmeetApi `ai@9f9f8217` 已部署；养护详情页加「去收款」（小程序 `84c8b865` 已推送、待提审）；SQL Server 公网转发从 1433 改到 5789，1433 已关闭。扫码接待已在正式版 392 生效。见文件顶部 10-24 一节。
 
 - 10-23 晚（本轮）：小程序店员 1000 / 1010 / 1089 入口统一分流，每次进入只自动进管理员菜单一次，内部业务跳转正常，主动回首页进商城。入口 31 项通过；全量 286 项断言通过但保留既有异步错误、进程退出 1。业务仓三个文件**本地未提交/未推送，未上传，待安卓与 iPhone 真机验收**，详见文件顶部与 [会话归档](sessions/2026-10-23_staff-entry-home-navigation.md)。
 - 10-23（Mac mini）：扫码报到算作已核验本人（后端自己查报到）、「这是测试订单」勾选、隐藏个人微信转账、养护详情页打印按钮移位。SnowmeetApi `ai@2d611b98` **已于 10-23 18:46 部署到 mini**（审核中的小程序已通过，用户通知后部署）；小程序 `ai@f8a1d17e` 已推送、待下一次提审。10-16 下午那 4 个食材 v4 提交已随 `33e1b2de` 上线（`6e38f60d` 是它的祖先），不再是待确认项。见文件顶部 10-23 一节。
@@ -991,7 +996,7 @@ dotnet run
 
 **关键文件**
 - 店员进入小程序与主动回首页（10-23 晚）：[入口路由与登录](../snowmeet_wechat_mini/app.js)（`routeEntry`、`_entryHandledRevision`、导航去重及系统信息解耦）、[首页跳板](../snowmeet_wechat_mini/pages/index/index.js)、[31 项入口回归](../snowmeet_wechat_mini/tests/entry_navigation.test.js)。三个文件目前均只在本机工作区，业务仓未提交。
-- 订单「已核验本人」与测试订单（10-23）：[判定规则 OrderVerifiedRules](../SnowmeetApi/Helpers/OrderVerifiedRules.cs)（报到能否担保、草稿保存取值、支付成功取值）、后端查报到 `QrCodeController.ResolveReceptOrderVerified`、[单测](../SnowmeetApi/SnowmeetApi.Tests/OrderVerifiedRulesTests.cs)；调用点 `Rent/SaveRentRecept`、`Care/SaveCareRecept`、`Order/PlaceOrder`、`OrderController.DealSuccessPaidOrder`。测试订单勾选在 [recept_member](../snowmeet_wechat_mini/pages/admin/reception/recept_member.js)，经 [recept_new](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `_receptQuery` 带给后端。
+- 订单「已核验本人」、测试订单、养护代付（10-23～24）：[判定规则 OrderVerifiedRules](../SnowmeetApi/Helpers/OrderVerifiedRules.cs)（报到能否担保、草稿保存取值、支付成功取值；10-24 加 `CareUsesBenefit` / `CareRequiresMemberPayer` / `KeepOrderMemberOnPaid`，用在 `PaymentIdentityController._resolveStatus`、`_applyChoice` 和 `DealSuccessPaidOrder`）；养护详情页去收款在 [care_order_detail.js](../snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.js) 的 `renderOrder` / `onGoPay`、后端查报到 `QrCodeController.ResolveReceptOrderVerified`、[单测](../SnowmeetApi/SnowmeetApi.Tests/OrderVerifiedRulesTests.cs)；调用点 `Rent/SaveRentRecept`、`Care/SaveCareRecept`、`Order/PlaceOrder`、`OrderController.DealSuccessPaidOrder`。测试订单勾选在 [recept_member](../snowmeet_wechat_mini/pages/admin/reception/recept_member.js)，经 [recept_new](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `_receptQuery` 带给后端。
 - 个人微信转账收款限制（10-23）：[PayMethodRules](../SnowmeetApi/Helpers/PayMethodRules.cs)；用在 `Order/GetUnCommonPayMethod`（列表过滤）和 `Order/EffectUnpaidOrder`（拒绝手工填写）。
 - 小程序零售开单（10-21）：[零售类型与七色米单号校验](../snowmeet_wechat_mini/utils/retail.js)、[零售开单表单](../snowmeet_wechat_mini/components/reception/retail_recept_form/retail_recept_form.js)、[零售订单详情](../snowmeet_wechat_mini/pages/admin/retail/retail_order_detail.js)；下单入口在 [recept_new.js](../snowmeet_wechat_mini/pages/admin/reception/recept_new.js) 的 `onRetailCheckout`。
 - 小程序自定义顶栏（10-21）：[safe_nav_bar 组件](../snowmeet_wechat_mini/components/safe_nav_bar/safe_nav_bar.js)、[尺寸计算 navbar.js](../snowmeet_wechat_mini/utils/navbar.js)、[回归测试](../snowmeet_wechat_mini/tests/custom_nav_safe_area.test.js)。
@@ -1068,15 +1073,17 @@ dotnet run
 - ✅ ~~SnowmeetApi `2d611b98` 等用户通知再部署~~：10-23 18:46 已部署并验收，见文件顶部 10-23 一节。
 - 🚧 **1433 暴力破解（10-24 已换端口，仍有后续）**：查明攻击全部经美国服务器公网 1433 转发进来（mini 自己的安全组已挡住公网直连，近两天 1157 次失败全是 `44.207.251.65`）；mini 每天 04:30 重启来自 `/etc/crontab` 第 29 行 `30 4 * * * root reboot`（谁加的待用户说明，未动）。10-24 11:5x 用户在美国区安全组放行 5789，转发入口改为 5789、1433 关闭，本机经 5789 查库正常。换端口前 errorlog 当天 734 次失败，最后一次 11:44:31。**后续**：① 过几天看 errorlog，5789 被扫到就上来源 IP 限制（socket 的 `IPAddressAllow`）；② 换 `sa` 密码、远程查库改用只读账号（要同步 mini 上接口/公众号/滑雪学校/旧版演示的 `config.sqlServer`，单独安排）；③ 换端口后 mini 上的 iptables 白名单不再需要。以下为 10-23 当时的记录：
 - **mini 的 1433 又对外放开了（10-23 部署前发现）**：mini 在 10-23 04:30 重启过，10-22 加的 iptables 白名单不持久，已经没了。SQL errorlog 末尾 200 行里仍有 36 条 `sa` 登录失败，来源都是 `44.207.251.65`——即美国服务器的公网 1433 转发，所以在 mini 上放行这个 IP 本身挡不住经转发进来的攻击。待用户决定：收紧美国服务器 `snowmeet-forward-1433.socket` 的来源（或停用），收紧 mini 的 AWS 安全组，换 `sa` 密码或停用 `sa`。本次没有改任何防火墙规则。
-- 🚧 **下一次小程序提审**（`f8a1d17e` 及之前未提审的改动）：测试订单勾选、已核验单的核销按钮文案、养护详情页打印按钮移位。真机要验：
+- 🚧 **下一次小程序提审**（到 `84c8b865` 的未提审改动）：测试订单勾选、已核验单的核销按钮文案、养护详情页打印按钮移位、养护详情页「去收款」。**还要补两处前端**（10-24 后端已放开养护代付）：① 付款页二选一卡片对养护单只给「替人代付」，去掉「正常支付（订单转归我）」（现在点了也按代付处理）；② 收银组件养护单选支付宝时，改成「用了券卡储值且没核验」才先要求微信核验。真机要验：
+  - 未收款养护单详情页显示「去收款 ¥xx / 去储值扣款 / 去核销」，点击进结算页，付完返回按钮消失；
+  - 已核验或没用权益的会员养护单，别人微信扫码可以代付，付完订单仍归原会员、付款记录标代付；
   - 新顾客扫码报到 → 开养护单用券全额抵扣 → 结算页直接显示「确认核销」、不出核验码；查 `order.wechat_unverified=1` 和 `core_data_mod_log`（scene=开单）；
   - 报到后用支付宝付款，付完 `wechat_unverified` 仍是 1；
   - 开单中扫别人的券切人后变 0；
   - 勾「这是测试订单」开三种业务各一单，`is_test=1`；
   - 「其他支付」里看不到微信转账类，手工填写「XX微信转账」被拒。
 - ❓ **待用户答复**：「微信转账」（不带人名的那一项）要不要保留；手动录入页 `recept_entry` 要不要也加「这是测试订单」。
-- 🚧 **mini 生产库 1433 长期处置**（10-22 暴力破解 `sa` 撑满磁盘）：用户在 AWS 安全组把 1433 只留给 44.207.251.65；换 `sa` 密码或停用 `sa`；本机 `.claude/settings.local.json` 权限规则里的明文 `sa` 密码一并清掉。现在只有不持久的 iptables 白名单，mini 重启即失效。之后可执行 `sp_cycle_errorlog` 轮换约 65 MB 的 errorlog。
-- 🚧 **扫码接待 / 扫码取板上线**（后端 `33e1b2de` 已上线，小程序 `5de080ba` 待上传）：
+- （已并入上方「1433 暴力破解」一条，10-24 换端口）~~mini 生产库 1433 长期处置~~（10-22 暴力破解 `sa` 撑满磁盘）：用户在 AWS 安全组把 1433 只留给 44.207.251.65；换 `sa` 密码或停用 `sa`；本机 `.claude/settings.local.json` 权限规则里的明文 `sa` 密码一并清掉。现在只有不持久的 iptables 白名单，mini 重启即失效。之后可执行 `sp_cycle_errorlog` 轮换约 65 MB 的 errorlog。
+- 🚧 **扫码接待 / 扫码取板上线**（后端 `33e1b2de` 已上线；**10-24 核实正式版 392 已带扫码接待**，顾客扫码报到、`mapp/recept_checkin` 规则都已生效；扫码取板 `mapp/care_pick` 还没有实际用例）：
   1. 小程序后台「扫普通链接二维码打开小程序」加两条规则：`https://mini.snowmeet.top/mapp/recept_checkin` → `pages/order/recept_checkin`；`https://mini.snowmeet.top/mapp/care_pick` → `pages/order/care_pick_verify`。规则要等带新页面的版本发布后才能发布；体验版只能用「测试链接」测，限制见「已知遗留」。
   2. 两个微信号（店员 + 顾客）都加体验成员；店员号在生产库员工等级 ≥ 100。体验版连的就是生产，订单和付款都是真的。
   3. 真机测试：
@@ -1219,6 +1226,9 @@ dotnet run
 - 🚧 **储值付租金 + 微信身份核验（6-15 续3）**：代码完成未测。待 ①部署 SnowmeetApi（`DealSuccessPaidOrder` 写入 + `VerifyWechatIdentity`/`GetWechatVerifyStatus` 两接口）②公众平台登记 `order_verify`→`pages/order/identity_verify`（真机 + 测试链接）③真机重编端到端测 ④删 `onTogglePayWithDeposit` 临时诊断 console.log
 
 **已知遗留**
+- **养护单代付规则（2026-10-24）**：会员养护单只有「用了券/卡/储值且还没核验本人」时才必须本人微信付款（`care_member_required`），其余允许他人代付。**已挂会员的养护单付款后一律不改订单会员**（`OrderVerifiedRules.KeepOrderMemberOnPaid`，在 `DealSuccessPaidOrder` 里），付款页选「订单转归我」也按代付记。改「订单归属」相关逻辑时别把它去掉：否则会出现订单归付款人、却核销原会员的券卡，季卡首次绑定和养护完成赠券也落到付款人名下。租赁、零售的「订单转归我」不受影响。
+- **mini 每天 04:30 自动重启（2026-10-24 查明）**：`/etc/crontab` 第 29 行 `30 4 * * * root reboot`，加的原因不明（用户未答复）。凡是只在运行时生效、没有持久化的服务器改动（临时 iptables、手动起的进程、`/tmp` 文件）第二天都会没；服务和定时任务要走 systemd / crontab 才能活过重启。
+- **远程连生产库走 5789 或 SSH 隧道（2026-10-24 起）**：美国服务器的公网 1433 已关闭，改为 `44.207.251.65,5789`；更稳妥的是 `ssh -N -L 14330:127.0.0.1:1433 -p 2222 ubuntu@44.207.251.65` 后连 `127.0.0.1,14330`。本机 `sqlcmd` 在 `/opt/homebrew/bin`，密码用 `SQLCMDPASSWORD` 环境变量从 `SnowmeetApi/config.sqlServer` 读，别写进命令行。
 - **自动进后台只处理本次入口一次（2026-10-23 晚）**：不能每次加载 `pages/index/index` 都看旧 `globalData.scene` 再送后台，否则店员无法主动回首页。`_entryHandledRevision` 与入口 revision 配合：本次已自动进菜单（或已在菜单/保留指定页面）后，内部返回首页走次卡商城；退出后再次从符合条件的入口进入才重新分流。App 与首页共用路由，导航未完成时去重，旧登录回调不能抢后来的扫码入口。回归必须同时覆盖“自动进菜单”与“主动回首页”。
 - **`order.wechat_unverified` 由后端决定，前端传的值不算（2026-10-23）**：1 = 已核验为订单会员本人（命名与字面相反）。来源只有三个：开单前扫码报到（建单/草稿保存时后端自己查）、扫「微信身份核验码」、本人微信付款成功。养护 0 元核销、储值支付、支付宝付款、租赁储值付租金/次卡都读它。改这几处逻辑先看 `Helpers/OrderVerifiedRules.cs` 头部注释。草稿接口（`SaveRentRecept`/`SaveCareRecept`）会把整张订单原样写库，以后给订单加「状态类」字段也要注意别被前端回传的旧值覆盖。
 - **Mac mini 上 `npm test`（小程序）跑不起来（2026-10-23）**：Node 24.2 的测试运行器报 `Unable to deserialize cloned data due to invalid or unsupported version`。改用 `node --test --test-isolation=none --test-reporter=tap tests/*.test.js`（在 `snowmeet_wechat_mini` 下）；本轮新增入口测试后 286 项断言通过。但 `fnbinv_pages.test.js` 里「批次页…删除这次入库」用例结束后还有异步回调（`wx.navigateBack is not a function`），进程退出码仍为 1，不能写成整套测试退出成功。入口测试单独 31/31，退出 0。
@@ -5242,3 +5252,13 @@ key 经 stdin 写入不进进程参数；验证时从 `/proc/<pid>/environ` 读*
 - 🚧 小程序三个文件留在本地未提交/未推送，未上传、未提审、未在安卓/iPhone 实测；end-work 只自动提交并推送文档仓。下次先重新编译预览，验证自动进菜单与主动回首页，再按发布节奏处理业务仓。
 - 🚧 文档已完成本地提交，但 GitHub push 被自动审批拒绝，等待用户对本轮文档推送明确授权；尚不能视为跨机已同步。
 - 详细归档：[sessions/2026-10-23_staff-entry-home-navigation.md](sessions/2026-10-23_staff-entry-home-navigation.md)。
+
+### 2026-10-24（Mac mini）：养护单放开代付 + 养护详情页去收款 + SQL Server 转发改 5789
+
+- 只读查询：17811898285 是会员 15828（王先生）的绑定手机号、名下没有储值；13817928285 库里查不到（绑定手机号、联系号码、订单联系电话都没有）。
+- `WF_YH_261024_00001` 结算时二维码没出来：nginx 日志显示店员手机 10:08:20 进结算页后再没发任何请求，`GetWepayPayment` 一次都没调；同时段 72044 正常出码，后端没问题。原因待店员回忆。顺带确认扫码接待已在正式版 392 生效（订单 `wechat_unverified=1`）。
+- ✅ 养护详情页「去收款」（小程序 `84c8b865`，待提审）：同零售口径，跳通用结算页。
+- ✅ 用户问「会员的订单为什么不能让别人代付」：来自 7-14 规则（养护 + 微信 + 有会员 + 非本人一律拦）。用户确认新规则——已核验本人的单允许代付并核销权益，没核验且用了权益的仍须本人，没用权益的允许代付；养护单代付只记代付、订单不转人。后端 `9f9f8217` 已部署（11:09:55～11:12:19），72043 的待支付单由 `care_member_required` 变为 `choose_identity`。付款页文案和支付宝核验门槛留给下一版小程序。
+- ✅ 1433 暴力破解：查明全部来自美国服务器公网转发、mini 每天 04:30 由 crontab 重启；用户提议换端口，说明「藏门不等于关门」后照做：用户放行安全组 5789，转发改监听 5789、1433 关闭，本机验证可查库；SSH 隧道方案也验证可用。换 `sa` 密码、只读账号、IP 限制留作后续。
+- 📌 教训：店员说「二维码没显示」时，先看服务器有没有收到「生成支付」的请求，再查代码；这次日志一眼看出请求根本没发出。
+- 详细归档：[sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md](sessions/2026-10-23_checkin-verified-test-order-wechat-transfer.md) 第 9～13 节。

@@ -1,4 +1,4 @@
-# 2026-10-23 扫码报到算已核验本人 + 测试订单 + 隐藏个人微信转账：后端当晚部署，小程序待下次提审
+# 2026-10-23～24 扫码报到算已核验本人 + 测试订单 + 隐藏个人微信转账 + 养护代付 + SQL 转发改 5789：后端两次部署，小程序待下次提审
 
 Mac mini（`/Users/cangjie/source/snowmeet/snowmeet_ai`）。接续 10-22～23 的扫码接待上线工作。改动落在 SnowmeetApi（`ai`，`33e1b2de` → `2d611b98`）和 snowmeet_wechat_mini（`ai`，`5de080ba` → `f8a1d17e`），都已推送；**后端当晚 18:46 部署到 mini（见第 8 节）**，小程序待下一次提审。
 
@@ -131,3 +131,73 @@ Mac mini（`/Users/cangjie/source/snowmeet/snowmeet_ai`）。接续 10-22～23 �
   - `SaveRentRecept?sessionKey=invalid&isTest=true` 返回「没有权限」；公网 `https://mini.snowmeet.top/api/Order/GetUnCommonPayMethod` 200。
 - 没做：已核验本人要等报到页面随新版小程序上线后真机验证；没改任何防火墙规则。
 - 建议用户（待决定）：美国服务器 1433 转发限制来源或停用；mini 的 AWS 安全组只放行美国服务器；换 `sa` 密码或停用 `sa`。
+
+---
+
+以下为 10-24 同一会话的续篇（Mac mini）。
+
+## 9. 两个手机号是不是会员、有没有储值（只读）
+
+- 用户问 17811898285、13817928285 哪个是会员手机号、哪个有储值。
+- 规则：手机号对应会员只认 `member_social_account.type='cell'`（`contact` 是联系方式快照，不算）。储值看 `deposit_account`（`income_amount - consume_amount`，`valid=1`）。
+- 结果：17811898285 → 会员 15828（王先生），有效、未合并，名下 0 个储值账户；唯一一张订单 2026-01-24。13817928285 带前缀模糊查也没有，订单联系电话里也没有。
+- 连库：`sqlcmd -S 44.207.251.65,1433`（当时还是 1433），密码经 `SQLCMDPASSWORD` 从 `config.sqlServer` 读。
+
+## 10. `WF_YH_261024_00001` 结算时二维码没显示
+
+- 订单 72043：会员 2472（赵先生）、应付 200（230 减 30）、`wechat_unverified=1`、**没有任何支付记录**。
+- nginx 日志（店员手机 60.8.110.98，正式版 392）：10:07:09 出报到码 → 10:07:17 顾客扫码报到 → 10:08:18 `PlaceCareOrder` → 10:08:20 进结算页拉了两次订单和「其他支付」列表 → **之后再没有任何请求**。
+- 顾客报到页 10:07:19～10:08:23 每 2 秒轮询，10:08:23 起停（只在页面隐藏/卸载时停，是顾客离开了页面）。
+- 对照：10:14 开发者工具给 72044 点微信，`GetWepayPayment` → `LogShowWechatQrCode` → `GetQRCode` 全部正常。`4f0d2956` 只改了结算页 settle，没改收银组件。
+- 结论：生成支付的请求根本没发出。可能是没点支付方式、点了「其他支付」、或网络不通（会弹「网络不通」）。待店员回忆。
+
+## 11. 养护详情页加「去收款」（小程序 `84c8b865`）
+
+- 用户：「未收款的养护订单，需要在订单详情页中增加收款按钮，点击按钮，可以跳转到订单收款页。」
+- 照零售详情页口径：`valid==1 && dealed!=1 && closed!=1 && paidAmount==0` 才显示；文案「去收款 ¥xx / 去储值扣款 ¥xx（pay_with_deposit）/ 去核销（0 元——养护里不用权益的 0 元单下单即生效，未生效的 0 元单必然用了权益）」。
+- 放在支付信息卡片的汇总格下面，`btn btn--primary btn--block`；`onShow` 会重新拉单，付完返回按钮自动消失。
+- 小程序工作区当时有别的会话的未提交改动（`app.js`、`pages/index/index.js`、`tests/entry_navigation.test.js`，店员入口修复），只提交了养护详情页两个文件。测试 286 项通过（多出的 31 项来自那个入口测试）。
+
+## 12. 会员养护单为什么不能让别人代付 → 放开（`9f9f8217`，已部署）
+
+- 截图：付款页提示「请用订单会员本人的微信扫码支付」。扫码的是会员 4264（王）和 41204（苍），不是订单会员。
+- 来源：7-14 用户要求「如果选择微信支付，则需要通过当前会员绑定的微信号扫码」，并约定「微信支付本身就视为核验会员本人」。代码（`PaymentIdentityController` 331 行）只要「养护 + 微信 + 有会员 + 非本人」就拦，不看有没有用权益、是否已核验。
+- 用户：「通过了身份验证的订单，是允许别人代付并且核销掉他的权益的。但是没有经过身份验证的订单，还是遵循之前的规则，如果使用账户里的权益则必须本人支付。这样做和过去的规则不冲突吧？」→ 不冲突；指出三点：没用权益的未核验单以前也被拦（现在放开）、养护单代付必须仍归原会员、支付宝门槛在前端要等下一版。用户：「确认，直接修改部署吧。」
+- 实现：
+  - `OrderVerifiedRules.CareUsesBenefit`（券 `ticket_code`、卡 `use_card`、储值 `pay_with_deposit`；手动减免不算）、`CareRequiresMemberPayer(usesBenefit, verified) = usesBenefit && !verified`、`KeepOrderMemberOnPaid(type, memberId)`（已挂会员的养护单）。
+  - `_resolveStatus`：只有 `CareRequiresMemberPayer` 为真才返回 `care_member_required`，否则走原来的 `choose_identity`（保留游客建会员、手机号授权等既有流程）。
+  - `_applyChoice`：养护单选「self」改为「proxy」，付款记录标代付、记代付人手机号。
+  - `DealSuccessPaidOrder`：`KeepOrderMemberOnPaid` 为真时不改 `order.member_id`，兜住支付宝等其他路径（支付宝回调只改 `payment.member_id`）。没在回调里改 `is_proxy_pay`：调用方可能已跟踪同一条付款记录，`Entry().State=Modified` 有撞键风险。
+- 单测新增 3 项，后端 549 过 / 43 跳过。部署：`git pull --ff-only` 核对 `9f9f8217` → `republish.sh`（11:09:55～11:12:19）→ active、`NRestarts=0`、启动后无异常；`CheckPayerIdentity`（不带身份）对 72043 的待支付单 42814 返回 `choose_identity`。
+- 留给下一版小程序：付款页对养护单只给「替人代付」；收银组件支付宝核验门槛改为「用了权益且没核验」。
+
+## 13. 1433 暴力破解 → 转发改 5789
+
+- 用户问每天 04:30 重启导致白名单失效怎么办。只读排查：
+  - `last -x`：10-22、23、24 都是 04:30 重启；来自 `/etc/crontab:29` `30 4 * * * root reboot`（不是 unattended-upgrades，自动重启那项是注释掉的）。
+  - mini 上 1433 只有 `127.0.0.1` 的连接；errorlog（当前 + 上一份）1157 次 `sa` 失败**全部** `[CLIENT: 44.207.251.65]`，没有一条来自其他公网 IP → mini 安全组已挡直连，攻击全经美国服务器的公网转发；mini 上放行 44.207.251.65 的白名单本身挡不住。
+  - 美国服务器 `snowmeet-forward-1433.socket` 监听 `0.0.0.0:1433`，无其他服务依赖，ufw 未启用、iptables 全 ACCEPT。
+  - SSH 隧道 `ssh -N -L 14330:127.0.0.1:1433 -p 2222 ubuntu@44.207.251.65` 实测可查库。
+- 建议：关掉公网转发改走 SSH 隧道 + 换 `sa` 密码 / 只读账号；白名单持久化可选；每天重启的 cron 不动、问用户。
+- 用户：「如果修改美国的服务器的端口映射，从美国服务器的 5789 端口映射到中国服务器的 1433，这样试试可以吗？」→ 可以，但说明换端口只是藏门：全端口扫描（masscan / Shodan）迟早找到，届时仍是撞 `sa`；建议搭配来源 IP 限制或换密码 / 只读账号。
+- 用户在美国区安全组放行 5789 后执行：备份 socket / service 到 `/home/ubuntu/forward-5789-20261024/`；`sed` 改 `ListenStream=0.0.0.0:5789` 和描述；`daemon-reload` → 停 service → 重启 socket；`ss` 只剩 5789、2222。本机 `nc` 测 1433 关闭，`sqlcmd -S 44.207.251.65,5789` 查库正常。
+- 对照基线：换端口前当天 errorlog 734 次失败，最后一次 11:44:31。CLAUDE.md 的端口映射、连库说明已改成 5789。
+
+## 关键改动文件（10-24）
+
+| 文件 | 改动 |
+|---|---|
+| [`SnowmeetApi/Helpers/OrderVerifiedRules.cs`](../../SnowmeetApi/Helpers/OrderVerifiedRules.cs) | 新增 `CareUsesBenefit`、`CareRequiresMemberPayer`、`KeepOrderMemberOnPaid` |
+| `SnowmeetApi/Controllers/Order/PaymentIdentityController.cs` | `_resolveStatus` 养护拦截加条件；`_applyChoice` 养护强制代付 |
+| `SnowmeetApi/Controllers/OrderController.cs` | `DealSuccessPaidOrder` 不改已挂会员养护单的会员 |
+| `SnowmeetApi/SnowmeetApi.Tests/OrderVerifiedRulesTests.cs` | 新增 3 项 |
+| `snowmeet_wechat_mini/pages/admin/care/care_order_detail/care_order_detail.{js,wxml}` | 去收款按钮 |
+| 美国服务器 `/etc/systemd/system/snowmeet-forward-1433.socket` | `ListenStream` 1433 → 5789 |
+
+## 学到的小知识（10-24）
+
+1. **「二维码没出来」先看服务器收没收到请求**：nginx 日志按店员 IP / 登录凭证筛一遍，就能分清是前端没发、发了失败，还是后端出错。
+2. **按登录凭证追人要先 URL 解码**：日志里的 sessionKey 可能被编码一到两次（`%252B`），解码到不含 `%` 再去 `mini_session` 匹配；输出里只显示前几位。
+3. **暴力破解看来源分布**：`grep "Login failed" | grep -o "CLIENT: [0-9.]*" | sort | uniq -c` 一眼看出攻击走哪条路；全部来自转发机就说明该在转发机上处理。
+4. **systemd socket 改端口**：只改 `.socket` 的 `ListenStream`，`daemon-reload` 后先停对应 `.service` 再重启 `.socket`，否则旧进程还拿着老监听。
+5. **换端口不等于加固**：能降噪，挡不住全端口扫描；真正收口要靠来源限制、隧道或最小权限账号。
